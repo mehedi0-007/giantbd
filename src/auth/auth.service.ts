@@ -1,4 +1,8 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { LogInDTO } from './auth.dto';
 import * as bcrypt from 'bcrypt';
@@ -87,6 +91,20 @@ export class AuthService {
       ...tokens,
       user: AuthenticatedUser(user),
     };
+  }
+
+  async logOut(userId: string) {
+    const user = await this.prismaService.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user || user.status !== 'ACTIVE' || !user.refreshHash)
+      throw new NotFoundException('Invalid user');
+
+    await this.prismaService.user.update({
+      where: { id: userId },
+      data: { refreshHash: null },
+    });
   }
 
   private async verifyRefreshToken(token: string) {
