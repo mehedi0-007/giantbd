@@ -40,11 +40,14 @@ model User {
   id        String  @id @default(cuid())
   name      String
   email     String  @unique
+  password  String
   phone     String  @unique
   gender    Gender
   image     String?
   signature String?
   status    Status  @default(ACTIVE)
+
+  refreshHash String?
 
   roleId String
   role   Role   @relation(fields: [roleId], references: [id])
