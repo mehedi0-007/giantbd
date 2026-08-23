@@ -1,0 +1,122 @@
+generator client {
+  provider = "prisma-client.js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Status {
+  ACTIVE
+  INACTIVE
+  PENDING
+}
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+model User {
+  id        String @id @default(cuid(2))
+  name      String
+  email     String @unique
+  phone     String @unique
+  gender    Gender
+  image     String
+  signature String
+  status    Status @default(ACTIVE)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  role_id String
+  role    Role   @relation(fields: [role_id], references: [id])
+}
+
+model Role {
+  id             String           @id @default(cuid(2))
+  name           String
+  users          User[]
+  rolePermission RolePermission[]
+  status         Status           @default(ACTIVE)
+
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  permission   Permission? @relation(fields: [permissionId], references: [id])
+  permissionId String?
+}
+
+model Permission {
+  id    String @id @default(cuid(2))
+  name  String
+  roles Role[]
+
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  rolePermissions RolePermission[]
+}
+
+model RolePermission {
+  role_id       String
+  permission_id String
+
+  role       Role       @relation(fields: [role_id], references: [id])
+  permission Permission @relation(fields: [permission_id], references: [id])
+
+  @@id([role_id, permission_id])
+  @@index([permission_id])
+}
+
+model Category {
+  id     String @id @default(cuid(2))
+  name   String
+  status Status @default(ACTIVE)
+
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  subCategories  Sub_category[]
+  masterProducts MasterProduct[]
+}
+
+model Sub_category {
+  id   String @id @default(cuid(2))
+  name String
+
+  status      Status   @default(ACTIVE)
+  category_id String
+  category    Category @relation(fields: [category_id], references: [id])
+
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  masterProducts MasterProduct[]
+}
+
+model Material {
+  id          String @id @default(cuid(2))
+  name        String
+  description String
+  status      Status @default(ACTIVE)
+
+  masterProducts MasterProduct[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model MasterProduct {
+  id   String @id @default(cuid(2))
+  name String
+  sku  String @unique
+
+  category_id     String
+  sub_category_id String
+  material_id     String
+  status          Status @default(ACTIVE)
+  created_by      String
+
+  category     Category     @relation(fields: [category_id], references: [id])
+  sub_category Sub_category @relation(fields: [sub_category_id], references: [id])
+  material     Material     @relation(fields: [material_id], references: [id])
+  createdAt    DateTime     @default(now())
+}
