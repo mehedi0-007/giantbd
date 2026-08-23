@@ -1,5 +1,5 @@
 generator client {
-  provider = "prisma-client.js"
+  provider = "prisma-client-js"
 }
 
 datasource db {
@@ -17,106 +17,323 @@ enum Gender {
   FEMALE
 }
 
+enum UnitOfMeasurement {
+  PAIR
+  LEFT
+  RIGHT
+}
+
+enum PackingType {
+  POLY_BAG
+}
+
+enum InventoryMovementType {
+  RECEIVED
+  SALE
+  TRANSFER
+  RETURN
+  DAMAGE
+  ADJUSTMENT
+}
+
 model User {
-  id        String @id @default(cuid(2))
+  id        String  @id @default(cuid())
   name      String
-  email     String @unique
-  phone     String @unique
+  email     String  @unique
+  phone     String  @unique
   gender    Gender
-  image     String
-  signature String
-  status    Status @default(ACTIVE)
+  image     String?
+  signature String?
+  status    Status  @default(ACTIVE)
+
+  roleId String
+  role   Role   @relation(fields: [roleId], references: [id])
+
+  variantProducts VariantProduct[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  role_id String
-  role    Role   @relation(fields: [role_id], references: [id])
+  @@index([roleId])
 }
 
 model Role {
-  id             String           @id @default(cuid(2))
-  name           String
-  users          User[]
-  rolePermission RolePermission[]
-  status         Status           @default(ACTIVE)
+  id   String @id @default(cuid())
+  name String @unique
 
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
-  permission   Permission? @relation(fields: [permissionId], references: [id])
-  permissionId String?
-}
-
-model Permission {
-  id    String @id @default(cuid(2))
-  name  String
-  roles Role[]
-
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-  rolePermissions RolePermission[]
-}
-
-model RolePermission {
-  role_id       String
-  permission_id String
-
-  role       Role       @relation(fields: [role_id], references: [id])
-  permission Permission @relation(fields: [permission_id], references: [id])
-
-  @@id([role_id, permission_id])
-  @@index([permission_id])
-}
-
-model Category {
-  id     String @id @default(cuid(2))
-  name   String
   status Status @default(ACTIVE)
 
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-  subCategories  Sub_category[]
-  masterProducts MasterProduct[]
-}
-
-model Sub_category {
-  id   String @id @default(cuid(2))
-  name String
-
-  status      Status   @default(ACTIVE)
-  category_id String
-  category    Category @relation(fields: [category_id], references: [id])
-
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-  masterProducts MasterProduct[]
-}
-
-model Material {
-  id          String @id @default(cuid(2))
-  name        String
-  description String
-  status      Status @default(ACTIVE)
-
-  masterProducts MasterProduct[]
+  users           User[]
+  rolePermissions RolePermission[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
+model Permission {
+  id   String @id @default(cuid())
+  name String @unique
+
+  rolePermissions RolePermission[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@index([permissionId])
+}
+
+model Category {
+  id   String @id @default(cuid())
+  name String
+
+  status Status @default(ACTIVE)
+
+  subCategories   SubCategory[]
+  masterProducts  MasterProduct[]
+  variantProducts VariantProduct[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+}
+
+model SubCategory {
+  id   String @id @default(cuid())
+  name String
+
+  status Status @default(ACTIVE)
+
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
+
+  masterProducts  MasterProduct[]
+  variantProducts VariantProduct[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([categoryId])
+  @@index([status])
+}
+
+model Material {
+  id          String  @id @default(cuid())
+  name        String  @unique
+  description String?
+
+  status Status @default(ACTIVE)
+
+  masterProducts MasterProduct[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+}
+
 model MasterProduct {
-  id   String @id @default(cuid(2))
+  id   String @id @default(cuid())
   name String
   sku  String @unique
 
-  category_id     String
-  sub_category_id String
-  material_id     String
-  status          Status @default(ACTIVE)
-  created_by      String
+  categoryId    String
+  subCategoryId String
+  materialId    String
 
-  category     Category     @relation(fields: [category_id], references: [id])
-  sub_category Sub_category @relation(fields: [sub_category_id], references: [id])
-  material     Material     @relation(fields: [material_id], references: [id])
-  createdAt    DateTime     @default(now())
+  category    Category    @relation(fields: [categoryId], references: [id])
+  subCategory SubCategory @relation(fields: [subCategoryId], references: [id])
+  material    Material    @relation(fields: [materialId], references: [id])
+
+  status    Status @default(ACTIVE)
+  createdBy String
+
+  variantProducts VariantProduct[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([categoryId])
+  @@index([subCategoryId])
+  @@index([materialId])
+  @@index([status])
+}
+
+model VariantProduct {
+  id   String @id @default(cuid())
+  name String
+
+  sku     String @unique
+  barcode String @unique
+
+  size   String
+  color  String
+  gender Gender
+
+  uom UnitOfMeasurement
+
+  itemsPerPacket Int
+
+  picture String?
+
+  packingType PackingType @default(POLY_BAG)
+  status      Status      @default(ACTIVE)
+
+  shippableQuantity Int @default(0)
+
+  masterProductId String
+  masterProduct   MasterProduct @relation(fields: [masterProductId], references: [id])
+
+  creatorId String
+  creator   User   @relation(fields: [creatorId], references: [id])
+
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
+
+  subCategoryId String
+  subCategory   SubCategory @relation(fields: [subCategoryId], references: [id])
+
+  inventoryBatchItems InventoryBatchItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([masterProductId])
+  @@index([creatorId])
+  @@index([categoryId])
+  @@index([subCategoryId])
+  @@index([status])
+}
+
+model Batch {
+  id   String @id @default(cuid())
+  name String
+
+  productionDate DateTime
+  expirationDate DateTime
+
+  inventoryBatchItems InventoryBatchItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([name, productionDate])
+  @@index([expirationDate])
+}
+
+model InventoryBatchItem {
+  id String @id @default(cuid())
+
+  productId String
+  product   VariantProduct @relation(fields: [productId], references: [id])
+
+  batchId String
+  batch   Batch  @relation(fields: [batchId], references: [id])
+
+  rackId String
+  rack   Rack   @relation(fields: [rackId], references: [id])
+
+  receivedQty  Int
+  availableQty Int
+
+  itemsPerPacket Int
+
+  packetCount Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  inventoryMovements InventoryMovement[]
+
+  @@unique([productId, batchId, rackId])
+  @@index([productId])
+  @@index([batchId])
+  @@index([rackId])
+}
+
+model InventoryMovement {
+  id String @id @default(cuid())
+
+  inventoryBatchItemId String
+  inventoryBatchItem   InventoryBatchItem @relation(fields: [inventoryBatchItemId], references: [id])
+
+  type InventoryMovementType
+
+  quantity Int
+
+  referenceId String?
+  note        String?
+
+  createdAt DateTime @default(now())
+
+  @@index([inventoryBatchItemId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+model Warehouse {
+  id   String @id @default(cuid())
+  name String @unique
+
+  zones Zone[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Zone {
+  id   String @id @default(cuid())
+  name String
+
+  warehouseId String
+  warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
+
+  subZones SubZone[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([warehouseId, name])
+  @@index([warehouseId])
+}
+
+model SubZone {
+  id   String @id @default(cuid())
+  name String
+
+  zoneId String
+  zone   Zone   @relation(fields: [zoneId], references: [id])
+
+  racks Rack[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([zoneId, name])
+  @@index([zoneId])
+}
+
+model Rack {
+  id   String @id @default(cuid())
+  name String
+
+  subZoneId String
+  subZone   SubZone @relation(fields: [subZoneId], references: [id])
+
+  inventoryBatchItems InventoryBatchItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([subZoneId, name])
+  @@index([subZoneId])
 }
