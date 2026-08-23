@@ -168,6 +168,17 @@ model MasterProduct {
   @@index([status])
 }
 
+model Color {
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+  status      Status  @default(ACTIVE)
+
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  variantProducts VariantProduct[]
+}
+
 model VariantProduct {
   id   String @id @default(cuid())
   name String
@@ -175,9 +186,10 @@ model VariantProduct {
   sku     String @unique
   barcode String @unique
 
-  size   String
-  color  String
-  gender Gender
+  size    String
+  colorId String
+  color   Color  @relation(fields: [colorId], references: [id])
+  gender  Gender
 
   uom UnitOfMeasurement
 
@@ -281,59 +293,80 @@ model InventoryMovement {
 }
 
 model Warehouse {
-  id   String @id @default(cuid())
-  name String @unique
+  id          String  @id @default(cuid())
+  name        String
+  code        String  @unique
+  description String?
+
+  status Status @default(ACTIVE)
 
   zones Zone[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([status])
 }
 
 model Zone {
-  id   String @id @default(cuid())
-  name String
+  id          String  @id @default(cuid())
+  name        String
+  code        String
+  description String?
 
   warehouseId String
   warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
+
+  status Status @default(ACTIVE)
 
   subZones SubZone[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([warehouseId, name])
+  @@unique([warehouseId, code])
   @@index([warehouseId])
+  @@index([status])
 }
 
 model SubZone {
-  id   String @id @default(cuid())
-  name String
+  id          String  @id @default(cuid())
+  name        String
+  code        String
+  description String?
 
   zoneId String
   zone   Zone   @relation(fields: [zoneId], references: [id])
+
+  status Status @default(ACTIVE)
 
   racks Rack[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([zoneId, name])
+  @@unique([zoneId, code])
   @@index([zoneId])
+  @@index([status])
 }
 
 model Rack {
-  id   String @id @default(cuid())
-  name String
+  id          String  @id @default(cuid())
+  name        String
+  code        String
+  description String?
 
   subZoneId String
   subZone   SubZone @relation(fields: [subZoneId], references: [id])
+
+  status Status @default(ACTIVE)
 
   inventoryBatchItems InventoryBatchItem[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([subZoneId, name])
+  @@unique([subZoneId, code])
   @@index([subZoneId])
+  @@index([status])
 }
