@@ -15,6 +15,11 @@ enum Status {
 enum Gender {
   MALE
   FEMALE
+}
+
+enum PRODUCT_GENDER {
+  MALE
+  LADY
   KIDS
   JUNIOR
   TWIN_JUNIOR
@@ -195,7 +200,7 @@ model VariantProduct {
   size    String
   colorId String
   color   Color  @relation(fields: [colorId], references: [id])
-  gender  Gender
+  gender  PRODUCT_GENDER
 
   uom UnitOfMeasurement
 

@@ -3,6 +3,7 @@ export function AuthenticatedUser(user: any) {
     id: user.id,
     name: user.name,
     email: user.email,
+    phone: user.phone,
     status: user.status,
     role: {
       id: user.role.id,
