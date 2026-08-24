@@ -9,7 +9,7 @@ import { TransformResponseInterceptor } from './common';
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
-  app.enableCors();
+  // app.enableCors();
   app.setGlobalPrefix('api');
 
   app.useGlobalPipes(
