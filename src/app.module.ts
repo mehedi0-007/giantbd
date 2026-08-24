@@ -6,7 +6,8 @@ import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { UserModule } from './users/user.module';
-import { RbacModule } from './rbac/rbac.module';
+import { RolesModule } from './roles/roles.module';
+import { PermissionsModule } from './permissions/permissions.module';
 import { CatalogModule } from './catalog/catalog.module';
 import { JwtAuthGuard } from './common/guards/jwt.guard';
 
@@ -16,7 +17,8 @@ import { JwtAuthGuard } from './common/guards/jwt.guard';
     PrismaModule,
     AuthModule,
     UserModule,
-    RbacModule,
+    RolesModule,
+    PermissionsModule,
     CatalogModule,
   ],
   controllers: [AppController],
