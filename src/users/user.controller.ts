@@ -8,15 +8,21 @@ import {
   Post,
   Query,
   UploadedFiles,
+  UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { RegistrationDTO, UpdateUserDTO } from './dto/user.dto';
-import { UserFileUploadInterceptor } from '../common/Interceptors/upload_file.interceptor';
-import { CurrentUser } from '../common/Decorators/current-user.decorator';
-import { Public } from '../common/Decorators/public.decorator';
+import {
+  CurrentUser,
+  Public,
+  RequirePermissions,
+  PermissionsGuard,
+  UserFileUploadInterceptor,
+} from '../common';
 
 @Controller('users')
+@UseGuards(PermissionsGuard)
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
@@ -37,6 +43,7 @@ export class UserController {
   }
 
   @Get()
+  @RequirePermissions('users:read')
   async findAll(
     @Query('page') page?: number,
     @Query('per_page') per_page?: number,
@@ -46,11 +53,13 @@ export class UserController {
   }
 
   @Get(':id')
+  @RequirePermissions('users:read')
   async findById(@Param('id') id: string) {
     return this.userService.findById(id);
   }
 
   @Patch(':id')
+  @RequirePermissions('users:update')
   async updateUser(
     @Param('id') id: string,
     @Body() dto: UpdateUserDTO,
@@ -59,6 +68,7 @@ export class UserController {
   }
 
   @Delete(':id')
+  @RequirePermissions('users:delete')
   async deleteUser(@Param('id') id: string) {
     return this.userService.deleteUser(id);
   }

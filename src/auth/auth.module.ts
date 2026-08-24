@@ -20,7 +20,7 @@ import { PrismaModule } from '../prisma/prisma.module';
           configService.get<string>('JWT_ACCESS_SECRET') ?? 'DEV-ACCESS-SECRET',
         signOptions: {
           expiresIn:
-            configService.get<StringValue>('JWT_EXPIRES_IN') ?? '1d',
+            configService.get<StringValue>('JWT_ACCESS_EXPIRES') ?? '15m',
         },
       }),
     }),
@@ -29,4 +29,4 @@ import { PrismaModule } from '../prisma/prisma.module';
   providers: [AuthService, JwtStrategy],
   exports: [AuthService, JwtModule, PassportModule],
 })
-export class AuthModule {}
+export class AuthModule { }

@@ -69,8 +69,9 @@ model User {
 }
 
 model Role {
-  id   String @id @default(cuid())
-  name String @unique
+  id          String  @id @default(cuid())
+  name        String  @unique
+  description String?
 
   status Status @default(ACTIVE)
 
@@ -79,16 +80,22 @@ model Role {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([status])
 }
 
 model Permission {
-  id   String @id @default(cuid())
-  name String @unique
+  id          String  @id @default(cuid())
+  name        String  @unique
+  module      String
+  description String?
 
   rolePermissions RolePermission[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([module])
 }
 
 model RolePermission {

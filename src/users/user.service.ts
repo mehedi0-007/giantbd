@@ -13,7 +13,10 @@ export class UserService {
 
   async registration(
     dto: RegistrationDTO,
-    files?: { image?: Express.Multer.File[]; signature?: Express.Multer.File[] },
+    files?: {
+      image?: Express.Multer.File[];
+      signature?: Express.Multer.File[];
+    },
   ) {
     const isEmailExist = await this.prismaService.user.findUnique({
       where: { email: dto.email },
@@ -28,14 +31,20 @@ export class UserService {
         where: { phone: dto.phone },
       });
       if (isPhoneExist) {
-        throw new ConflictException('User already exists with this phone number');
+        throw new ConflictException(
+          'User already exists with this phone number',
+        );
       }
     }
 
     const hashPass = await bcrypt.hash(dto.password, 10);
 
-    const imagePath = files?.image?.[0]?.path ? files.image[0].path.replace(/\\/g, '/') : (dto.image ?? null);
-    const signaturePath = files?.signature?.[0]?.path ? files.signature[0].path.replace(/\\/g, '/') : (dto.signature ?? null);
+    const imagePath = files?.image?.[0]?.path
+      ? files.image[0].path.replace(/\\/g, '/')
+      : (dto.image ?? null);
+    const signaturePath = files?.signature?.[0]?.path
+      ? files.signature[0].path.replace(/\\/g, '/')
+      : (dto.signature ?? null);
 
     const newUser = await this.prismaService.user.create({
       data: {
@@ -162,7 +171,10 @@ export class UserService {
       throw new NotFoundException('User not found');
     }
 
-    await this.prismaService.user.delete({ where: { id: userId } });
+    await this.prismaService.user.update({
+      where: { id: userId },
+      data: { status: 'INACTIVE' },
+    });
 
     return {
       message: 'User deleted successfully',
