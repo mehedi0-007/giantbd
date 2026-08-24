@@ -8,6 +8,7 @@ export function AuthenticatedUser(user: any) {
     role: {
       id: user.role.id,
       name: user.role.name,
+      status: user.role.status,
     },
     permissions: user.permission.map(({ per }: any) => per.name),
   };

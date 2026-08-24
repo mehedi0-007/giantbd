@@ -5,7 +5,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { LogInDTO, RegistrationDTO } from './dto/auth.dto';
+import { LogInDTO } from './dto/auth.dto';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -24,33 +24,6 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
   ) {}
-
-  async registration(dto: RegistrationDTO) {
-    const isExist = await this.prismaService.user.findUnique({
-      where: { email: dto.email },
-    });
-
-    if (isExist)
-      throw new ConflictException('User already exists with this email');
-
-    const hashPass = await bcrypt.hash(dto.password, 10);
-
-    const newUser = await this.prismaService.user.create({
-      data: {
-        name: dto.name,
-        email: dto.email,
-        phone: dto.phone ?? '',
-        password: hashPass,
-        roleId: dto.roleId,
-        gender: dto.gender,
-      },
-    });
-
-    return {
-      msg: 'User Created Successfully',
-      data: '',
-    };
-  }
 
   async logIn(dto: LogInDTO) {
     const user = await this.prismaService.user.findUnique({

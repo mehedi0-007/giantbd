@@ -15,25 +15,3 @@ export class LogInDTO {
   @IsString()
   password!: string;
 }
-
-export class RegistrationDTO {
-  @IsString()
-  name!: string;
-
-  @IsEmail()
-  email!: string;
-
-  @IsEnum(Gender)
-  gender!: Gender;
-
-  @IsString()
-  roleId!: string;
-
-  @IsString()
-  @MinLength(6)
-  password!: string;
-
-  @IsString()
-  @IsOptional()
-  phone?: string;
-}
