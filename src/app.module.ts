@@ -8,7 +8,8 @@ import { AuthModule } from './auth/auth.module';
 import { UserModule } from './users/user.module';
 import { RolesModule } from './roles/roles.module';
 import { PermissionsModule } from './permissions/permissions.module';
-import { CatalogModule } from './catalog/catalog.module';
+import { CatalogModule } from './products/catalog.module';
+import { AttributesModule } from './attributes/attributes.module';
 import { JwtAuthGuard } from './common/guards/jwt.guard';
 
 @Module({
@@ -20,6 +21,7 @@ import { JwtAuthGuard } from './common/guards/jwt.guard';
     RolesModule,
     PermissionsModule,
     CatalogModule,
+    AttributesModule,
   ],
   controllers: [AppController],
   providers: [

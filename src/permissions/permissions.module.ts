@@ -7,6 +7,5 @@ import { PermissionsController } from './permissions.controller';
   imports: [PrismaModule],
   controllers: [PermissionsController],
   providers: [PermissionsService],
-  exports: [PermissionsService],
 })
 export class PermissionsModule {}
