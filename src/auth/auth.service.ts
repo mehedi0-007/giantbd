@@ -1,5 +1,4 @@
 import {
-  ConflictException,
   Injectable,
   NotFoundException,
   UnauthorizedException,
@@ -49,11 +48,11 @@ export class AuthService {
 
     const passCmp = await bcrypt.compare(dto.password, user.password);
 
-    if (!passCmp)
+    if (!passCmp) {
       throw new UnauthorizedException('Invalid credentials provided');
+    }
 
     const tokens = await this.generateTokens(user.id);
-
     const refreshHash = await bcrypt.hash(tokens.refreshToken, 10);
 
     await this.prismaService.user.update({
@@ -69,22 +68,38 @@ export class AuthService {
 
   async refresh(refreshToken: string): Promise<any> {
     const payload = await this.verifyRefreshToken(refreshToken);
-    const user = await this.prismaService.user.findUnique(payload.sub);
+    const user = await this.prismaService.user.findUnique({
+      where: { id: payload.sub },
+      include: {
+        role: {
+          include: {
+            rolePermissions: {
+              include: {
+                permission: {
+                  select: { name: true },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
 
-    if (!user || user.status !== 'ACTIVE')
+    if (!user || user.status !== 'ACTIVE' || !user.refreshHash) {
       throw new UnauthorizedException('Invalid token or User not active');
+    }
 
-    const isVal = await bcrypt.compare(refreshToken, user.refreshHash ?? '');
+    const isVal = await bcrypt.compare(refreshToken, user.refreshHash);
 
-    if (!isVal)
+    if (!isVal) {
       throw new UnauthorizedException('Invalid token or user not active');
+    }
 
     const tokens = await this.generateTokens(user.id);
-
     const refreshHash = await bcrypt.hash(tokens.refreshToken, 10);
 
     await this.prismaService.user.update({
-      where: { id: payload.sub },
+      where: { id: user.id },
       data: { refreshHash },
     });
 
@@ -99,13 +114,18 @@ export class AuthService {
       where: { id: userId },
     });
 
-    if (!user || user.status !== 'ACTIVE' || !user.refreshHash)
-      throw new NotFoundException('Invalid user');
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
 
     await this.prismaService.user.update({
       where: { id: userId },
       data: { refreshHash: null },
     });
+
+    return {
+      message: 'Logged out successfully',
+    };
   }
 
   private async verifyRefreshToken(token: string) {

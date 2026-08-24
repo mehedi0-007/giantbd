@@ -5,11 +5,16 @@ export function AuthenticatedUser(user: any) {
     email: user.email,
     phone: user.phone,
     status: user.status,
-    role: {
-      id: user.role.id,
-      name: user.role.name,
-      status: user.role.status,
-    },
-    permissions: user.permission.map(({ per }: any) => per.name),
+    role: user.role
+      ? {
+          id: user.role.id,
+          name: user.role.name,
+          status: user.role.status,
+        }
+      : null,
+    permissions:
+      user.role?.rolePermissions?.map(
+        (rp: any) => rp.permission?.name ?? rp.permissionName,
+      ) ?? [],
   };
 }
