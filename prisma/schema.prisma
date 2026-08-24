@@ -487,6 +487,7 @@ model Buyer {
   updatedAt DateTime @updatedAt
 
   @@index([status])
+  @@index([country])
 }
 
 model LC {
@@ -507,6 +508,8 @@ model LC {
 
   @@index([buyerId])
   @@index([status])
+  @@index([expiryDate])
+  @@index([shipmentDate])
 }
 
 model PO {
@@ -531,6 +534,8 @@ model PO {
   @@index([buyerId])
   @@index([lcId])
   @@index([status])
+  @@index([orderDate])
+  @@index([deliveryDate])
 }
 
 model POItem {

@@ -231,7 +231,7 @@ export class StockInService {
         createdBatchItems.push(batchItem);
       }
 
-      // 5. Update PO Item delivered quantities if linked
+      // 5. Update PO Item delivered quantities if linked & auto-advance PO status
       if (dto.poId) {
         for (const item of dto.items) {
           const variant = variantMap.get(item.variantProductId)!;
@@ -246,6 +246,23 @@ export class StockInService {
             },
             data: {
               shippedQuantity: { increment: receivedQty },
+            },
+          });
+        }
+
+        const poItems = await tx.pOItem.findMany({ where: { poId: dto.poId } });
+        if (poItems.length > 0) {
+          const isAllFulfilled = poItems.every((i) => i.shippedQuantity >= i.quantity);
+          const hasAnyStock = poItems.some((i) => i.shippedQuantity > 0);
+
+          await tx.pO.update({
+            where: { id: dto.poId },
+            data: {
+              status: isAllFulfilled
+                ? 'READY_FOR_SHIPMENT'
+                : hasAnyStock
+                  ? 'IN_PRODUCTION'
+                  : undefined,
             },
           });
         }

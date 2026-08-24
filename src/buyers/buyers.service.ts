@@ -48,6 +48,10 @@ export class BuyersService {
       where.status = query.status;
     }
 
+    if (query.country) {
+      where.country = { contains: query.country, mode: 'insensitive' };
+    }
+
     if (query.search) {
       where.AND = [
         { status: { not: 'DELETED' } },
@@ -106,13 +110,14 @@ export class BuyersService {
           orderBy: { createdAt: 'desc' },
           take: 10,
           include: {
-            _count: { select: { items: true, batches: true } },
+            items: { select: { quantity: true, shippedQuantity: true } },
+            _count: { select: { batches: true } },
           },
         },
         _count: {
           select: {
-            lcs: true,
-            purchaseOrders: true,
+            lcs: { where: { status: { not: 'CANCELLED' } } },
+            purchaseOrders: { where: { status: { not: 'CANCELLED' } } },
           },
         },
       },
@@ -122,7 +127,28 @@ export class BuyersService {
       throw new NotFoundException('Buyer not found');
     }
 
-    return { data: buyer };
+    const totalOrderedPairs = buyer.purchaseOrders.reduce(
+      (sum, po) => sum + po.totalQuantity,
+      0,
+    );
+    const totalDeliveredPairs = buyer.purchaseOrders.reduce(
+      (sum, po) => sum + po.items.reduce((iSum, i) => iSum + i.shippedQuantity, 0),
+      0,
+    );
+    const totalPendingPairs = Math.max(0, totalOrderedPairs - totalDeliveredPairs);
+
+    return {
+      data: {
+        ...buyer,
+        analytics: {
+          totalActivePOs: buyer._count.purchaseOrders,
+          totalActiveLCs: buyer._count.lcs,
+          totalOrderedPairs,
+          totalDeliveredPairs,
+          totalPendingPairs,
+        },
+      },
+    };
   }
 
   async update(id: string, dto: UpdateBuyerDTO) {

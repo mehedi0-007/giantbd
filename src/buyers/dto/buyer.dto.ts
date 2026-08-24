@@ -79,6 +79,10 @@ export class QueryBuyerDTO {
   per_page?: string | number;
 
   @IsOptional()
+  @IsString()
+  country?: string;
+
+  @IsOptional()
   @IsEnum(Status)
   status?: Status;
 }
