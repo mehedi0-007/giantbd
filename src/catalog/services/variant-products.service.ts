@@ -1,0 +1,362 @@
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { PrismaService } from '../../prisma/prisma.service';
+import {
+  BulkCreateVariantDTO,
+  CreateVariantProductDTO,
+  QueryVariantProductDTO,
+  UpdateVariantProductDTO,
+} from '../dto/variant-product.dto';
+
+@Injectable()
+export class VariantProductsService {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async create(dto: CreateVariantProductDTO, creatorId: string) {
+    const [masterProduct, color] = await Promise.all([
+      this.prisma.masterProduct.findUnique({
+        where: { id: dto.masterProductId },
+        include: { category: true, subCategory: true },
+      }),
+      this.prisma.color.findUnique({ where: { id: dto.colorId } }),
+    ]);
+
+    if (!masterProduct) throw new NotFoundException('Master Product not found');
+    if (!color) throw new NotFoundException('Color not found');
+
+    const cleanSize = dto.size.trim().toUpperCase();
+    const name =
+      dto.name?.trim() || `${masterProduct.name} - ${color.name} / ${cleanSize}`;
+
+    const sku =
+      dto.sku?.trim().toUpperCase() ||
+      `${masterProduct.sku}-${color.name.toUpperCase().replace(/\s+/g, '')}-${cleanSize}`;
+
+    const barcode = dto.barcode?.trim() || this.generateBarcode();
+
+    const [existingSku, existingBarcode] = await Promise.all([
+      this.prisma.variantProduct.findUnique({ where: { sku } }),
+      this.prisma.variantProduct.findUnique({ where: { barcode } }),
+    ]);
+
+    if (existingSku) {
+      throw new ConflictException(`Variant with SKU '${sku}' already exists`);
+    }
+    if (existingBarcode) {
+      throw new ConflictException(`Variant with barcode '${barcode}' already exists`);
+    }
+
+    return this.prisma.variantProduct.create({
+      data: {
+        name,
+        sku,
+        barcode,
+        size: cleanSize,
+        colorId: dto.colorId,
+        gender: dto.gender,
+        uom: dto.uom,
+        itemsPerPacket: dto.itemsPerPacket,
+        packingType: dto.packingType ?? 'POLY_BAG',
+        costPrice: dto.costPrice ?? 0,
+        sellingPrice: dto.sellingPrice ?? 0,
+        mrp: dto.mrp ?? 0,
+        status: dto.status ?? 'ACTIVE',
+        masterProductId: masterProduct.id,
+        categoryId: masterProduct.categoryId,
+        subCategoryId: masterProduct.subCategoryId,
+        creatorId,
+      },
+      include: {
+        color: true,
+        masterProduct: {
+          select: { id: true, name: true, sku: true },
+        },
+      },
+    });
+  }
+
+  async bulkCreate(dto: BulkCreateVariantDTO, creatorId: string) {
+    const masterProduct = await this.prisma.masterProduct.findUnique({
+      where: { id: dto.masterProductId },
+    });
+
+    if (!masterProduct) {
+      throw new NotFoundException('Master Product not found');
+    }
+
+    const colors = await this.prisma.color.findMany({
+      where: { id: { in: dto.colorIds } },
+    });
+
+    if (colors.length === 0) {
+      throw new BadRequestException('No valid colors provided');
+    }
+
+    const createdVariants = [];
+
+    for (const color of colors) {
+      for (const rawSize of dto.sizes) {
+        const cleanSize = rawSize.trim().toUpperCase();
+        const sku = `${masterProduct.sku}-${color.name.toUpperCase().replace(/\s+/g, '')}-${cleanSize}`;
+        const name = `${masterProduct.name} - ${color.name} / ${cleanSize}`;
+
+        const isExist = await this.prisma.variantProduct.findUnique({
+          where: { sku },
+        });
+
+        if (!isExist) {
+          const barcode = this.generateBarcode();
+          const variant = await this.prisma.variantProduct.create({
+            data: {
+              name,
+              sku,
+              barcode,
+              size: cleanSize,
+              colorId: color.id,
+              gender: dto.gender,
+              uom: dto.uom,
+              itemsPerPacket: dto.itemsPerPacket,
+              packingType: dto.packingType ?? 'POLY_BAG',
+              costPrice: dto.costPrice ?? 0,
+              sellingPrice: dto.sellingPrice ?? 0,
+              mrp: dto.mrp ?? 0,
+              status: 'ACTIVE',
+              masterProductId: masterProduct.id,
+              categoryId: masterProduct.categoryId,
+              subCategoryId: masterProduct.subCategoryId,
+              creatorId,
+            },
+          });
+          createdVariants.push(variant);
+        }
+      }
+    }
+
+    return {
+      message: `Successfully generated ${createdVariants.length} product variants`,
+      data: createdVariants,
+    };
+  }
+
+  async updatePicture(id: string, file: Express.Multer.File) {
+    const variant = await this.prisma.variantProduct.findUnique({
+      where: { id },
+    });
+
+    if (!variant) {
+      throw new NotFoundException('Variant Product not found');
+    }
+
+    const picturePath = file.path.replace(/\\/g, '/');
+
+    const updated = await this.prisma.variantProduct.update({
+      where: { id },
+      data: { picture: picturePath },
+      include: { color: true },
+    });
+
+    return {
+      message: 'Product picture uploaded successfully',
+      data: updated,
+    };
+  }
+
+  async findAll(query: QueryVariantProductDTO) {
+    const per_page = Number(query.per_page) || 20;
+    const page = Number(query.page) || 1;
+    const skip = (page - 1) * per_page;
+
+    const where: any = {};
+
+    if (query.search) {
+      where.OR = [
+        { name: { contains: query.search, mode: 'insensitive' } },
+        { sku: { contains: query.search, mode: 'insensitive' } },
+        { barcode: { contains: query.search, mode: 'insensitive' } },
+        { size: { contains: query.search, mode: 'insensitive' } },
+      ];
+    }
+
+    if (query.masterProductId) where.masterProductId = query.masterProductId;
+    if (query.categoryId) where.categoryId = query.categoryId;
+    if (query.subCategoryId) where.subCategoryId = query.subCategoryId;
+    if (query.colorId) where.colorId = query.colorId;
+    if (query.size) where.size = query.size.toUpperCase();
+    if (query.gender) where.gender = query.gender;
+    if (query.status) where.status = query.status;
+
+    const [total, variants] = await Promise.all([
+      this.prisma.variantProduct.count({ where }),
+      this.prisma.variantProduct.findMany({
+        where,
+        skip,
+        take: per_page,
+        include: {
+          color: { select: { id: true, name: true, code: true } },
+          category: { select: { id: true, name: true } },
+          subCategory: { select: { id: true, name: true } },
+          masterProduct: { select: { id: true, name: true, sku: true } },
+          batchItems: {
+            select: { availableQty: true },
+          },
+        },
+        orderBy: [{ masterProductId: 'asc' }, { size: 'asc' }],
+      }),
+    ]);
+
+    const formatted = variants.map((v) => {
+      const totalAvailableStock = v.batchItems.reduce(
+        (sum, item) => sum + item.availableQty,
+        0,
+      );
+      const { batchItems, ...rest } = v;
+      return {
+        ...rest,
+        totalAvailableStock,
+      };
+    });
+
+    return {
+      data: formatted,
+      total,
+      per_page,
+      current_page: page,
+      total_page: Math.ceil(total / per_page),
+    };
+  }
+
+  async findById(id: string) {
+    const variant = await this.prisma.variantProduct.findUnique({
+      where: { id },
+      include: {
+        color: true,
+        category: true,
+        subCategory: true,
+        masterProduct: true,
+        creator: {
+          select: { id: true, name: true, email: true },
+        },
+        batchItems: {
+          include: {
+            batch: true,
+            rack: {
+              include: {
+                subZone: {
+                  include: {
+                    zone: {
+                      include: { warehouse: true },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!variant) {
+      throw new NotFoundException('Variant Product not found');
+    }
+
+    const totalAvailableStock = variant.batchItems.reduce(
+      (sum, b) => sum + b.availableQty,
+      0,
+    );
+
+    return {
+      data: {
+        ...variant,
+        totalAvailableStock,
+      },
+    };
+  }
+
+  async update(id: string, dto: UpdateVariantProductDTO) {
+    const variant = await this.prisma.variantProduct.findUnique({
+      where: { id },
+    });
+
+    if (!variant) {
+      throw new NotFoundException('Variant Product not found');
+    }
+
+    if (dto.sku && dto.sku.trim().toUpperCase() !== variant.sku) {
+      const isSkuExist = await this.prisma.variantProduct.findUnique({
+        where: { sku: dto.sku.trim().toUpperCase() },
+      });
+      if (isSkuExist) {
+        throw new ConflictException(`SKU '${dto.sku}' is already taken`);
+      }
+    }
+
+    if (dto.barcode && dto.barcode.trim() !== variant.barcode) {
+      const isBarcodeExist = await this.prisma.variantProduct.findUnique({
+        where: { barcode: dto.barcode.trim() },
+      });
+      if (isBarcodeExist) {
+        throw new ConflictException(`Barcode '${dto.barcode}' is already taken`);
+      }
+    }
+
+    return this.prisma.variantProduct.update({
+      where: { id },
+      data: {
+        ...(dto.name && { name: dto.name.trim() }),
+        ...(dto.sku && { sku: dto.sku.trim().toUpperCase() }),
+        ...(dto.barcode && { barcode: dto.barcode.trim() }),
+        ...(dto.size && { size: dto.size.trim().toUpperCase() }),
+        ...(dto.colorId && { colorId: dto.colorId }),
+        ...(dto.gender && { gender: dto.gender }),
+        ...(dto.uom && { uom: dto.uom }),
+        ...(dto.itemsPerPacket && { itemsPerPacket: dto.itemsPerPacket }),
+        ...(dto.packingType && { packingType: dto.packingType }),
+        ...(dto.costPrice !== undefined && { costPrice: dto.costPrice }),
+        ...(dto.sellingPrice !== undefined && { sellingPrice: dto.sellingPrice }),
+        ...(dto.mrp !== undefined && { mrp: dto.mrp }),
+        ...(dto.status && { status: dto.status }),
+      },
+      include: {
+        color: true,
+        masterProduct: { select: { id: true, name: true, sku: true } },
+      },
+    });
+  }
+
+  async delete(id: string) {
+    const variant = await this.prisma.variantProduct.findUnique({
+      where: { id },
+      include: {
+        _count: {
+          select: { batchItems: true },
+        },
+      },
+    });
+
+    if (!variant) {
+      throw new NotFoundException('Variant Product not found');
+    }
+
+    if (variant._count.batchItems > 0) {
+      throw new BadRequestException(
+        `Cannot delete variant '${variant.sku}'. It has recorded inventory batch items in warehouse racks.`,
+      );
+    }
+
+    await this.prisma.variantProduct.delete({ where: { id } });
+
+    return { message: `Variant Product '${variant.sku}' deleted successfully` };
+  }
+
+  private generateBarcode(): string {
+    const prefix = '890';
+    const timestamp = Date.now().toString().slice(-6);
+    const random = Math.floor(100 + Math.random() * 900).toString();
+    const raw = `${prefix}${timestamp}${random}`;
+    return raw.slice(0, 13);
+  }
+}

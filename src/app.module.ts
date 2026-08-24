@@ -7,6 +7,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { UserModule } from './users/user.module';
 import { RbacModule } from './rbac/rbac.module';
+import { CatalogModule } from './catalog/catalog.module';
 import { JwtAuthGuard } from './common/guards/jwt.guard';
 
 @Module({
@@ -16,6 +17,7 @@ import { JwtAuthGuard } from './common/guards/jwt.guard';
     AuthModule,
     UserModule,
     RbacModule,
+    CatalogModule,
   ],
   controllers: [AppController],
   providers: [

@@ -60,7 +60,8 @@ model User {
   roleId String
   role   Role   @relation(fields: [roleId], references: [id])
 
-  createdProducts VariantProduct[]
+  createdProducts       VariantProduct[]
+  createdMasterProducts MasterProduct[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -111,7 +112,7 @@ model RolePermission {
 
 model Category {
   id   String @id @default(cuid())
-  name String
+  name String @unique
 
   status Status @default(ACTIVE)
 
@@ -140,6 +141,7 @@ model SubCategory {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@unique([categoryId, name])
   @@index([categoryId])
   @@index([status])
 }
@@ -160,9 +162,10 @@ model Material {
 }
 
 model MasterProduct {
-  id   String @id @default(cuid())
-  name String
-  sku  String @unique
+  id          String  @id @default(cuid())
+  name        String
+  sku         String  @unique
+  description String?
 
   categoryId    String
   subCategoryId String
@@ -173,7 +176,8 @@ model MasterProduct {
   material    Material    @relation(fields: [materialId], references: [id])
 
   status    Status @default(ACTIVE)
-  createdBy String
+  creatorId String
+  creator   User   @relation(fields: [creatorId], references: [id])
 
   variantProducts VariantProduct[]
 
@@ -183,18 +187,22 @@ model MasterProduct {
   @@index([categoryId])
   @@index([subCategoryId])
   @@index([materialId])
+  @@index([creatorId])
   @@index([status])
 }
 
 model Color {
   id          String  @id @default(cuid())
-  name        String
+  name        String  @unique
+  code        String?
   description String?
   status      Status  @default(ACTIVE)
 
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
   variantProducts VariantProduct[]
+
+  @@index([status])
 }
 
 model VariantProduct {
@@ -214,6 +222,10 @@ model VariantProduct {
   itemsPerPacket Int
 
   picture String?
+
+  costPrice    Float? @default(0)
+  sellingPrice Float? @default(0)
+  mrp          Float? @default(0)
 
   packingType PackingType @default(POLY_BAG)
   status      Status      @default(ACTIVE)
