@@ -243,15 +243,12 @@ export class VariantProductsService {
         batchItems: {
           include: {
             batch: true,
-            rack: {
+            location: {
               include: {
-                subZone: {
-                  include: {
-                    zone: {
-                      include: { warehouse: true },
-                    },
-                  },
-                },
+                warehouse: true,
+                zone: true,
+                subZone: true,
+                rack: true,
               },
             },
           },
