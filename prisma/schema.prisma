@@ -44,6 +44,24 @@ enum InventoryMovementType {
   ADJUSTMENT
 }
 
+enum LCStatus {
+  OPEN
+  IN_PROGRESS
+  FULFILLED
+  EXPIRED
+  CANCELLED
+}
+
+enum POStatus {
+  DRAFT
+  CONFIRMED
+  IN_PRODUCTION
+  READY_FOR_SHIPMENT
+  PARTIALLY_SHIPPED
+  COMPLETED
+  CANCELLED
+}
+
 model User {
   id        String  @id @default(cuid())
   name      String
@@ -245,6 +263,7 @@ model VariantProduct {
   subCategory   SubCategory @relation(fields: [subCategoryId], references: [id])
 
   batchItems BatchItem[]
+  poItems    POItem[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -264,6 +283,9 @@ model Batch {
   productionDate DateTime
   expirationDate DateTime
 
+  poId String?
+  po   PO?     @relation(fields: [poId], references: [id])
+
   batchItems BatchItem[]
 
   createdAt DateTime @default(now())
@@ -271,6 +293,7 @@ model Batch {
 
   @@unique([batch_id, productionDate])
   @@index([expirationDate])
+  @@index([poId])
 }
 
 model Document {
@@ -409,4 +432,92 @@ model Rack {
   @@unique([subZoneId, code])
   @@index([subZoneId])
   @@index([status])
+}
+
+model Buyer {
+  id            String   @id @default(cuid())
+  name          String
+  code          String   @unique
+  email         String?
+  phone         String?
+  address       String?
+  country       String?
+  contactPerson String?
+  status        Status   @default(ACTIVE)
+
+  lcs            LC[]
+  purchaseOrders PO[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+}
+
+model LC {
+  id           String    @id @default(cuid())
+  lcNumber     String    @unique
+  buyerId      String
+  buyer        Buyer     @relation(fields: [buyerId], references: [id])
+  bankName     String?
+  branchName   String?
+  totalAmount  Float     @default(0)
+  currency     String    @default("BDT")
+  issueDate    DateTime?
+  expiryDate   DateTime?
+  shipmentDate DateTime?
+  status       LCStatus  @default(OPEN)
+  remarks      String?
+
+  purchaseOrders PO[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([buyerId])
+  @@index([status])
+}
+
+model PO {
+  id            String    @id @default(cuid())
+  poNumber      String    @unique
+  buyerId       String
+  buyer         Buyer     @relation(fields: [buyerId], references: [id])
+  lcId          String?
+  lc            LC?       @relation(fields: [lcId], references: [id])
+  orderDate     DateTime  @default(now())
+  deliveryDate  DateTime?
+  totalQuantity Int       @default(0)
+  totalAmount   Float     @default(0)
+  currency      String    @default("BDT")
+  status        POStatus  @default(DRAFT)
+  remarks       String?
+
+  items   POItem[]
+  batches Batch[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([buyerId])
+  @@index([lcId])
+  @@index([status])
+}
+
+model POItem {
+  id               String         @id @default(cuid())
+  poId             String
+  po               PO             @relation(fields: [poId], references: [id], onDelete: Cascade)
+  variantProductId String
+  variantProduct   VariantProduct @relation(fields: [variantProductId], references: [id])
+  quantity         Int
+  shippedQuantity  Int            @default(0)
+  unitPrice        Float
+  totalPrice       Float
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([poId])
+  @@index([variantProductId])
 }
