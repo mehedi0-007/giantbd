@@ -15,6 +15,9 @@ enum Status {
 enum Gender {
   MALE
   FEMALE
+  KIDS
+  JUNIOR
+  TWIN_JUNIOR
 }
 
 enum UnitOfMeasurement {
@@ -217,7 +220,7 @@ model VariantProduct {
   subCategoryId String
   subCategory   SubCategory @relation(fields: [subCategoryId], references: [id])
 
-  inventoryBatchItems InventoryBatchItem[]
+  batchItems BatchItem[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -230,22 +233,32 @@ model VariantProduct {
 }
 
 model Batch {
-  id   String @id @default(cuid())
-  name String
+  id           String @id @default(cuid())
+  batch_id     String
+  batch_number String
 
   productionDate DateTime
   expirationDate DateTime
 
-  inventoryBatchItems InventoryBatchItem[]
+  batchItems BatchItem[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([name, productionDate])
+  @@unique([batch_id, productionDate])
   @@index([expirationDate])
 }
 
-model InventoryBatchItem {
+model Document {
+  id   String @id @default(cuid())
+  path String
+  name String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model BatchItem {
   id String @id @default(cuid())
 
   productId String
@@ -279,7 +292,7 @@ model InventoryMovement {
   id String @id @default(cuid())
 
   inventoryBatchItemId String
-  inventoryBatchItem   InventoryBatchItem @relation(fields: [inventoryBatchItemId], references: [id])
+  inventoryBatchItem   BatchItem @relation(fields: [inventoryBatchItemId], references: [id])
 
   type InventoryMovementType
 
@@ -364,7 +377,7 @@ model Rack {
 
   status Status @default(ACTIVE)
 
-  inventoryBatchItems InventoryBatchItem[]
+  inventoryBatchItems BatchItem[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
