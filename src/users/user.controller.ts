@@ -72,4 +72,10 @@ export class UserController {
   async deleteUser(@Param('id') id: string) {
     return this.userService.deleteUser(id);
   }
+
+  @Post(':id/restore')
+  @RequirePermissions('users:update')
+  async restoreUser(@Param('id') id: string) {
+    return this.userService.restoreUser(id);
+  }
 }

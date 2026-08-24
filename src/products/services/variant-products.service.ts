@@ -18,11 +18,11 @@ export class VariantProductsService {
 
   async create(dto: CreateVariantProductDTO, creatorId: string) {
     const [masterProduct, color] = await Promise.all([
-      this.prisma.masterProduct.findUnique({
-        where: { id: dto.masterProductId },
+      this.prisma.masterProduct.findFirst({
+        where: { id: dto.masterProductId, status: { not: 'DELETED' } },
         include: { category: true, subCategory: true },
       }),
-      this.prisma.color.findUnique({ where: { id: dto.colorId } }),
+      this.prisma.color.findFirst({ where: { id: dto.colorId, status: { not: 'DELETED' } } }),
     ]);
 
     if (!masterProduct) throw new NotFoundException('Master Product not found');
@@ -39,8 +39,8 @@ export class VariantProductsService {
     const barcode = dto.barcode?.trim() || this.generateBarcode();
 
     const [existingSku, existingBarcode] = await Promise.all([
-      this.prisma.variantProduct.findUnique({ where: { sku } }),
-      this.prisma.variantProduct.findUnique({ where: { barcode } }),
+      this.prisma.variantProduct.findFirst({ where: { sku, status: { not: 'DELETED' } } }),
+      this.prisma.variantProduct.findFirst({ where: { barcode, status: { not: 'DELETED' } } }),
     ]);
 
     if (existingSku) {
@@ -73,15 +73,22 @@ export class VariantProductsService {
       include: {
         color: true,
         masterProduct: {
-          select: { id: true, name: true, sku: true },
+          select: {
+            id: true,
+            name: true,
+            sku: true,
+            category: { select: { id: true, name: true } },
+            subCategory: { select: { id: true, name: true } },
+          },
         },
       },
     });
   }
 
   async bulkCreate(dto: BulkCreateVariantDTO, creatorId: string) {
-    const masterProduct = await this.prisma.masterProduct.findUnique({
-      where: { id: dto.masterProductId },
+    const masterProduct = await this.prisma.masterProduct.findFirst({
+      where: { id: dto.masterProductId, status: { not: 'DELETED' } },
+      include: { category: true, subCategory: true },
     });
 
     if (!masterProduct) {
@@ -89,79 +96,75 @@ export class VariantProductsService {
     }
 
     const colors = await this.prisma.color.findMany({
-      where: { id: { in: dto.colorIds } },
+      where: { id: { in: dto.colorIds }, status: { not: 'DELETED' } },
     });
 
-    if (colors.length === 0) {
-      throw new BadRequestException('No valid colors provided');
+    if (colors.length !== dto.colorIds.length) {
+      throw new BadRequestException('One or more color IDs are invalid');
     }
 
-    const createdVariants = [];
+    const colorMap = new Map(colors.map((c) => [c.id, c.name]));
+    const candidates = [];
 
-    for (const color of colors) {
-      for (const rawSize of dto.sizes) {
-        const cleanSize = rawSize.trim().toUpperCase();
-        const sku = `${masterProduct.sku}-${color.name.toUpperCase().replace(/\s+/g, '')}-${cleanSize}`;
-        const name = `${masterProduct.name} - ${color.name} / ${cleanSize}`;
+    for (const colorId of dto.colorIds) {
+      const colorName = colorMap.get(colorId)!;
+      for (const size of dto.sizes) {
+        const cleanSize = size.trim().toUpperCase();
+        const sku = `${masterProduct.sku}-${colorName.toUpperCase().replace(/\s+/g, '')}-${cleanSize}`;
+        const name = `${masterProduct.name} - ${colorName} / ${cleanSize}`;
+        const barcode = this.generateBarcode();
 
-        const isExist = await this.prisma.variantProduct.findUnique({
-          where: { sku },
+        candidates.push({
+          name,
+          sku,
+          barcode,
+          size: cleanSize,
+          colorId,
+          gender: dto.gender,
+          uom: dto.uom,
+          itemsPerPacket: dto.itemsPerPacket,
+          packingType: dto.packingType ?? 'POLY_BAG',
+          costPrice: dto.costPrice ?? 0,
+          sellingPrice: dto.sellingPrice ?? 0,
+          mrp: dto.mrp ?? 0,
+          status: 'ACTIVE' as const,
+          masterProductId: masterProduct.id,
+          categoryId: masterProduct.categoryId,
+          subCategoryId: masterProduct.subCategoryId,
+          creatorId,
         });
-
-        if (!isExist) {
-          const barcode = this.generateBarcode();
-          const variant = await this.prisma.variantProduct.create({
-            data: {
-              name,
-              sku,
-              barcode,
-              size: cleanSize,
-              colorId: color.id,
-              gender: dto.gender,
-              uom: dto.uom,
-              itemsPerPacket: dto.itemsPerPacket,
-              packingType: dto.packingType ?? 'POLY_BAG',
-              costPrice: dto.costPrice ?? 0,
-              sellingPrice: dto.sellingPrice ?? 0,
-              mrp: dto.mrp ?? 0,
-              status: 'ACTIVE',
-              masterProductId: masterProduct.id,
-              categoryId: masterProduct.categoryId,
-              subCategoryId: masterProduct.subCategoryId,
-              creatorId,
-            },
-          });
-          createdVariants.push(variant);
-        }
       }
     }
 
-    return {
-      message: `Successfully generated ${createdVariants.length} product variants`,
-      data: createdVariants,
-    };
-  }
-
-  async updatePicture(id: string, file: Express.Multer.File) {
-    const variant = await this.prisma.variantProduct.findUnique({
-      where: { id },
+    // 1. Single query to check for existing SKUs
+    const existingVariants = await this.prisma.variantProduct.findMany({
+      where: {
+        sku: { in: candidates.map((c) => c.sku) },
+        status: { not: 'DELETED' },
+      },
+      select: { sku: true },
     });
 
-    if (!variant) {
-      throw new NotFoundException('Variant Product not found');
+    const existingSkuSet = new Set(existingVariants.map((v) => v.sku));
+    const newVariants = candidates.filter((c) => !existingSkuSet.has(c.sku));
+
+    if (newVariants.length === 0) {
+      return {
+        message: 'No new variants created (all requested variants already exist)',
+        count: 0,
+        variants: [],
+      };
     }
 
-    const picturePath = file.path.replace(/\\/g, '/');
-
-    const updated = await this.prisma.variantProduct.update({
-      where: { id },
-      data: { picture: picturePath },
-      include: { color: true },
+    // 2. Single SQL Batch Insert statement returning all created rows
+    const createdVariants = await this.prisma.variantProduct.createManyAndReturn({
+      data: newVariants,
     });
 
     return {
-      message: 'Product picture uploaded successfully',
-      data: updated,
+      message: `Successfully generated ${createdVariants.length} variant products`,
+      count: createdVariants.length,
+      variants: createdVariants,
     };
   }
 
@@ -170,7 +173,9 @@ export class VariantProductsService {
     const page = Number(query.page) || 1;
     const skip = (page - 1) * per_page;
 
-    const where: any = {};
+    const where: any = {
+      status: { not: 'DELETED' },
+    };
 
     if (query.search) {
       where.OR = [
@@ -185,8 +190,8 @@ export class VariantProductsService {
     if (query.categoryId) where.categoryId = query.categoryId;
     if (query.subCategoryId) where.subCategoryId = query.subCategoryId;
     if (query.colorId) where.colorId = query.colorId;
-    if (query.size) where.size = query.size.toUpperCase();
     if (query.gender) where.gender = query.gender;
+    if (query.size) where.size = query.size.trim().toUpperCase();
     if (query.status) where.status = query.status;
 
     const [total, variants] = await Promise.all([
@@ -197,25 +202,41 @@ export class VariantProductsService {
         take: per_page,
         include: {
           color: { select: { id: true, name: true, code: true } },
-          category: { select: { id: true, name: true } },
-          subCategory: { select: { id: true, name: true } },
-          masterProduct: { select: { id: true, name: true, sku: true } },
+          masterProduct: {
+            select: {
+              id: true,
+              name: true,
+              sku: true,
+              category: { select: { id: true, name: true } },
+              subCategory: { select: { id: true, name: true } },
+              material: { select: { id: true, name: true } },
+            },
+          },
           batchItems: {
-            select: { availableQty: true },
+            select: {
+              availableQty: true,
+              location: {
+                select: {
+                  code: true,
+                  name: true,
+                  warehouse: { select: { name: true } },
+                  rack: { select: { name: true } },
+                },
+              },
+            },
           },
         },
-        orderBy: [{ masterProductId: 'asc' }, { size: 'asc' }],
+        orderBy: [{ masterProductId: 'asc' }, { colorId: 'asc' }, { size: 'asc' }],
       }),
     ]);
 
     const formatted = variants.map((v) => {
       const totalAvailableStock = v.batchItems.reduce(
-        (sum, item) => sum + item.availableQty,
+        (sum, b) => sum + b.availableQty,
         0,
       );
-      const { batchItems, ...rest } = v;
       return {
-        ...rest,
+        ...v,
         totalAvailableStock,
       };
     });
@@ -230,15 +251,17 @@ export class VariantProductsService {
   }
 
   async findById(id: string) {
-    const variant = await this.prisma.variantProduct.findUnique({
-      where: { id },
+    const variant = await this.prisma.variantProduct.findFirst({
+      where: { id, status: { not: 'DELETED' } },
       include: {
         color: true,
-        category: true,
-        subCategory: true,
-        masterProduct: true,
-        creator: {
-          select: { id: true, name: true, email: true },
+        masterProduct: {
+          include: {
+            category: true,
+            subCategory: true,
+            material: true,
+            creator: { select: { id: true, name: true, email: true } },
+          },
         },
         batchItems: {
           include: {
@@ -274,8 +297,8 @@ export class VariantProductsService {
   }
 
   async update(id: string, dto: UpdateVariantProductDTO) {
-    const variant = await this.prisma.variantProduct.findUnique({
-      where: { id },
+    const variant = await this.prisma.variantProduct.findFirst({
+      where: { id, status: { not: 'DELETED' } },
     });
 
     if (!variant) {
@@ -283,8 +306,12 @@ export class VariantProductsService {
     }
 
     if (dto.sku && dto.sku.trim().toUpperCase() !== variant.sku) {
-      const isSkuExist = await this.prisma.variantProduct.findUnique({
-        where: { sku: dto.sku.trim().toUpperCase() },
+      const isSkuExist = await this.prisma.variantProduct.findFirst({
+        where: {
+          sku: dto.sku.trim().toUpperCase(),
+          id: { not: id },
+          status: { not: 'DELETED' },
+        },
       });
       if (isSkuExist) {
         throw new ConflictException(`SKU '${dto.sku}' is already taken`);
@@ -292,8 +319,12 @@ export class VariantProductsService {
     }
 
     if (dto.barcode && dto.barcode.trim() !== variant.barcode) {
-      const isBarcodeExist = await this.prisma.variantProduct.findUnique({
-        where: { barcode: dto.barcode.trim() },
+      const isBarcodeExist = await this.prisma.variantProduct.findFirst({
+        where: {
+          barcode: dto.barcode.trim(),
+          id: { not: id },
+          status: { not: 'DELETED' },
+        },
       });
       if (isBarcodeExist) {
         throw new ConflictException(`Barcode '${dto.barcode}' is already taken`);
@@ -325,28 +356,58 @@ export class VariantProductsService {
   }
 
   async delete(id: string) {
-    const variant = await this.prisma.variantProduct.findUnique({
-      where: { id },
-      include: {
-        _count: {
-          select: { batchItems: true },
-        },
-      },
+    const variant = await this.prisma.variantProduct.findFirst({
+      where: { id, status: { not: 'DELETED' } },
     });
 
     if (!variant) {
       throw new NotFoundException('Variant Product not found');
     }
 
-    if (variant._count.batchItems > 0) {
-      throw new BadRequestException(
-        `Cannot delete variant '${variant.sku}'. It has recorded inventory batch items in warehouse racks.`,
-      );
+    await this.prisma.variantProduct.update({
+      where: { id },
+      data: { status: 'DELETED' },
+    });
+
+    return { message: `Variant Product '${variant.sku}' soft-deleted successfully` };
+  }
+
+  async updatePicture(id: string, file?: Express.Multer.File) {
+    if (!file) {
+      throw new BadRequestException('No image file uploaded');
     }
 
-    await this.prisma.variantProduct.delete({ where: { id } });
+    const variant = await this.prisma.variantProduct.findFirst({
+      where: { id, status: { not: 'DELETED' } },
+    });
 
-    return { message: `Variant Product '${variant.sku}' deleted successfully` };
+    if (!variant) {
+      throw new NotFoundException('Variant Product not found');
+    }
+
+    const normalizedPath = file.path.replace(/\\/g, '/');
+
+    return this.prisma.variantProduct.update({
+      where: { id },
+      data: {
+        picture: normalizedPath,
+      },
+    });
+  }
+
+  async restore(id: string) {
+    const variant = await this.prisma.variantProduct.findFirst({
+      where: { id, status: 'DELETED' },
+    });
+
+    if (!variant) {
+      throw new NotFoundException('Soft-deleted Variant Product not found');
+    }
+
+    return this.prisma.variantProduct.update({
+      where: { id },
+      data: { status: 'ACTIVE' },
+    });
   }
 
   private generateBarcode(): string {

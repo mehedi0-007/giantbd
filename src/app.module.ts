@@ -13,6 +13,7 @@ import { CatalogModule } from './products/catalog.module';
 import { AttributesModule } from './attributes/attributes.module';
 import { InventoryModule } from './inventory/inventory.module';
 import { BuyerModule } from './buyers/buyers.module';
+import { LCModule } from './lc/lc.module';
 import { JwtAuthGuard } from './common/guards/jwt.guard';
 
 @Module({
@@ -34,6 +35,7 @@ import { JwtAuthGuard } from './common/guards/jwt.guard';
     AttributesModule,
     InventoryModule,
     BuyerModule,
+    LCModule,
   ],
   controllers: [AppController],
   providers: [

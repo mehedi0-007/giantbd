@@ -25,8 +25,8 @@ export class WarehouseAttributesService {
   async createWarehouse(dto: CreateWarehouseDTO) {
     const cleanCode = dto.code.trim().toUpperCase();
 
-    const isExist = await this.prisma.warehouse.findUnique({
-      where: { code: cleanCode },
+    const isExist = await this.prisma.warehouse.findFirst({
+      where: { code: cleanCode, status: { not: 'DELETED' } },
     });
 
     if (isExist) {
@@ -47,7 +47,10 @@ export class WarehouseAttributesService {
     const page = Number(query.page) || 1;
     const skip = (page - 1) * per_page;
 
-    const where: any = {};
+    const where: any = {
+      status: { not: 'DELETED' },
+    };
+
     if (query.search) {
       where.OR = [
         { name: { contains: query.search, mode: 'insensitive' } },
@@ -63,10 +66,14 @@ export class WarehouseAttributesService {
         take: per_page,
         include: {
           zones: {
+            where: { status: { not: 'DELETED' } },
             include: {
               subZones: {
+                where: { status: { not: 'DELETED' } },
                 include: {
-                  racks: true,
+                  racks: {
+                    where: { status: { not: 'DELETED' } },
+                  },
                 },
               },
             },
@@ -92,19 +99,24 @@ export class WarehouseAttributesService {
   }
 
   async findWarehouseById(id: string) {
-    const warehouse = await this.prisma.warehouse.findUnique({
-      where: { id },
+    const warehouse = await this.prisma.warehouse.findFirst({
+      where: { id, status: { not: 'DELETED' } },
       include: {
         zones: {
+          where: { status: { not: 'DELETED' } },
           include: {
             subZones: {
+              where: { status: { not: 'DELETED' } },
               include: {
-                racks: true,
+                racks: {
+                  where: { status: { not: 'DELETED' } },
+                },
               },
             },
           },
         },
         locations: {
+          where: { status: { not: 'DELETED' } },
           include: {
             _count: { select: { batchItems: true } },
           },
@@ -120,8 +132,8 @@ export class WarehouseAttributesService {
   }
 
   async updateWarehouse(id: string, dto: UpdateWarehouseDTO) {
-    const warehouse = await this.prisma.warehouse.findUnique({
-      where: { id },
+    const warehouse = await this.prisma.warehouse.findFirst({
+      where: { id, status: { not: 'DELETED' } },
     });
 
     if (!warehouse) {
@@ -129,8 +141,13 @@ export class WarehouseAttributesService {
     }
 
     if (dto.code && dto.code.trim().toUpperCase() !== warehouse.code) {
-      const isExist = await this.prisma.warehouse.findUnique({
-        where: { code: dto.code.trim().toUpperCase() },
+      const cleanCode = dto.code.trim().toUpperCase();
+      const isExist = await this.prisma.warehouse.findFirst({
+        where: {
+          code: cleanCode,
+          id: { not: id },
+          status: { not: 'DELETED' },
+        },
       });
       if (isExist) {
         throw new ConflictException(`Warehouse code '${dto.code}' is already taken`);
@@ -149,39 +166,35 @@ export class WarehouseAttributesService {
   }
 
   async deleteWarehouse(id: string) {
-    const warehouse = await this.prisma.warehouse.findUnique({
-      where: { id },
-      include: {
-        locations: {
-          include: {
-            _count: { select: { batchItems: true } },
-          },
-        },
-      },
+    const warehouse = await this.prisma.warehouse.findFirst({
+      where: { id, status: { not: 'DELETED' } },
     });
 
     if (!warehouse) {
       throw new NotFoundException('Warehouse not found');
     }
 
-    const hasStock = warehouse.locations.some((loc) => loc._count.batchItems > 0);
-    if (hasStock) {
-      throw new BadRequestException(
-        `Cannot delete warehouse '${warehouse.name}'. It contains active inventory in its storage locations.`,
-      );
-    }
-
     await this.prisma.$transaction([
-      this.prisma.storageLocation.deleteMany({ where: { warehouseId: id } }),
-      this.prisma.warehouse.delete({ where: { id } }),
+      this.prisma.storageLocation.updateMany({
+        where: { warehouseId: id },
+        data: { status: 'DELETED' },
+      }),
+      this.prisma.zone.updateMany({
+        where: { warehouseId: id },
+        data: { status: 'DELETED' },
+      }),
+      this.prisma.warehouse.update({
+        where: { id },
+        data: { status: 'DELETED' },
+      }),
     ]);
 
-    return { message: `Warehouse '${warehouse.name}' deleted successfully` };
+    return { message: `Warehouse '${warehouse.name}' soft-deleted successfully` };
   }
 
   async createZone(dto: CreateZoneDTO) {
-    const warehouse = await this.prisma.warehouse.findUnique({
-      where: { id: dto.warehouseId },
+    const warehouse = await this.prisma.warehouse.findFirst({
+      where: { id: dto.warehouseId, status: { not: 'DELETED' } },
     });
 
     if (!warehouse) {
@@ -190,12 +203,11 @@ export class WarehouseAttributesService {
 
     const cleanCode = dto.code.trim().toUpperCase();
 
-    const isExist = await this.prisma.zone.findUnique({
+    const isExist = await this.prisma.zone.findFirst({
       where: {
-        warehouseId_code: {
-          warehouseId: dto.warehouseId,
-          code: cleanCode,
-        },
+        warehouseId: dto.warehouseId,
+        code: cleanCode,
+        status: { not: 'DELETED' },
       },
     });
 
@@ -223,7 +235,10 @@ export class WarehouseAttributesService {
     const page = Number(query.page) || 1;
     const skip = (page - 1) * per_page;
 
-    const where: any = {};
+    const where: any = {
+      status: { not: 'DELETED' },
+    };
+
     if (query.search) {
       where.OR = [
         { name: { contains: query.search, mode: 'insensitive' } },
@@ -239,7 +254,9 @@ export class WarehouseAttributesService {
         take: per_page,
         include: {
           warehouse: { select: { id: true, name: true, code: true } },
-          subZones: true,
+          subZones: {
+            where: { status: { not: 'DELETED' } },
+          },
           _count: {
             select: { subZones: true, locations: true },
           },
@@ -258,14 +275,17 @@ export class WarehouseAttributesService {
   }
 
   async findZoneById(id: string) {
-    const zone = await this.prisma.zone.findUnique({
-      where: { id },
+    const zone = await this.prisma.zone.findFirst({
+      where: { id, status: { not: 'DELETED' } },
       include: {
         warehouse: true,
         subZones: {
-          include: { racks: true },
+          where: { status: { not: 'DELETED' } },
+          include: {
+            racks: { where: { status: { not: 'DELETED' } } },
+          },
         },
-        locations: true,
+        locations: { where: { status: { not: 'DELETED' } } },
       },
     });
 
@@ -277,8 +297,8 @@ export class WarehouseAttributesService {
   }
 
   async updateZone(id: string, dto: UpdateZoneDTO) {
-    const zone = await this.prisma.zone.findUnique({
-      where: { id },
+    const zone = await this.prisma.zone.findFirst({
+      where: { id, status: { not: 'DELETED' } },
     });
 
     if (!zone) {
@@ -301,39 +321,35 @@ export class WarehouseAttributesService {
   }
 
   async deleteZone(id: string) {
-    const zone = await this.prisma.zone.findUnique({
-      where: { id },
-      include: {
-        locations: {
-          include: {
-            _count: { select: { batchItems: true } },
-          },
-        },
-      },
+    const zone = await this.prisma.zone.findFirst({
+      where: { id, status: { not: 'DELETED' } },
     });
 
     if (!zone) {
       throw new NotFoundException('Zone not found');
     }
 
-    const hasStock = zone.locations.some((loc) => loc._count.batchItems > 0);
-    if (hasStock) {
-      throw new BadRequestException(
-        `Cannot delete zone '${zone.name}'. It contains active inventory in its storage locations.`,
-      );
-    }
-
     await this.prisma.$transaction([
-      this.prisma.storageLocation.deleteMany({ where: { zoneId: id } }),
-      this.prisma.zone.delete({ where: { id } }),
+      this.prisma.storageLocation.updateMany({
+        where: { zoneId: id },
+        data: { status: 'DELETED' },
+      }),
+      this.prisma.subZone.updateMany({
+        where: { zoneId: id },
+        data: { status: 'DELETED' },
+      }),
+      this.prisma.zone.update({
+        where: { id },
+        data: { status: 'DELETED' },
+      }),
     ]);
 
-    return { message: `Zone '${zone.name}' deleted successfully` };
+    return { message: `Zone '${zone.name}' soft-deleted successfully` };
   }
 
   async createSubZone(dto: CreateSubZoneDTO) {
-    const zone = await this.prisma.zone.findUnique({
-      where: { id: dto.zoneId },
+    const zone = await this.prisma.zone.findFirst({
+      where: { id: dto.zoneId, status: { not: 'DELETED' } },
       include: { warehouse: true },
     });
 
@@ -343,12 +359,11 @@ export class WarehouseAttributesService {
 
     const cleanCode = dto.code.trim().toUpperCase();
 
-    const isExist = await this.prisma.subZone.findUnique({
+    const isExist = await this.prisma.subZone.findFirst({
       where: {
-        zoneId_code: {
-          zoneId: dto.zoneId,
-          code: cleanCode,
-        },
+        zoneId: dto.zoneId,
+        code: cleanCode,
+        status: { not: 'DELETED' },
       },
     });
 
@@ -376,7 +391,10 @@ export class WarehouseAttributesService {
     const page = Number(query.page) || 1;
     const skip = (page - 1) * per_page;
 
-    const where: any = {};
+    const where: any = {
+      status: { not: 'DELETED' },
+    };
+
     if (query.search) {
       where.OR = [
         { name: { contains: query.search, mode: 'insensitive' } },
@@ -394,7 +412,7 @@ export class WarehouseAttributesService {
           zone: {
             include: { warehouse: { select: { id: true, name: true, code: true } } },
           },
-          racks: true,
+          racks: { where: { status: { not: 'DELETED' } } },
           _count: {
             select: { racks: true, locations: true },
           },
@@ -413,12 +431,12 @@ export class WarehouseAttributesService {
   }
 
   async findSubZoneById(id: string) {
-    const subZone = await this.prisma.subZone.findUnique({
-      where: { id },
+    const subZone = await this.prisma.subZone.findFirst({
+      where: { id, status: { not: 'DELETED' } },
       include: {
         zone: { include: { warehouse: true } },
-        racks: true,
-        locations: true,
+        racks: { where: { status: { not: 'DELETED' } } },
+        locations: { where: { status: { not: 'DELETED' } } },
       },
     });
 
@@ -430,8 +448,8 @@ export class WarehouseAttributesService {
   }
 
   async updateSubZone(id: string, dto: UpdateSubZoneDTO) {
-    const subZone = await this.prisma.subZone.findUnique({
-      where: { id },
+    const subZone = await this.prisma.subZone.findFirst({
+      where: { id, status: { not: 'DELETED' } },
     });
 
     if (!subZone) {
@@ -454,39 +472,35 @@ export class WarehouseAttributesService {
   }
 
   async deleteSubZone(id: string) {
-    const subZone = await this.prisma.subZone.findUnique({
-      where: { id },
-      include: {
-        locations: {
-          include: {
-            _count: { select: { batchItems: true } },
-          },
-        },
-      },
+    const subZone = await this.prisma.subZone.findFirst({
+      where: { id, status: { not: 'DELETED' } },
     });
 
     if (!subZone) {
       throw new NotFoundException('SubZone not found');
     }
 
-    const hasStock = subZone.locations.some((loc) => loc._count.batchItems > 0);
-    if (hasStock) {
-      throw new BadRequestException(
-        `Cannot delete subzone '${subZone.name}'. It contains active inventory in its storage locations.`,
-      );
-    }
-
     await this.prisma.$transaction([
-      this.prisma.storageLocation.deleteMany({ where: { subZoneId: id } }),
-      this.prisma.subZone.delete({ where: { id } }),
+      this.prisma.storageLocation.updateMany({
+        where: { subZoneId: id },
+        data: { status: 'DELETED' },
+      }),
+      this.prisma.rack.updateMany({
+        where: { subZoneId: id },
+        data: { status: 'DELETED' },
+      }),
+      this.prisma.subZone.update({
+        where: { id },
+        data: { status: 'DELETED' },
+      }),
     ]);
 
-    return { message: `SubZone '${subZone.name}' deleted successfully` };
+    return { message: `SubZone '${subZone.name}' soft-deleted successfully` };
   }
 
   async createRack(dto: CreateRackDTO) {
-    const subZone = await this.prisma.subZone.findUnique({
-      where: { id: dto.subZoneId },
+    const subZone = await this.prisma.subZone.findFirst({
+      where: { id: dto.subZoneId, status: { not: 'DELETED' } },
       include: {
         zone: { include: { warehouse: true } },
       },
@@ -498,12 +512,11 @@ export class WarehouseAttributesService {
 
     const cleanCode = dto.code.trim().toUpperCase();
 
-    const isExist = await this.prisma.rack.findUnique({
+    const isExist = await this.prisma.rack.findFirst({
       where: {
-        subZoneId_code: {
-          subZoneId: dto.subZoneId,
-          code: cleanCode,
-        },
+        subZoneId: dto.subZoneId,
+        code: cleanCode,
+        status: { not: 'DELETED' },
       },
     });
 
@@ -540,6 +553,7 @@ export class WarehouseAttributesService {
           zoneId: subZone.zone.id,
           subZoneId: subZone.id,
           rackId: rack.id,
+          status: 'ACTIVE',
         },
         create: {
           code: locationBarcode,
@@ -560,7 +574,10 @@ export class WarehouseAttributesService {
     const page = Number(query.page) || 1;
     const skip = (page - 1) * per_page;
 
-    const where: any = {};
+    const where: any = {
+      status: { not: 'DELETED' },
+    };
+
     if (query.search) {
       where.OR = [
         { name: { contains: query.search, mode: 'insensitive' } },
@@ -582,7 +599,7 @@ export class WarehouseAttributesService {
               },
             },
           },
-          locations: true,
+          locations: { where: { status: { not: 'DELETED' } } },
         },
         orderBy: [{ subZoneId: 'asc' }, { name: 'asc' }],
       }),
@@ -598,8 +615,8 @@ export class WarehouseAttributesService {
   }
 
   async findRackById(id: string) {
-    const rack = await this.prisma.rack.findUnique({
-      where: { id },
+    const rack = await this.prisma.rack.findFirst({
+      where: { id, status: { not: 'DELETED' } },
       include: {
         subZone: {
           include: {
@@ -607,6 +624,7 @@ export class WarehouseAttributesService {
           },
         },
         locations: {
+          where: { status: { not: 'DELETED' } },
           include: {
             batchItems: {
               include: {
@@ -627,8 +645,8 @@ export class WarehouseAttributesService {
   }
 
   async updateRack(id: string, dto: UpdateRackDTO) {
-    const rack = await this.prisma.rack.findUnique({
-      where: { id },
+    const rack = await this.prisma.rack.findFirst({
+      where: { id, status: { not: 'DELETED' } },
       include: {
         subZone: {
           include: { zone: { include: { warehouse: true } } },
@@ -659,34 +677,26 @@ export class WarehouseAttributesService {
   }
 
   async deleteRack(id: string) {
-    const rack = await this.prisma.rack.findUnique({
-      where: { id },
-      include: {
-        locations: {
-          include: {
-            _count: { select: { batchItems: true } },
-          },
-        },
-      },
+    const rack = await this.prisma.rack.findFirst({
+      where: { id, status: { not: 'DELETED' } },
     });
 
     if (!rack) {
       throw new NotFoundException('Rack not found');
     }
 
-    const hasStock = rack.locations.some((loc) => loc._count.batchItems > 0);
-    if (hasStock) {
-      throw new BadRequestException(
-        `Cannot delete rack '${rack.name}'. It contains active inventory in its storage locations.`,
-      );
-    }
-
     await this.prisma.$transaction([
-      this.prisma.storageLocation.deleteMany({ where: { rackId: id } }),
-      this.prisma.rack.delete({ where: { id } }),
+      this.prisma.storageLocation.updateMany({
+        where: { rackId: id },
+        data: { status: 'DELETED' },
+      }),
+      this.prisma.rack.update({
+        where: { id },
+        data: { status: 'DELETED' },
+      }),
     ]);
 
-    return { message: `Rack '${rack.name}' deleted successfully` };
+    return { message: `Rack '${rack.name}' soft-deleted successfully` };
   }
 
   async findAllLocations(query: QueryLocationDTO) {
@@ -694,7 +704,10 @@ export class WarehouseAttributesService {
     const page = Number(query.page) || 1;
     const skip = (page - 1) * per_page;
 
-    const where: any = {};
+    const where: any = {
+      status: { not: 'DELETED' },
+    };
+
     if (query.search) {
       where.OR = [
         { code: { contains: query.search, mode: 'insensitive' } },
@@ -737,8 +750,11 @@ export class WarehouseAttributesService {
   }
 
   async findLocationByBarcode(code: string) {
-    const location = await this.prisma.storageLocation.findUnique({
-      where: { code: code.trim().toUpperCase() },
+    const location = await this.prisma.storageLocation.findFirst({
+      where: {
+        code: code.trim().toUpperCase(),
+        status: { not: 'DELETED' },
+      },
       include: {
         warehouse: true,
         zone: true,
@@ -761,8 +777,8 @@ export class WarehouseAttributesService {
   }
 
   async findLocationById(id: string) {
-    const location = await this.prisma.storageLocation.findUnique({
-      where: { id },
+    const location = await this.prisma.storageLocation.findFirst({
+      where: { id, status: { not: 'DELETED' } },
       include: {
         warehouse: true,
         zone: true,

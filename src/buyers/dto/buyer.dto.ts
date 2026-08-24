@@ -64,3 +64,22 @@ export class UpdateBuyerDTO {
   @IsEnum(Status)
   status?: Status;
 }
+
+export class QueryBuyerDTO {
+  @IsOptional()
+  @IsString()
+  search?: string;
+
+  @IsOptional()
+  @IsString()
+  page?: string | number;
+
+  @IsOptional()
+  @IsString()
+  per_page?: string | number;
+
+  @IsOptional()
+  @IsEnum(Status)
+  status?: Status;
+}
+

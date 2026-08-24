@@ -17,9 +17,9 @@ export class MasterProductsService {
 
   async create(dto: CreateMasterProductDTO, creatorId: string) {
     const [category, subCategory, material] = await Promise.all([
-      this.prisma.category.findUnique({ where: { id: dto.categoryId } }),
-      this.prisma.subCategory.findUnique({ where: { id: dto.subCategoryId } }),
-      this.prisma.material.findUnique({ where: { id: dto.materialId } }),
+      this.prisma.category.findFirst({ where: { id: dto.categoryId, status: { not: 'DELETED' } } }),
+      this.prisma.subCategory.findFirst({ where: { id: dto.subCategoryId, status: { not: 'DELETED' } } }),
+      this.prisma.material.findFirst({ where: { id: dto.materialId, status: { not: 'DELETED' } } }),
     ]);
 
     if (!category) throw new NotFoundException('Category not found');
@@ -32,8 +32,8 @@ export class MasterProductsService {
 
     const sku = dto.sku?.trim().toUpperCase() || this.generateMasterSKU(category.name, dto.name);
 
-    const isSkuExist = await this.prisma.masterProduct.findUnique({
-      where: { sku },
+    const isSkuExist = await this.prisma.masterProduct.findFirst({
+      where: { sku, status: { not: 'DELETED' } },
     });
 
     if (isSkuExist) {
@@ -67,7 +67,9 @@ export class MasterProductsService {
     const page = Number(query.page) || 1;
     const skip = (page - 1) * per_page;
 
-    const where: any = {};
+    const where: any = {
+      status: { not: 'DELETED' },
+    };
 
     if (query.search) {
       where.OR = [
@@ -109,8 +111,8 @@ export class MasterProductsService {
   }
 
   async findById(id: string) {
-    const product = await this.prisma.masterProduct.findUnique({
-      where: { id },
+    const product = await this.prisma.masterProduct.findFirst({
+      where: { id, status: { not: 'DELETED' } },
       include: {
         category: true,
         subCategory: true,
@@ -119,6 +121,7 @@ export class MasterProductsService {
           select: { id: true, name: true, email: true },
         },
         variantProducts: {
+          where: { status: { not: 'DELETED' } },
           include: {
             color: true,
             _count: {
@@ -138,8 +141,8 @@ export class MasterProductsService {
   }
 
   async update(id: string, dto: UpdateMasterProductDTO) {
-    const product = await this.prisma.masterProduct.findUnique({
-      where: { id },
+    const product = await this.prisma.masterProduct.findFirst({
+      where: { id, status: { not: 'DELETED' } },
     });
 
     if (!product) {
@@ -147,8 +150,8 @@ export class MasterProductsService {
     }
 
     if (dto.categoryId && dto.subCategoryId) {
-      const subCategory = await this.prisma.subCategory.findUnique({
-        where: { id: dto.subCategoryId },
+      const subCategory = await this.prisma.subCategory.findFirst({
+        where: { id: dto.subCategoryId, status: { not: 'DELETED' } },
       });
       if (!subCategory || subCategory.categoryId !== dto.categoryId) {
         throw new BadRequestException('SubCategory does not belong to the selected Category');
@@ -156,8 +159,12 @@ export class MasterProductsService {
     }
 
     if (dto.sku && dto.sku.trim().toUpperCase() !== product.sku) {
-      const isSkuExist = await this.prisma.masterProduct.findUnique({
-        where: { sku: dto.sku.trim().toUpperCase() },
+      const isSkuExist = await this.prisma.masterProduct.findFirst({
+        where: {
+          sku: dto.sku.trim().toUpperCase(),
+          id: { not: id },
+          status: { not: 'DELETED' },
+        },
       });
       if (isSkuExist) {
         throw new ConflictException(`SKU '${dto.sku}' is already taken`);
@@ -184,37 +191,49 @@ export class MasterProductsService {
   }
 
   async delete(id: string) {
-    const product = await this.prisma.masterProduct.findUnique({
-      where: { id },
-      include: {
-        variantProducts: {
-          include: {
-            _count: {
-              select: { batchItems: true },
-            },
-          },
-        },
-      },
+    const product = await this.prisma.masterProduct.findFirst({
+      where: { id, status: { not: 'DELETED' } },
     });
 
     if (!product) {
       throw new NotFoundException('Master Product not found');
     }
 
-    const hasInventory = product.variantProducts.some((v) => v._count.batchItems > 0);
-    if (hasInventory) {
-      throw new BadRequestException(
-        `Cannot delete master product '${product.name}'. Variants have recorded batch inventory in the warehouse.`,
-      );
-    }
-
-    // Cascade delete variants first if no inventory
     await this.prisma.$transaction([
-      this.prisma.variantProduct.deleteMany({ where: { masterProductId: id } }),
-      this.prisma.masterProduct.delete({ where: { id } }),
+      this.prisma.variantProduct.updateMany({
+        where: { masterProductId: id },
+        data: { status: 'DELETED' },
+      }),
+      this.prisma.masterProduct.update({
+        where: { id },
+        data: { status: 'DELETED' },
+      }),
     ]);
 
-    return { message: `Master Product '${product.name}' deleted successfully` };
+    return { message: `Master Product '${product.name}' and variants soft-deleted successfully` };
+  }
+
+  async restore(id: string) {
+    const product = await this.prisma.masterProduct.findFirst({
+      where: { id, status: 'DELETED' },
+    });
+
+    if (!product) {
+      throw new NotFoundException('Soft-deleted Master Product not found');
+    }
+
+    await this.prisma.$transaction([
+      this.prisma.variantProduct.updateMany({
+        where: { masterProductId: id, status: 'DELETED' },
+        data: { status: 'ACTIVE' },
+      }),
+      this.prisma.masterProduct.update({
+        where: { id },
+        data: { status: 'ACTIVE' },
+      }),
+    ]);
+
+    return { message: `Master Product '${product.name}' and variants restored successfully` };
   }
 
   private generateMasterSKU(categoryName: string, productName: string): string {

@@ -18,8 +18,8 @@ export class UserService {
       signature?: Express.Multer.File[];
     },
   ) {
-    const isEmailExist = await this.prismaService.user.findUnique({
-      where: { email: dto.email },
+    const isEmailExist = await this.prismaService.user.findFirst({
+      where: { email: dto.email, status: { not: 'DELETED' } },
     });
 
     if (isEmailExist) {
@@ -27,8 +27,8 @@ export class UserService {
     }
 
     if (dto.phone) {
-      const isPhoneExist = await this.prismaService.user.findUnique({
-        where: { phone: dto.phone },
+      const isPhoneExist = await this.prismaService.user.findFirst({
+        where: { phone: dto.phone, status: { not: 'DELETED' } },
       });
       if (isPhoneExist) {
         throw new ConflictException(
@@ -68,17 +68,29 @@ export class UserService {
     };
   }
 
-  async findAll(query: { page?: number; per_page?: number; search?: string }) {
+  async findAll(query: { page?: number; per_page?: number; search?: string; status?: any }) {
     const per_page = Number(query.per_page) || 10;
     const page = Number(query.page) || 1;
     const skip = (page - 1) * per_page;
 
-    const where: any = {};
+    const where: any = {
+      status: { not: 'DELETED' },
+    };
+
+    if (query.status) {
+      where.status = query.status;
+    }
+
     if (query.search) {
-      where.OR = [
-        { name: { contains: query.search, mode: 'insensitive' } },
-        { email: { contains: query.search, mode: 'insensitive' } },
-        { phone: { contains: query.search, mode: 'insensitive' } },
+      where.AND = [
+        { status: { not: 'DELETED' } },
+        {
+          OR: [
+            { name: { contains: query.search, mode: 'insensitive' } },
+            { email: { contains: query.search, mode: 'insensitive' } },
+            { phone: { contains: query.search, mode: 'insensitive' } },
+          ],
+        },
       ];
     }
 
@@ -107,8 +119,8 @@ export class UserService {
   }
 
   async findById(userId: string) {
-    const user = await this.prismaService.user.findUnique({
-      where: { id: userId },
+    const user = await this.prismaService.user.findFirst({
+      where: { id: userId, status: { not: 'DELETED' } },
       include: {
         role: {
           include: {
@@ -132,8 +144,8 @@ export class UserService {
   }
 
   async updateUser(userId: string, dto: UpdateUserDTO) {
-    const isExist = await this.prismaService.user.findUnique({
-      where: { id: userId },
+    const isExist = await this.prismaService.user.findFirst({
+      where: { id: userId, status: { not: 'DELETED' } },
     });
 
     if (!isExist) {
@@ -163,8 +175,8 @@ export class UserService {
   }
 
   async deleteUser(userId: string) {
-    const user = await this.prismaService.user.findUnique({
-      where: { id: userId },
+    const user = await this.prismaService.user.findFirst({
+      where: { id: userId, status: { not: 'DELETED' } },
     });
 
     if (!user) {
@@ -173,11 +185,32 @@ export class UserService {
 
     await this.prismaService.user.update({
       where: { id: userId },
-      data: { status: 'INACTIVE' },
+      data: { status: 'DELETED', refreshHash: null },
     });
 
     return {
-      message: 'User deleted successfully',
+      message: 'User soft-deleted successfully',
+    };
+  }
+
+  async restoreUser(userId: string) {
+    const user = await this.prismaService.user.findFirst({
+      where: { id: userId, status: 'DELETED' },
+    });
+
+    if (!user) {
+      throw new NotFoundException('Soft-deleted user not found');
+    }
+
+    const restored = await this.prismaService.user.update({
+      where: { id: userId },
+      data: { status: 'ACTIVE' },
+      include: { role: true },
+    });
+
+    return {
+      message: 'User restored successfully',
+      data: this.responseUser(restored),
     };
   }
 

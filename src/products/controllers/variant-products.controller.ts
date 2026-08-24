@@ -84,4 +84,10 @@ export class VariantProductsController {
   async delete(@Param('id') id: string) {
     return this.variantProductsService.delete(id);
   }
+
+  @Post(':id/restore')
+  @RequirePermissions('catalog:update')
+  async restore(@Param('id') id: string) {
+    return this.variantProductsService.restore(id);
+  }
 }

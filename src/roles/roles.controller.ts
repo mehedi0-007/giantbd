@@ -51,4 +51,10 @@ export class RolesController {
   async delete(@Param('id') id: string) {
     return this.rolesService.delete(id);
   }
+
+  @Post(':id/restore')
+  @RequirePermissions('roles:update')
+  async restore(@Param('id') id: string) {
+    return this.rolesService.restore(id);
+  }
 }

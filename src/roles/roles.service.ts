@@ -14,8 +14,8 @@ export class RolesService {
   async create(dto: CreateRoleDTO) {
     const normalizedName = dto.name.trim().toUpperCase();
 
-    const isExist = await this.prisma.role.findUnique({
-      where: { name: normalizedName },
+    const isExist = await this.prisma.role.findFirst({
+      where: { name: normalizedName, status: { not: 'DELETED' } },
     });
 
     if (isExist) {
@@ -51,16 +51,28 @@ export class RolesService {
     });
   }
 
-  async findAll(query: { page?: number; per_page?: number; search?: string }) {
+  async findAll(query: { page?: number; per_page?: number; search?: string; status?: any }) {
     const per_page = Number(query.per_page) || 20;
     const page = Number(query.page) || 1;
     const skip = (page - 1) * per_page;
 
-    const where: any = {};
+    const where: any = {
+      status: { not: 'DELETED' },
+    };
+
+    if (query.status) {
+      where.status = query.status;
+    }
+
     if (query.search) {
-      where.OR = [
-        { name: { contains: query.search, mode: 'insensitive' } },
-        { description: { contains: query.search, mode: 'insensitive' } },
+      where.AND = [
+        { status: { not: 'DELETED' } },
+        {
+          OR: [
+            { name: { contains: query.search, mode: 'insensitive' } },
+            { description: { contains: query.search, mode: 'insensitive' } },
+          ],
+        },
       ];
     }
 
@@ -115,8 +127,8 @@ export class RolesService {
   }
 
   async findById(id: string, prismaClient: any = this.prisma) {
-    const role = await prismaClient.role.findUnique({
-      where: { id },
+    const role = await prismaClient.role.findFirst({
+      where: { id, status: { not: 'DELETED' } },
       include: {
         _count: {
           select: { users: true },
@@ -148,8 +160,8 @@ export class RolesService {
   }
 
   async update(id: string, dto: UpdateRoleDTO) {
-    const role = await this.prisma.role.findUnique({
-      where: { id },
+    const role = await this.prisma.role.findFirst({
+      where: { id, status: { not: 'DELETED' } },
     });
 
     if (!role) {
@@ -206,8 +218,8 @@ export class RolesService {
   }
 
   async delete(id: string) {
-    const role = await this.prisma.role.findUnique({
-      where: { id },
+    const role = await this.prisma.role.findFirst({
+      where: { id, status: { not: 'DELETED' } },
       include: {
         _count: {
           select: { users: true },
@@ -229,12 +241,28 @@ export class RolesService {
       );
     }
 
-    await this.prisma.role.delete({
+    await this.prisma.role.update({
       where: { id },
+      data: { status: 'DELETED' },
     });
 
     return {
-      message: `Role '${role.name}' deleted successfully`,
+      message: `Role '${role.name}' soft-deleted successfully`,
     };
+  }
+
+  async restore(id: string) {
+    const role = await this.prisma.role.findFirst({
+      where: { id, status: 'DELETED' },
+    });
+
+    if (!role) {
+      throw new NotFoundException('Soft-deleted role not found');
+    }
+
+    return this.prisma.role.update({
+      where: { id },
+      data: { status: 'ACTIVE' },
+    });
   }
 }

@@ -9,48 +9,48 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { BuyersService } from './buyers.service';
-import { CreateBuyerDTO, QueryBuyerDTO, UpdateBuyerDTO } from './dto/buyer.dto';
+import { LCService } from './lc.service';
+import { CreateLCDTO, QueryLCDTO, UpdateLCDTO } from './dto/lc.dto';
 import { PermissionsGuard, RequirePermissions } from '../common';
 
-@Controller('buyers')
+@Controller('lc')
 @UseGuards(PermissionsGuard)
-export class BuyersController {
-  constructor(private readonly buyersService: BuyersService) {}
+export class LCController {
+  constructor(private readonly lcService: LCService) {}
 
   @Post()
   @RequirePermissions('commercial:create')
-  async create(@Body() dto: CreateBuyerDTO) {
-    return this.buyersService.create(dto);
+  async create(@Body() dto: CreateLCDTO) {
+    return this.lcService.create(dto);
   }
 
   @Get()
   @RequirePermissions('commercial:read')
-  async findAll(@Query() query: QueryBuyerDTO) {
-    return this.buyersService.findAll(query);
+  async findAll(@Query() query: QueryLCDTO) {
+    return this.lcService.findAll(query);
   }
 
   @Get(':id')
   @RequirePermissions('commercial:read')
   async findById(@Param('id') id: string) {
-    return this.buyersService.findById(id);
+    return this.lcService.findById(id);
   }
 
   @Patch(':id')
   @RequirePermissions('commercial:update')
-  async update(@Param('id') id: string, @Body() dto: UpdateBuyerDTO) {
-    return this.buyersService.update(id, dto);
+  async update(@Param('id') id: string, @Body() dto: UpdateLCDTO) {
+    return this.lcService.update(id, dto);
   }
 
   @Delete(':id')
   @RequirePermissions('commercial:delete')
   async delete(@Param('id') id: string) {
-    return this.buyersService.delete(id);
+    return this.lcService.delete(id);
   }
 
   @Post(':id/restore')
   @RequirePermissions('commercial:update')
   async restore(@Param('id') id: string) {
-    return this.buyersService.restore(id);
+    return this.lcService.restore(id);
   }
 }

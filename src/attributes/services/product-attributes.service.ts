@@ -24,8 +24,8 @@ export class ProductAttributesService {
   constructor(private readonly prisma: PrismaService) {}
 
   async createCategory(dto: CreateCategoryDTO) {
-    const isExist = await this.prisma.category.findUnique({
-      where: { name: dto.name.trim() },
+    const isExist = await this.prisma.category.findFirst({
+      where: { name: dto.name.trim(), status: { not: 'DELETED' } },
     });
 
     if (isExist) {
@@ -47,7 +47,10 @@ export class ProductAttributesService {
     const page = Number(query.page) || 1;
     const skip = (page - 1) * per_page;
 
-    const where: any = {};
+    const where: any = {
+      status: { not: 'DELETED' },
+    };
+
     if (query.search) {
       where.name = { contains: query.search, mode: 'insensitive' };
     }
@@ -83,10 +86,12 @@ export class ProductAttributesService {
   }
 
   async findCategoryById(id: string) {
-    const category = await this.prisma.category.findUnique({
-      where: { id },
+    const category = await this.prisma.category.findFirst({
+      where: { id, status: { not: 'DELETED' } },
       include: {
-        subCategories: true,
+        subCategories: {
+          where: { status: { not: 'DELETED' } },
+        },
         _count: {
           select: {
             masterProducts: true,
@@ -104,8 +109,8 @@ export class ProductAttributesService {
   }
 
   async updateCategory(id: string, dto: UpdateCategoryDTO) {
-    const category = await this.prisma.category.findUnique({
-      where: { id },
+    const category = await this.prisma.category.findFirst({
+      where: { id, status: { not: 'DELETED' } },
     });
 
     if (!category) {
@@ -125,49 +130,36 @@ export class ProductAttributesService {
   }
 
   async deleteCategory(id: string) {
-    const category = await this.prisma.category.findUnique({
-      where: { id },
-      include: {
-        _count: {
-          select: {
-            masterProducts: true,
-            variantProducts: true,
-            subCategories: true,
-          },
-        },
-      },
+    const category = await this.prisma.category.findFirst({
+      where: { id, status: { not: 'DELETED' } },
     });
 
     if (!category) {
       throw new NotFoundException('Category not found');
     }
 
-    if (category._count.masterProducts > 0 || category._count.variantProducts > 0) {
-      throw new BadRequestException(
-        `Cannot delete category '${category.name}'. It is referenced by existing products.`,
-      );
-    }
+    await this.prisma.category.update({
+      where: { id },
+      data: { status: 'DELETED' },
+    });
 
-    await this.prisma.category.delete({ where: { id } });
-
-    return { message: `Category '${category.name}' deleted successfully` };
+    return { message: `Category '${category.name}' soft-deleted successfully` };
   }
 
   async createSubCategory(dto: CreateSubCategoryDTO) {
-    const category = await this.prisma.category.findUnique({
-      where: { id: dto.categoryId },
+    const category = await this.prisma.category.findFirst({
+      where: { id: dto.categoryId, status: { not: 'DELETED' } },
     });
 
     if (!category) {
       throw new NotFoundException('Parent category not found');
     }
 
-    const isExist = await this.prisma.subCategory.findUnique({
+    const isExist = await this.prisma.subCategory.findFirst({
       where: {
-        categoryId_name: {
-          categoryId: dto.categoryId,
-          name: dto.name.trim(),
-        },
+        categoryId: dto.categoryId,
+        name: dto.name.trim(),
+        status: { not: 'DELETED' },
       },
     });
 
@@ -193,7 +185,10 @@ export class ProductAttributesService {
     const page = Number(query.page) || 1;
     const skip = (page - 1) * per_page;
 
-    const where: any = {};
+    const where: any = {
+      status: { not: 'DELETED' },
+    };
+
     if (query.search) {
       where.name = { contains: query.search, mode: 'insensitive' };
     }
@@ -227,8 +222,8 @@ export class ProductAttributesService {
   }
 
   async findSubCategoryById(id: string) {
-    const subCategory = await this.prisma.subCategory.findUnique({
-      where: { id },
+    const subCategory = await this.prisma.subCategory.findFirst({
+      where: { id, status: { not: 'DELETED' } },
       include: {
         category: true,
         _count: {
@@ -248,8 +243,8 @@ export class ProductAttributesService {
   }
 
   async updateSubCategory(id: string, dto: UpdateSubCategoryDTO) {
-    const subCategory = await this.prisma.subCategory.findUnique({
-      where: { id },
+    const subCategory = await this.prisma.subCategory.findFirst({
+      where: { id, status: { not: 'DELETED' } },
     });
 
     if (!subCategory) {
@@ -267,36 +262,25 @@ export class ProductAttributesService {
   }
 
   async deleteSubCategory(id: string) {
-    const subCategory = await this.prisma.subCategory.findUnique({
-      where: { id },
-      include: {
-        _count: {
-          select: {
-            masterProducts: true,
-            variantProducts: true,
-          },
-        },
-      },
+    const subCategory = await this.prisma.subCategory.findFirst({
+      where: { id, status: { not: 'DELETED' } },
     });
 
     if (!subCategory) {
       throw new NotFoundException('SubCategory not found');
     }
 
-    if (subCategory._count.masterProducts > 0 || subCategory._count.variantProducts > 0) {
-      throw new BadRequestException(
-        `Cannot delete subcategory '${subCategory.name}'. It is referenced by existing products.`,
-      );
-    }
+    await this.prisma.subCategory.update({
+      where: { id },
+      data: { status: 'DELETED' },
+    });
 
-    await this.prisma.subCategory.delete({ where: { id } });
-
-    return { message: `SubCategory '${subCategory.name}' deleted successfully` };
+    return { message: `SubCategory '${subCategory.name}' soft-deleted successfully` };
   }
 
   async createColor(dto: CreateColorDTO) {
-    const isExist = await this.prisma.color.findUnique({
-      where: { name: dto.name.trim() },
+    const isExist = await this.prisma.color.findFirst({
+      where: { name: dto.name.trim(), status: { not: 'DELETED' } },
     });
 
     if (isExist) {
@@ -317,7 +301,10 @@ export class ProductAttributesService {
     const page = Number(query.page) || 1;
     const skip = (page - 1) * per_page;
 
-    const where: any = {};
+    const where: any = {
+      status: { not: 'DELETED' },
+    };
+
     if (query.search) {
       where.OR = [
         { name: { contains: query.search, mode: 'insensitive' } },
@@ -350,8 +337,8 @@ export class ProductAttributesService {
   }
 
   async findColorById(id: string) {
-    const color = await this.prisma.color.findUnique({
-      where: { id },
+    const color = await this.prisma.color.findFirst({
+      where: { id, status: { not: 'DELETED' } },
       include: {
         _count: {
           select: { variantProducts: true },
@@ -367,8 +354,8 @@ export class ProductAttributesService {
   }
 
   async updateColor(id: string, dto: UpdateColorDTO) {
-    const color = await this.prisma.color.findUnique({
-      where: { id },
+    const color = await this.prisma.color.findFirst({
+      where: { id, status: { not: 'DELETED' } },
     });
 
     if (!color) {
@@ -387,33 +374,25 @@ export class ProductAttributesService {
   }
 
   async deleteColor(id: string) {
-    const color = await this.prisma.color.findUnique({
-      where: { id },
-      include: {
-        _count: {
-          select: { variantProducts: true },
-        },
-      },
+    const color = await this.prisma.color.findFirst({
+      where: { id, status: { not: 'DELETED' } },
     });
 
     if (!color) {
       throw new NotFoundException('Color not found');
     }
 
-    if (color._count.variantProducts > 0) {
-      throw new BadRequestException(
-        `Cannot delete color '${color.name}'. It is used in ${color._count.variantProducts} product variant(s).`,
-      );
-    }
+    await this.prisma.color.update({
+      where: { id },
+      data: { status: 'DELETED' },
+    });
 
-    await this.prisma.color.delete({ where: { id } });
-
-    return { message: `Color '${color.name}' deleted successfully` };
+    return { message: `Color '${color.name}' soft-deleted successfully` };
   }
 
   async createMaterial(dto: CreateMaterialDTO) {
-    const isExist = await this.prisma.material.findUnique({
-      where: { name: dto.name.trim() },
+    const isExist = await this.prisma.material.findFirst({
+      where: { name: dto.name.trim(), status: { not: 'DELETED' } },
     });
 
     if (isExist) {
@@ -433,7 +412,10 @@ export class ProductAttributesService {
     const page = Number(query.page) || 1;
     const skip = (page - 1) * per_page;
 
-    const where: any = {};
+    const where: any = {
+      status: { not: 'DELETED' },
+    };
+
     if (query.search) {
       where.name = { contains: query.search, mode: 'insensitive' };
     }
@@ -463,8 +445,8 @@ export class ProductAttributesService {
   }
 
   async findMaterialById(id: string) {
-    const material = await this.prisma.material.findUnique({
-      where: { id },
+    const material = await this.prisma.material.findFirst({
+      where: { id, status: { not: 'DELETED' } },
       include: {
         _count: {
           select: { masterProducts: true },
@@ -480,8 +462,8 @@ export class ProductAttributesService {
   }
 
   async updateMaterial(id: string, dto: UpdateMaterialDTO) {
-    const material = await this.prisma.material.findUnique({
-      where: { id },
+    const material = await this.prisma.material.findFirst({
+      where: { id, status: { not: 'DELETED' } },
     });
 
     if (!material) {
@@ -499,27 +481,19 @@ export class ProductAttributesService {
   }
 
   async deleteMaterial(id: string) {
-    const material = await this.prisma.material.findUnique({
-      where: { id },
-      include: {
-        _count: {
-          select: { masterProducts: true },
-        },
-      },
+    const material = await this.prisma.material.findFirst({
+      where: { id, status: { not: 'DELETED' } },
     });
 
     if (!material) {
       throw new NotFoundException('Material not found');
     }
 
-    if (material._count.masterProducts > 0) {
-      throw new BadRequestException(
-        `Cannot delete material '${material.name}'. It is used in ${material._count.masterProducts} master product(s).`,
-      );
-    }
+    await this.prisma.material.update({
+      where: { id },
+      data: { status: 'DELETED' },
+    });
 
-    await this.prisma.material.delete({ where: { id } });
-
-    return { message: `Material '${material.name}' deleted successfully` };
+    return { message: `Material '${material.name}' soft-deleted successfully` };
   }
 }

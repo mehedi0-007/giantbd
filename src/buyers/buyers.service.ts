@@ -5,8 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateBuyerDTO, UpdateBuyerDTO } from './dto/buyer.dto';
-import { PaginationQueryDTO } from '../common';
+import { CreateBuyerDTO, QueryBuyerDTO, UpdateBuyerDTO } from './dto/buyer.dto';
 
 @Injectable()
 export class BuyersService {
@@ -36,18 +35,30 @@ export class BuyersService {
     });
   }
 
-  async findAll(query: PaginationQueryDTO) {
+  async findAll(query: QueryBuyerDTO) {
     const per_page = Number(query.per_page) || 50;
     const page = Number(query.page) || 1;
     const skip = (page - 1) * per_page;
 
-    const where: any = {};
+    const where: any = {
+      status: { not: 'DELETED' },
+    };
+
+    if (query.status) {
+      where.status = query.status;
+    }
+
     if (query.search) {
-      where.OR = [
-        { name: { contains: query.search, mode: 'insensitive' } },
-        { code: { contains: query.search, mode: 'insensitive' } },
-        { contactPerson: { contains: query.search, mode: 'insensitive' } },
-        { country: { contains: query.search, mode: 'insensitive' } },
+      where.AND = [
+        { status: { not: 'DELETED' } },
+        {
+          OR: [
+            { name: { contains: query.search, mode: 'insensitive' } },
+            { code: { contains: query.search, mode: 'insensitive' } },
+            { contactPerson: { contains: query.search, mode: 'insensitive' } },
+            { country: { contains: query.search, mode: 'insensitive' } },
+          ],
+        },
       ];
     }
 
@@ -79,14 +90,19 @@ export class BuyersService {
   }
 
   async findById(id: string) {
-    const buyer = await this.prisma.buyer.findUnique({
-      where: { id },
+    const buyer = await this.prisma.buyer.findFirst({
+      where: {
+        id,
+        status: { not: 'DELETED' },
+      },
       include: {
         lcs: {
+          where: { status: { not: 'CANCELLED' } },
           orderBy: { createdAt: 'desc' },
           take: 10,
         },
         purchaseOrders: {
+          where: { status: { not: 'CANCELLED' } },
           orderBy: { createdAt: 'desc' },
           take: 10,
           include: {
@@ -110,8 +126,8 @@ export class BuyersService {
   }
 
   async update(id: string, dto: UpdateBuyerDTO) {
-    const buyer = await this.prisma.buyer.findUnique({
-      where: { id },
+    const buyer = await this.prisma.buyer.findFirst({
+      where: { id, status: { not: 'DELETED' } },
     });
 
     if (!buyer) {
@@ -120,8 +136,12 @@ export class BuyersService {
 
     if (dto.code && dto.code.trim().toUpperCase() !== buyer.code) {
       const cleanCode = dto.code.trim().toUpperCase();
-      const isExist = await this.prisma.buyer.findUnique({
-        where: { code: cleanCode },
+      const isExist = await this.prisma.buyer.findFirst({
+        where: {
+          code: cleanCode,
+          id: { not: id },
+          status: { not: 'DELETED' },
+        },
       });
       if (isExist) {
         throw new ConflictException(`Buyer code '${cleanCode}' is already taken`);
@@ -144,30 +164,34 @@ export class BuyersService {
   }
 
   async delete(id: string) {
-    const buyer = await this.prisma.buyer.findUnique({
-      where: { id },
-      include: {
-        _count: {
-          select: {
-            lcs: true,
-            purchaseOrders: true,
-          },
-        },
-      },
+    const buyer = await this.prisma.buyer.findFirst({
+      where: { id, status: { not: 'DELETED' } },
     });
 
     if (!buyer) {
       throw new NotFoundException('Buyer not found');
     }
 
-    if (buyer._count.lcs > 0 || buyer._count.purchaseOrders > 0) {
-      throw new BadRequestException(
-        `Cannot delete buyer '${buyer.name}'. It is referenced by ${buyer._count.lcs} LC(s) and ${buyer._count.purchaseOrders} Purchase Order(s).`,
-      );
+    await this.prisma.buyer.update({
+      where: { id },
+      data: { status: 'DELETED' },
+    });
+
+    return { message: `Buyer '${buyer.name}' soft-deleted successfully` };
+  }
+
+  async restore(id: string) {
+    const buyer = await this.prisma.buyer.findFirst({
+      where: { id, status: 'DELETED' },
+    });
+
+    if (!buyer) {
+      throw new NotFoundException('Soft-deleted buyer not found');
     }
 
-    await this.prisma.buyer.delete({ where: { id } });
-
-    return { message: `Buyer '${buyer.name}' deleted successfully` };
+    return this.prisma.buyer.update({
+      where: { id },
+      data: { status: 'ACTIVE' },
+    });
   }
 }
