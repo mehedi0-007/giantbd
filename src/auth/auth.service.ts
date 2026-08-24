@@ -1,10 +1,11 @@
 import {
+  BadRequestException,
   Injectable,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { LogInDTO } from './dto/auth.dto';
+import { ChangePasswordDTO, LogInDTO } from './dto/auth.dto';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -125,6 +126,43 @@ export class AuthService {
 
     return {
       message: 'Logged out successfully',
+    };
+  }
+
+  async changePassword(userId: string, dto: ChangePasswordDTO) {
+    const user = await this.prismaService.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const isOldPasswordValid = await bcrypt.compare(
+      dto.oldPassword,
+      user.password,
+    );
+
+    if (!isOldPasswordValid) {
+      throw new BadRequestException('Current password does not match');
+    }
+
+    if (dto.oldPassword === dto.newPassword) {
+      throw new BadRequestException('New password must be different from current password');
+    }
+
+    const newHashedPassword = await bcrypt.hash(dto.newPassword, 10);
+
+    await this.prismaService.user.update({
+      where: { id: userId },
+      data: {
+        password: newHashedPassword,
+        refreshHash: null,
+      },
+    });
+
+    return {
+      message: 'Password changed successfully. Please log in with your new password.',
     };
   }
 

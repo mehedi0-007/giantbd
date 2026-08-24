@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
@@ -10,11 +11,20 @@ import { RolesModule } from './roles/roles.module';
 import { PermissionsModule } from './permissions/permissions.module';
 import { CatalogModule } from './products/catalog.module';
 import { AttributesModule } from './attributes/attributes.module';
+import { InventoryModule } from './inventory/inventory.module';
+import { BuyerModule } from './buyers/buyers.module';
 import { JwtAuthGuard } from './common/guards/jwt.guard';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    ThrottlerModule.forRoot([
+      {
+        name: 'default',
+        ttl: 60000,
+        limit: 50,
+      },
+    ]),
     PrismaModule,
     AuthModule,
     UserModule,
@@ -22,15 +32,21 @@ import { JwtAuthGuard } from './common/guards/jwt.guard';
     PermissionsModule,
     CatalogModule,
     AttributesModule,
+    InventoryModule,
+    BuyerModule,
   ],
   controllers: [AppController],
   providers: [
     AppService,
     {
       provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+    {
+      provide: APP_GUARD,
       useClass: JwtAuthGuard,
     },
   ],
 })
-export class AppModule {}
+export class AppModule { }
 

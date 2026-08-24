@@ -493,10 +493,6 @@ model LC {
   lcNumber     String    @unique
   buyerId      String
   buyer        Buyer     @relation(fields: [buyerId], references: [id])
-  bankName     String?
-  branchName   String?
-  totalAmount  Float     @default(0)
-  currency     String    @default("BDT")
   issueDate    DateTime?
   expiryDate   DateTime?
   shipmentDate DateTime?
@@ -522,8 +518,6 @@ model PO {
   orderDate     DateTime  @default(now())
   deliveryDate  DateTime?
   totalQuantity Int       @default(0)
-  totalAmount   Float     @default(0)
-  currency      String    @default("BDT")
   status        POStatus  @default(DRAFT)
   remarks       String?
 
@@ -546,8 +540,6 @@ model POItem {
   variantProduct   VariantProduct @relation(fields: [variantProductId], references: [id])
   quantity         Int
   shippedQuantity  Int            @default(0)
-  unitPrice        Float
-  totalPrice       Float
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

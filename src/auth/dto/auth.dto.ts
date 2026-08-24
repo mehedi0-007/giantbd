@@ -13,4 +13,15 @@ export class RefreshTokenDTO {
   @IsString()
   @IsNotEmpty()
   refreshToken!: string;
-}
+}
+
+export class ChangePasswordDTO {
+  @IsString()
+  @IsNotEmpty()
+  oldPassword!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  newPassword!: string;
+}
+
