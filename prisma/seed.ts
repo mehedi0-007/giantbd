@@ -150,24 +150,38 @@ async function main() {
     const adminEmail = 'admin@mail.com';
     const hashedPassword = await bcrypt.hash('password', 10);
 
-    const admin = await prisma.user.upsert({
-      where: { email: adminEmail },
-      update: {
-        roleId: superAdminRoleId,
-        status: Status.ACTIVE,
-      },
-      create: {
-        name: 'System Administrator',
-        email: adminEmail,
-        password: hashedPassword,
-        phone: '01700000000',
-        gender: Gender.MALE,
-        roleId: superAdminRoleId,
-        status: Status.ACTIVE,
+    const existingAdmin = await prisma.user.findFirst({
+      where: {
+        OR: [{ email: adminEmail }, { phone: '01700000000' }],
       },
     });
 
-    console.log(`    ✓ Super Admin created: ${admin.email} (Password: Admin@123456)`);
+    let admin;
+    if (existingAdmin) {
+      admin = await prisma.user.update({
+        where: { id: existingAdmin.id },
+        data: {
+          email: adminEmail,
+          password: hashedPassword,
+          roleId: superAdminRoleId,
+          status: Status.ACTIVE,
+        },
+      });
+    } else {
+      admin = await prisma.user.create({
+        data: {
+          name: 'System Administrator',
+          email: adminEmail,
+          password: hashedPassword,
+          phone: '01700000000',
+          gender: Gender.MALE,
+          roleId: superAdminRoleId,
+          status: Status.ACTIVE,
+        },
+      });
+    }
+
+    console.log(`    ✓ Super Admin created: ${admin.email} (Password: password)`);
   }
 
   console.log('✅ Seeding completed successfully!');
