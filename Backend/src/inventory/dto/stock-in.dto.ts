@@ -1,5 +1,5 @@
 import { PRODUCT_GENDER } from '@prisma/client';
-import { Transform, Type } from 'class-transformer';
+import { Transform, Type, plainToInstance } from 'class-transformer';
 import {
   IsArray,
   IsDate,
@@ -130,7 +130,10 @@ export class StockInDTO {
   @Transform(({ value }) => {
     if (typeof value === 'string') {
       try {
-        return JSON.parse(value);
+        const parsed = JSON.parse(value);
+        return Array.isArray(parsed)
+          ? parsed.map((item) => plainToInstance(StockInItemDTO, item))
+          : parsed;
       } catch {
         return value;
       }
