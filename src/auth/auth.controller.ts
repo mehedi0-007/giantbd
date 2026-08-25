@@ -17,7 +17,7 @@ import { REFRESH_COOKIE_OPTIONS } from './utils/auth.utils';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(private readonly authService: AuthService) { }
 
   @Post('login')
   @Public()
@@ -29,16 +29,15 @@ export class AuthController {
   ) {
     const result = await this.authService.logIn(dto);
 
-    // Set secure HttpOnly cookie for refresh token
     res.cookie('refreshToken', result.refreshToken, REFRESH_COOKIE_OPTIONS);
-
-    // Exclude refreshToken from JSON payload so frontend only receives accessToken & user
     const { refreshToken, ...response } = result;
+
     return response;
   }
 
   @Post('refresh')
   @Public()
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @HttpCode(HttpStatus.OK)
   async refresh(
     @Req() req: Request,
@@ -53,9 +52,7 @@ export class AuthController {
 
     const result = await this.authService.refresh(token);
 
-    // Refresh the cookie with the newly rotated refresh token
     res.cookie('refreshToken', result.refreshToken, REFRESH_COOKIE_OPTIONS);
-
     const { refreshToken, ...response } = result;
     return response;
   }
