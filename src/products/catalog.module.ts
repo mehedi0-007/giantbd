@@ -15,5 +15,6 @@ import { VariantProductsController } from './controllers/variant-products.contro
     MasterProductsService,
     VariantProductsService,
   ],
+  exports: [VariantProductsService],
 })
 export class CatalogModule { }

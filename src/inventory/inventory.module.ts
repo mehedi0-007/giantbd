@@ -5,8 +5,10 @@ import { StockInController } from './controllers/stock-in.controller';
 import { InventoryService } from './services/inventory.service';
 import { InventoryController } from './controllers/inventory.controller';
 
+import { CatalogModule } from '../products/catalog.module';
+
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, CatalogModule],
   controllers: [
     StockInController,
     InventoryController,

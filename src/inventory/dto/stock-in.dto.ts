@@ -26,20 +26,26 @@ export class PreviewStockInDTO {
 }
 
 export class StockInItemDTO {
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  variantProductId!: string;
+  variantProductId?: string;
+
+  @IsOptional()
+  @IsString()
+  size?: string;
+
+  @IsOptional()
+  @IsEnum(PRODUCT_GENDER)
+  gender?: PRODUCT_GENDER;
 
   @IsOptional()
   @Type(() => Number)
   @IsInt()
-  @Min(1)
   receivedQty?: number;
 
   @IsOptional()
   @Type(() => Number)
   @IsInt()
-  @Min(1)
   quantity?: number; // Alias for receivedQty for frontend flexibility
 
   @IsOptional()
@@ -57,9 +63,31 @@ export class StockInItemDTO {
   @IsOptional()
   @IsString()
   locationId?: string;
+
+  @IsOptional()
+  @IsString()
+  rackId?: string;
 }
 
 export class StockInDTO {
+  @IsOptional()
+  @IsString()
+  masterProductId?: string;
+
+  @IsOptional()
+  @IsString()
+  colorId?: string;
+
+  @IsOptional()
+  @IsEnum(PRODUCT_GENDER)
+  gender?: PRODUCT_GENDER;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  itemsPerPacket?: number;
+
   @IsOptional()
   @IsString()
   batch_id?: string;
