@@ -1,9 +1,15 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import {
   QueryBatchesDTO,
   QueryMovementsDTO,
   QueryStockDTO,
+  UpdateBatchDTO,
+  UpdateBatchItemDTO,
 } from '../dto/stock-query.dto';
 
 @Injectable()
@@ -52,6 +58,16 @@ export class InventoryService {
               buyer: { select: { id: true, name: true, code: true } },
             },
           },
+          documents: {
+            select: {
+              id: true,
+              name: true,
+              path: true,
+              mimeType: true,
+              size: true,
+              createdAt: true,
+            },
+          },
           batchItems: {
             include: {
               product: {
@@ -95,6 +111,7 @@ export class InventoryService {
           totalPackets,
           itemsCount: batch.batchItems.length,
         },
+        documents: batch.documents,
         batchItems: batch.batchItems,
         createdAt: batch.createdAt,
         updatedAt: batch.updatedAt,
@@ -114,6 +131,16 @@ export class InventoryService {
     const batch = await this.prisma.batch.findUnique({
       where: { id },
       include: {
+        documents: {
+          select: {
+            id: true,
+            name: true,
+            path: true,
+            mimeType: true,
+            size: true,
+            createdAt: true,
+          },
+        },
         po: {
           include: {
             buyer: true,
@@ -163,6 +190,230 @@ export class InventoryService {
         },
       },
     };
+  }
+
+  async updateBatch(id: string, dto: UpdateBatchDTO) {
+    const batch = await this.prisma.batch.findUnique({
+      where: { id },
+    });
+
+    if (!batch) {
+      throw new NotFoundException(`Batch '${id}' not found`);
+    }
+
+    if (dto.poId) {
+      const po = await this.prisma.pO.findUnique({ where: { id: dto.poId } });
+      if (!po) throw new NotFoundException(`Purchase Order '${dto.poId}' not found`);
+    }
+
+    const updated = await this.prisma.batch.update({
+      where: { id },
+      data: {
+        ...(dto.batch_number && { batch_number: dto.batch_number.trim().toUpperCase() }),
+        ...(dto.productionDate && { productionDate: new Date(dto.productionDate) }),
+        ...(dto.expirationDate && { expirationDate: new Date(dto.expirationDate) }),
+        ...(dto.poId !== undefined && { poId: dto.poId || null }),
+      },
+      include: {
+        po: { select: { id: true, poNumber: true, buyer: { select: { name: true } } } },
+      },
+    });
+
+    return {
+      message: 'Batch updated successfully',
+      data: updated,
+    };
+  }
+
+  async updateBatchItem(id: string, dto: UpdateBatchItemDTO) {
+    return this.prisma.$transaction(async (tx) => {
+      const batchItem = await tx.batchItem.findUnique({
+        where: { id },
+        include: {
+          product: {
+            include: {
+              color: true,
+              masterProduct: true,
+            },
+          },
+          batch: true,
+          location: true,
+        },
+      });
+
+      if (!batchItem) {
+        throw new NotFoundException(`Batch Item '${id}' not found`);
+      }
+
+      let currentProductId = batchItem.productId;
+      let currentLocationId = batchItem.locationId;
+      let currentReceivedQty = batchItem.receivedQty;
+      let currentAvailableQty = batchItem.availableQty;
+      let currentItemsPerPacket = batchItem.itemsPerPacket;
+      let currentPacketCount = batchItem.packetCount;
+
+      // 1. Handle Location / Rack Change (Transfer)
+      let targetLocationId: string | null = null;
+      if (dto.locationId) {
+        targetLocationId = dto.locationId;
+      } else if (dto.rackId) {
+        const rackLocation = await tx.storageLocation.findFirst({
+          where: { rackId: dto.rackId, status: { not: 'DELETED' } },
+        });
+        if (!rackLocation) {
+          throw new NotFoundException(`Storage location for rack '${dto.rackId}' not found`);
+        }
+        targetLocationId = rackLocation.id;
+      }
+
+      if (targetLocationId && targetLocationId !== batchItem.locationId) {
+        const destLocation = await tx.storageLocation.findUnique({
+          where: { id: targetLocationId },
+        });
+        if (!destLocation) {
+          throw new NotFoundException(`Destination storage location '${targetLocationId}' not found`);
+        }
+
+        currentLocationId = targetLocationId;
+
+        await tx.inventoryMovement.create({
+          data: {
+            inventoryBatchItemId: batchItem.id,
+            type: 'TRANSFER',
+            quantity: batchItem.availableQty,
+            referenceId: batchItem.batchId,
+            note: dto.note || `Batch item moved from location '${batchItem.location.code}' to '${destLocation.code}'`,
+          },
+        });
+      }
+
+      // 2. Handle Variant / Color / Size Re-assignment
+      const targetColorId = dto.colorId || batchItem.product.colorId;
+      const targetSize = (dto.size || batchItem.product.size).trim().toUpperCase();
+
+      if (
+        targetColorId !== batchItem.product.colorId ||
+        targetSize !== batchItem.product.size
+      ) {
+        const targetVariant = await tx.variantProduct.findFirst({
+          where: {
+            masterProductId: batchItem.product.masterProductId,
+            colorId: targetColorId,
+            size: targetSize,
+            status: { not: 'DELETED' },
+          },
+        });
+
+        if (!targetVariant) {
+          throw new BadRequestException(
+            `Target variant product with color '${targetColorId}' and size '${targetSize}' does not exist in catalog`,
+          );
+        }
+
+        // Rebalance shippable stock between old and new variants
+        await tx.variantProduct.update({
+          where: { id: batchItem.productId },
+          data: { shippableQuantity: { decrement: batchItem.availableQty } },
+        });
+
+        await tx.variantProduct.update({
+          where: { id: targetVariant.id },
+          data: { shippableQuantity: { increment: batchItem.availableQty } },
+        });
+
+        currentProductId = targetVariant.id;
+
+        await tx.inventoryMovement.create({
+          data: {
+            inventoryBatchItemId: batchItem.id,
+            type: 'ADJUSTMENT',
+            quantity: batchItem.availableQty,
+            referenceId: batchItem.batchId,
+            note: dto.note || `Variant re-assigned from '${batchItem.product.sku}' to '${targetVariant.sku}'`,
+          },
+        });
+      }
+
+      // 3. Handle Quantity Correction (Audit Adjustment)
+      const requestedQty =
+        dto.receivedQty !== undefined
+          ? dto.receivedQty
+          : dto.quantity !== undefined
+            ? dto.quantity
+            : undefined;
+
+      if (requestedQty !== undefined && requestedQty !== batchItem.receivedQty) {
+        const delta = requestedQty - batchItem.receivedQty;
+
+        if (delta < 0 && batchItem.availableQty + delta < 0) {
+          throw new BadRequestException(
+            `Cannot reduce quantity by ${Math.abs(delta)}: only ${batchItem.availableQty} available (remaining stock already shipped/issued)`,
+          );
+        }
+
+        currentReceivedQty = requestedQty;
+        currentAvailableQty = batchItem.availableQty + delta;
+
+        // Update shippableQuantity on VariantProduct
+        await tx.variantProduct.update({
+          where: { id: currentProductId },
+          data: { shippableQuantity: { increment: delta } },
+        });
+
+        await tx.inventoryMovement.create({
+          data: {
+            inventoryBatchItemId: batchItem.id,
+            type: 'ADJUSTMENT',
+            quantity: delta,
+            referenceId: batchItem.batchId,
+            note: dto.note || `Quantity adjusted from ${batchItem.receivedQty} to ${requestedQty}`,
+          },
+        });
+      }
+
+      // 4. Handle Packaging update
+      if (dto.itemsPerPacket) {
+        currentItemsPerPacket = dto.itemsPerPacket;
+        currentPacketCount = Math.ceil(currentReceivedQty / currentItemsPerPacket);
+      } else if (requestedQty !== undefined) {
+        currentPacketCount = Math.ceil(currentReceivedQty / currentItemsPerPacket);
+      }
+
+      // 5. Update BatchItem
+      const updated = await tx.batchItem.update({
+        where: { id },
+        data: {
+          productId: currentProductId,
+          locationId: currentLocationId,
+          receivedQty: currentReceivedQty,
+          availableQty: currentAvailableQty,
+          itemsPerPacket: currentItemsPerPacket,
+          packetCount: currentPacketCount,
+        },
+        include: {
+          product: {
+            include: {
+              color: true,
+              masterProduct: true,
+            },
+          },
+          location: {
+            include: {
+              warehouse: true,
+              zone: true,
+              subZone: true,
+              rack: true,
+            },
+          },
+          batch: true,
+        },
+      });
+
+      return {
+        message: 'Batch item updated successfully',
+        data: updated,
+      };
+    });
   }
 
   async getStockOverview(query: QueryStockDTO) {

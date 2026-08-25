@@ -1,7 +1,9 @@
 import {
+  Body,
   Controller,
   Get,
   Param,
+  Patch,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -10,6 +12,8 @@ import {
   QueryBatchesDTO,
   QueryMovementsDTO,
   QueryStockDTO,
+  UpdateBatchDTO,
+  UpdateBatchItemDTO,
 } from '../dto/stock-query.dto';
 import { PermissionsGuard, RequirePermissions } from '../../common';
 
@@ -28,6 +32,24 @@ export class InventoryController {
   @RequirePermissions('inventory:read')
   async findBatchById(@Param('id') id: string) {
     return this.inventoryService.findBatchById(id);
+  }
+
+  @Patch('batches/:id')
+  @RequirePermissions('inventory:update')
+  async updateBatch(
+    @Param('id') id: string,
+    @Body() dto: UpdateBatchDTO,
+  ) {
+    return this.inventoryService.updateBatch(id, dto);
+  }
+
+  @Patch('batch-items/:id')
+  @RequirePermissions('inventory:update')
+  async updateBatchItem(
+    @Param('id') id: string,
+    @Body() dto: UpdateBatchItemDTO,
+  ) {
+    return this.inventoryService.updateBatchItem(id, dto);
   }
 
   @Get('stock')

@@ -1,5 +1,5 @@
 import { PRODUCT_GENDER } from '@prisma/client';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   IsArray,
   IsDate,
@@ -127,8 +127,19 @@ export class StockInDTO {
   @IsString()
   note?: string;
 
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      try {
+        return JSON.parse(value);
+      } catch {
+        return value;
+      }
+    }
+    return value;
+  })
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => StockInItemDTO)
   items!: StockInItemDTO[];
 }
+

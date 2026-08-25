@@ -84,7 +84,7 @@ export class StockInService {
     };
   }
 
-  async executeStockIn(dto: StockInDTO) {
+  async executeStockIn(dto: StockInDTO, file?: Express.Multer.File) {
     if (!dto.items || dto.items.length === 0) {
       throw new BadRequestException('At least one item must be provided for stock-in');
     }
@@ -268,6 +268,20 @@ export class StockInService {
         },
       });
 
+      let documentRecord: any = null;
+      if (file) {
+        const normalizedPath = file.path.replace(/\\/g, '/');
+        documentRecord = await tx.document.create({
+          data: {
+            name: file.originalname,
+            path: normalizedPath,
+            mimeType: file.mimetype,
+            size: file.size,
+            batchId: batch.id,
+          },
+        });
+      }
+
       let totalReceivedPairs = 0;
       let totalReceivedPackets = 0;
       const variantQtyMap = new Map<string, number>();
@@ -375,6 +389,7 @@ export class StockInService {
           productionDate: batch.productionDate,
           expirationDate: batch.expirationDate,
           poId: batch.poId,
+          documents: documentRecord ? [documentRecord] : [],
         },
         summary: {
           totalPairsReceived: totalReceivedPairs,

@@ -4,11 +4,17 @@ import {
   Get,
   Post,
   Query,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { StockInService } from '../services/stock-in.service';
 import { PreviewStockInDTO, StockInDTO } from '../dto/stock-in.dto';
-import { PermissionsGuard, RequirePermissions } from '../../common';
+import {
+  DocumentUploadInterceptor,
+  PermissionsGuard,
+  RequirePermissions,
+} from '../../common';
 
 @Controller('inventory')
 @UseGuards(PermissionsGuard)
@@ -23,7 +29,11 @@ export class StockInController {
 
   @Post('stock-in')
   @RequirePermissions('inventory:receive')
-  async executeStockIn(@Body() dto: StockInDTO) {
-    return this.stockInService.executeStockIn(dto);
+  @UseInterceptors(DocumentUploadInterceptor('document'))
+  async executeStockIn(
+    @Body() dto: StockInDTO,
+    @UploadedFile() file?: Express.Multer.File,
+  ) {
+    return this.stockInService.executeStockIn(dto, file);
   }
 }

@@ -305,6 +305,7 @@ model Batch {
   po   PO?     @relation(fields: [poId], references: [id])
 
   batchItems BatchItem[]
+  documents  Document[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -315,12 +316,23 @@ model Batch {
 }
 
 model Document {
-  id   String @id @default(cuid())
-  path String
-  name String
+  id       String  @id @default(cuid())
+  path     String
+  name     String
+  mimeType String?
+  size     Int?
+
+  batchId String?
+  batch   Batch?  @relation(fields: [batchId], references: [id], onDelete: Cascade)
+
+  stockOutId String?
+  stockOut   StockOut? @relation(fields: [stockOutId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([batchId])
+  @@index([stockOutId])
 }
 
 model BatchItem {
@@ -595,7 +607,8 @@ model StockOut {
   issuerId String
   issuer   User   @relation(fields: [issuerId], references: [id])
 
-  items StockOutItem[]
+  items     StockOutItem[]
+  documents Document[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

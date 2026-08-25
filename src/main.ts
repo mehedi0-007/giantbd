@@ -3,7 +3,11 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
-import { GlobalExceptionFilter, TransformResponseInterceptor } from './common';
+import {
+  GlobalExceptionFilter,
+  LoggingInterceptor,
+  TransformResponseInterceptor,
+} from './common';
 import cookieParser from 'cookie-parser';
 
 function validateEnv() {
@@ -50,7 +54,10 @@ async function bootstrap() {
     }),
   );
 
-  app.useGlobalInterceptors(new TransformResponseInterceptor());
+  app.useGlobalInterceptors(
+    new LoggingInterceptor(),
+    new TransformResponseInterceptor(),
+  );
   app.useGlobalFilters(new GlobalExceptionFilter());
 
   app.useStaticAssets(join(process.cwd(), 'uploads'), {

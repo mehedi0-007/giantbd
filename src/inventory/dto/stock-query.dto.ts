@@ -1,5 +1,13 @@
 import { InventoryMovementType } from '@prisma/client';
-import { IsEnum, IsOptional, IsString } from 'class-validator';
+import { Type } from 'class-transformer';
+import {
+  IsDate,
+  IsEnum,
+  IsInt,
+  IsOptional,
+  IsString,
+  Min,
+} from 'class-validator';
 import { PaginationQueryDTO } from '../../common';
 
 export class QueryBatchesDTO extends PaginationQueryDTO {
@@ -26,6 +34,66 @@ export class QueryBatchesDTO extends PaginationQueryDTO {
   @IsOptional()
   @IsString()
   expirationDateTo?: string;
+}
+
+export class UpdateBatchDTO {
+  @IsOptional()
+  @IsString()
+  batch_number?: string;
+
+  @IsOptional()
+  @Type(() => Date)
+  @IsDate()
+  productionDate?: Date;
+
+  @IsOptional()
+  @Type(() => Date)
+  @IsDate()
+  expirationDate?: Date;
+
+  @IsOptional()
+  @IsString()
+  poId?: string;
+}
+
+export class UpdateBatchItemDTO {
+  @IsOptional()
+  @IsString()
+  locationId?: string;
+
+  @IsOptional()
+  @IsString()
+  rackId?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  quantity?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  receivedQty?: number;
+
+  @IsOptional()
+  @IsString()
+  colorId?: string;
+
+  @IsOptional()
+  @IsString()
+  size?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  itemsPerPacket?: number;
+
+  @IsOptional()
+  @IsString()
+  note?: string;
 }
 
 export class QueryStockDTO extends PaginationQueryDTO {
