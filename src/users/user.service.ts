@@ -154,6 +154,8 @@ export class UserService {
 
     const dataToUpdate: any = { ...dto };
     if (dto.password) {
+      const isVal = await bcrypt.compare(dto.password, isExist.password);
+      
       dataToUpdate.password = await bcrypt.hash(dto.password, 10);
     }
     if (dto.phone !== undefined) {

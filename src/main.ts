@@ -6,10 +6,18 @@ import { join } from 'path';
 import { TransformResponseInterceptor } from './common';
 
 
+import cookieParser from 'cookie-parser';
+
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
-  // app.enableCors();
+  app.use(cookieParser());
+
+  app.enableCors({
+    origin: process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(',') : true,
+    credentials: true,
+  });
+
   app.setGlobalPrefix('api');
 
   app.useGlobalPipes(

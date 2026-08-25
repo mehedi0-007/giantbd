@@ -105,8 +105,8 @@ export class AuthService {
     });
 
     return {
-      ...tokens,
       user: AuthenticatedUser(user),
+      ...tokens,
     };
   }
 
@@ -144,7 +144,7 @@ export class AuthService {
     );
 
     if (!isOldPasswordValid) {
-      throw new BadRequestException('Current password does not match');
+      throw new BadRequestException('Password does not match');
     }
 
     if (dto.oldPassword === dto.newPassword) {

@@ -1,8 +1,19 @@
-import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  HttpCode,
+  HttpStatus,
+  Post,
+  Req,
+  Res,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
+import type { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { Public, CurrentUser } from '../common';
 import { ChangePasswordDTO, LogInDTO, RefreshTokenDTO } from './dto/auth.dto';
+import { REFRESH_COOKIE_OPTIONS } from './utils/auth.utils';
 
 @Controller('auth')
 export class AuthController {
@@ -12,20 +23,50 @@ export class AuthController {
   @Public()
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   @HttpCode(HttpStatus.OK)
-  async logIn(@Body() dto: LogInDTO) {
-    return this.authService.logIn(dto);
+  async logIn(
+    @Body() dto: LogInDTO,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.authService.logIn(dto);
+
+    // Set secure HttpOnly cookie for refresh token
+    res.cookie('refreshToken', result.refreshToken, REFRESH_COOKIE_OPTIONS);
+
+    // Exclude refreshToken from JSON payload so frontend only receives accessToken & user
+    const { refreshToken, ...response } = result;
+    return response;
   }
 
   @Post('refresh')
   @Public()
   @HttpCode(HttpStatus.OK)
-  async refresh(@Body() dto: RefreshTokenDTO) {
-    return this.authService.refresh(dto.refreshToken);
+  async refresh(
+    @Req() req: Request,
+    @Body() dto: RefreshTokenDTO,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const token = req.cookies?.refreshToken || dto.refreshToken;
+
+    if (!token) {
+      throw new UnauthorizedException('No refresh token provided');
+    }
+
+    const result = await this.authService.refresh(token);
+
+    // Refresh the cookie with the newly rotated refresh token
+    res.cookie('refreshToken', result.refreshToken, REFRESH_COOKIE_OPTIONS);
+
+    const { refreshToken, ...response } = result;
+    return response;
   }
 
   @Post('logout')
   @HttpCode(HttpStatus.OK)
-  async logOut(@CurrentUser('id') userId: string) {
+  async logOut(
+    @CurrentUser('id') userId: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    res.clearCookie('refreshToken', REFRESH_COOKIE_OPTIONS);
     return this.authService.logOut(userId);
   }
 
@@ -34,8 +75,9 @@ export class AuthController {
   async changePassword(
     @CurrentUser('id') userId: string,
     @Body() dto: ChangePasswordDTO,
+    @Res({ passthrough: true }) res: Response,
   ) {
+    res.clearCookie('refreshToken', REFRESH_COOKIE_OPTIONS);
     return this.authService.changePassword(userId, dto);
   }
 }
-
