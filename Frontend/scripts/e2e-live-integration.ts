@@ -54,7 +54,7 @@ async function runLiveE2E() {
     // 2. MASTER ATTRIBUTES & PRODUCT CATALOG
     // -------------------------------------------------------------------
     console.log('\n🏷️ [2/7] Testing Master Attributes & Bulk Matrix Generator...');
-    const timestamp = Date.now().toString().slice(-4);
+    const timestamp = Date.now().toString().slice(-5);
     let categoryId = '';
     let subCategoryId = '';
     let colorId = '';
@@ -192,7 +192,7 @@ async function runLiveE2E() {
         code: `GSL-${timestamp}`,
         country: 'Germany',
         email: `buyer${timestamp}@globalsports.de`,
-        phone: '+49 30 123456',
+        phone: `+49 30 ${timestamp}`,
         contactPerson: 'Klaus Schmidt',
       });
       buyerId = buyerRes.data?.data?.id || buyerRes.data?.id;
@@ -278,7 +278,22 @@ async function runLiveE2E() {
     try {
       // Preview PO Allocation
       const previewRes = await client.get(`/inventory/stock-out/preview-po/${poId}`);
-      logPass('GET /inventory/stock-out/preview-po/:id -> Live FIFO allocation computed');
+      const previewItems = previewRes.data?.data?.items || [];
+      logPass('GET /inventory/stock-out/preview-po/:id -> Live FIFO allocation computed', `Line items: ${previewItems.length}`);
+
+      // Build FIFO allocations
+      const itemsToDispatch: { batchItemId: string; issueQty: number }[] = [];
+      for (const item of previewItems) {
+        let needed = item.remainingQty || item.reqQty || 50;
+        for (const stock of item.availableWarehouseStock || []) {
+          if (needed <= 0) break;
+          const take = Math.min(stock.inHand, needed);
+          if (take > 0) {
+            itemsToDispatch.push({ batchItemId: stock.batchItemId, issueQty: take });
+            needed -= take;
+          }
+        }
+      }
 
       // Create Stock-Out Challan
       const stockOutRes = await client.post('/inventory/stock-out', {
@@ -287,8 +302,9 @@ async function runLiveE2E() {
         destination: 'Hamburg Port Terminal',
         dispatchDate: new Date().toISOString(),
         note: 'Container Seal #99281',
+        items: itemsToDispatch,
       });
-      const challan = stockOutRes.data?.data;
+      const challan = stockOutRes.data?.data?.challan || stockOutRes.data?.data;
       challanId = challan?.id;
       logPass('POST /inventory/stock-out -> Dispatched Delivery Challan', `Challan#: ${challan?.challanNumber}`);
 
@@ -336,7 +352,7 @@ async function runLiveE2E() {
       const userRes = await client.post('/users/register', {
         name: `Staff Member ${timestamp}`,
         email: `staff${timestamp}@giantbd.com`,
-        phone: '01800000000',
+        phone: `017${timestamp}`,
         gender: 'MALE',
         password: 'password123',
         roleId,

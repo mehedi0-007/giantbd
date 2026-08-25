@@ -181,7 +181,7 @@ export default function StockOutPage() {
       };
 
       const res = await api.post('/inventory/stock-out', payload);
-      const createdChallan = res.data?.data;
+      const createdChallan = res.data?.data?.challan || res.data?.data;
 
       queryClient.invalidateQueries({ queryKey: ['stock-outs'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-data'] });
