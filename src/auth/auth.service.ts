@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -169,7 +170,7 @@ export class AuthService {
   private async verifyRefreshToken(token: string) {
     try {
       return await this.jwtService.verifyAsync(token, {
-        secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
+        secret: this.configService.get<string>('JWT_REFRESH_SECRET')!,
       });
     } catch {
       throw new UnauthorizedException('Invalid token provided');
@@ -185,8 +186,7 @@ export class AuthService {
         sub: userId,
       },
       {
-        secret:
-          this.configService.get<string>('JWT_REFRESH_SECRET') ?? 'DEV-SECRET',
+        secret: this.configService.get<string>('JWT_REFRESH_SECRET')!,
         expiresIn:
           this.configService.get<StringValue>('JWT_REFRESH_EXPIRE') ?? '30d',
       },

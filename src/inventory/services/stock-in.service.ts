@@ -4,15 +4,11 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { VariantProductsService } from '../../products/services/variant-products.service';
 import { PreviewStockInDTO, StockInDTO } from '../dto/stock-in.dto';
 
 @Injectable()
 export class StockInService {
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly variantProductsService: VariantProductsService,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async previewStockIn(dto: PreviewStockInDTO) {
     const [masterProduct, color] = await Promise.all([
@@ -93,106 +89,18 @@ export class StockInService {
       throw new BadRequestException('At least one item must be provided for stock-in');
     }
 
-    // Filter active items with quantity > 0
+    // 1. Filter active items with quantity > 0
     const activeItems = dto.items.filter(
       (item) => (item.receivedQty || item.quantity || 0) > 0,
     );
 
     if (activeItems.length === 0) {
-      throw new BadRequestException('At least one item with quantity > 0 must be provided for stock-in');
+      throw new BadRequestException(
+        'At least one item with quantity > 0 must be provided for stock-in',
+      );
     }
 
-    // 1. Auto-resolve Master Product & Color if provided
-    let masterProduct: any = null;
-    let color: any = null;
-
-    if (dto.masterProductId || dto.colorId) {
-      const [mp, c] = await Promise.all([
-        dto.masterProductId
-          ? this.prisma.masterProduct.findUnique({
-              where: { id: dto.masterProductId },
-            })
-          : null,
-        dto.colorId
-          ? this.prisma.color.findUnique({
-              where: { id: dto.colorId },
-            })
-          : null,
-      ]);
-      masterProduct = mp;
-      color = c;
-    }
-
-    // 2. Resolve or Auto-Create Variant Products via VariantProductsService
-    for (const item of activeItems) {
-      if (!item.variantProductId && item.size) {
-        const cleanSize = item.size.trim().toUpperCase();
-        const gender = item.gender || dto.gender || 'MALE';
-
-        let existingVariant = null;
-        if (dto.masterProductId && dto.colorId) {
-          existingVariant = await this.prisma.variantProduct.findFirst({
-            where: {
-              masterProductId: dto.masterProductId,
-              colorId: dto.colorId,
-              gender,
-              size: cleanSize,
-              status: { not: 'DELETED' },
-            },
-          });
-        }
-
-        if (existingVariant) {
-          item.variantProductId = existingVariant.id;
-        } else {
-          // Re-use VariantProductsService to handle standardized variant creation!
-          if (!masterProduct || !color) {
-            throw new BadRequestException(
-              `Cannot auto-create custom size '${cleanSize}' without valid masterProductId and colorId`,
-            );
-          }
-
-          const createdVariant = await this.variantProductsService.create(
-            {
-              masterProductId: masterProduct.id,
-              colorId: color.id,
-              size: cleanSize,
-              gender,
-              uom: 'PAIR',
-              itemsPerPacket: item.itemsPerPacket || dto.itemsPerPacket || 1,
-              packingType: 'POLY_BAG',
-              costPrice: masterProduct.costPrice || 0,
-              sellingPrice: masterProduct.sellingPrice || 0,
-              mrp: masterProduct.mrp || 0,
-              status: 'ACTIVE',
-            },
-            masterProduct.creatorId,
-          );
-
-          item.variantProductId = createdVariant.id;
-        }
-      }
-    }
-
-    // 3. Resolve Rack IDs to Storage Location IDs if provided
-    const rackIdsToResolve = activeItems
-      .filter((i) => !i.locationId && i.rackId)
-      .map((i) => i.rackId as string);
-
-    if (rackIdsToResolve.length > 0) {
-      const rackLocations = await this.prisma.storageLocation.findMany({
-        where: { rackId: { in: rackIdsToResolve } },
-      });
-      const rackLocationMap = new Map(rackLocations.map((l) => [l.rackId!, l.id]));
-
-      for (const item of activeItems) {
-        if (!item.locationId && item.rackId && rackLocationMap.has(item.rackId)) {
-          item.locationId = rackLocationMap.get(item.rackId);
-        }
-      }
-    }
-
-    // 4. Validate Dates & Generate Batch Identifiers
+    // 2. Validate Dates & Generate Batch Identifiers
     const productionDate = new Date(dto.productionDate);
     const expirationDate =
       dto.expirationDate ? new Date(dto.expirationDate) : this.addYears(productionDate, 2);
@@ -200,46 +108,156 @@ export class StockInService {
     const batchId = dto.batch_id?.trim().toUpperCase() || this.generateBatchId(productionDate);
     const batchNumber = dto.batch_number?.trim().toUpperCase() || this.generateBatchNumber();
 
-    const variantIds = [...new Set(activeItems.map((i) => i.variantProductId).filter(Boolean))] as string[];
-    const locationIds = [
-      ...new Set(
-        activeItems.map((i) => i.locationId || dto.defaultLocationId).filter(Boolean),
-      ),
-    ] as string[];
-
-    if (locationIds.length === 0) {
-      throw new BadRequestException(
-        'A destination storage location must be provided either globally (defaultLocationId) or per item',
-      );
-    }
-
-    const [variants, locations] = await Promise.all([
-      this.prisma.variantProduct.findMany({
-        where: { id: { in: variantIds } },
-        include: { masterProduct: true, color: true },
-      }),
-      this.prisma.storageLocation.findMany({
-        where: { id: { in: locationIds } },
-      }),
-    ]);
-
-    const variantMap = new Map(variants.map((v) => [v.id, v]));
-    const locationMap = new Map(locations.map((l) => [l.id, l]));
-
-    for (const item of activeItems) {
-      const variant = variantMap.get(item.variantProductId!);
-      if (!variant) {
-        throw new NotFoundException(`Variant Product '${item.variantProductId}' not found`);
-      }
-
-      const targetLocationId = item.locationId || dto.defaultLocationId;
-      if (!targetLocationId || !locationMap.has(targetLocationId)) {
-        throw new NotFoundException(`Storage Location '${targetLocationId}' not found`);
-      }
-    }
-
-    // 5. Execute Atomic Bulk Stock-In Transaction
+    // 3. Execute Complete Atomic Transaction (Variant Creation + Batch + Movements)
     return this.prisma.$transaction(async (tx) => {
+      // Step A: Resolve Rack IDs to Location IDs in batch
+      const rackIdsToResolve = [
+        ...new Set(
+          activeItems
+            .filter((i) => !i.locationId && i.rackId)
+            .map((i) => i.rackId as string),
+        ),
+      ];
+
+      if (rackIdsToResolve.length > 0) {
+        const rackLocations = await tx.storageLocation.findMany({
+          where: { rackId: { in: rackIdsToResolve }, status: { not: 'DELETED' } },
+        });
+        const rackLocationMap = new Map(rackLocations.map((l) => [l.rackId!, l.id]));
+
+        for (const item of activeItems) {
+          if (!item.locationId && item.rackId && rackLocationMap.has(item.rackId)) {
+            item.locationId = rackLocationMap.get(item.rackId);
+          }
+        }
+      }
+
+      // Step B: Batch Resolve / Auto-Create Custom Size Variants
+      const customItems = activeItems.filter((i) => !i.variantProductId && i.size);
+
+      if (customItems.length > 0) {
+        if (!dto.masterProductId || !dto.colorId) {
+          throw new BadRequestException(
+            'masterProductId and colorId are required to resolve custom sizes',
+          );
+        }
+
+        const [masterProduct, color] = await Promise.all([
+          tx.masterProduct.findUnique({
+            where: { id: dto.masterProductId },
+            include: { category: true, subCategory: true },
+          }),
+          tx.color.findUnique({ where: { id: dto.colorId } }),
+        ]);
+
+        if (!masterProduct || masterProduct.status === 'DELETED') {
+          throw new NotFoundException('Master Product not found or deleted');
+        }
+        if (!color || color.status === 'DELETED') {
+          throw new NotFoundException('Color not found or deleted');
+        }
+
+        const candidateSizes = [
+          ...new Set(customItems.map((i) => i.size!.trim().toUpperCase())),
+        ];
+
+        // Single query for all candidate sizes (Eliminating N+1 queries)
+        const existingVariants = await tx.variantProduct.findMany({
+          where: {
+            masterProductId: dto.masterProductId,
+            colorId: dto.colorId,
+            size: { in: candidateSizes },
+            status: { not: 'DELETED' },
+          },
+        });
+
+        const variantMapByKey = new Map(
+          existingVariants.map((v) => [`${v.gender}_${v.size}`, v]),
+        );
+
+        for (const item of customItems) {
+          const cleanSize = item.size!.trim().toUpperCase();
+          const gender = item.gender || dto.gender || 'MALE';
+          const key = `${gender}_${cleanSize}`;
+
+          if (variantMapByKey.has(key)) {
+            item.variantProductId = variantMapByKey.get(key)!.id;
+          } else {
+            // Auto-create on-the-fly atomically inside this transaction
+            const cleanSku = `${masterProduct.sku}-${color.name.toUpperCase().replace(/\s+/g, '')}-${cleanSize}`;
+            const cleanName = `${masterProduct.name} - ${color.name} / ${cleanSize}`;
+            const barcode = this.generateBarcode();
+
+            const createdVariant = await tx.variantProduct.create({
+              data: {
+                name: cleanName,
+                sku: cleanSku,
+                barcode,
+                size: cleanSize,
+                colorId: color.id,
+                gender,
+                uom: 'PAIR',
+                itemsPerPacket: item.itemsPerPacket || dto.itemsPerPacket || 1,
+                packingType: 'POLY_BAG',
+                costPrice: 0,
+                sellingPrice: 0,
+                mrp: 0,
+                status: 'ACTIVE',
+                masterProductId: masterProduct.id,
+                categoryId: masterProduct.categoryId,
+                subCategoryId: masterProduct.subCategoryId,
+                creatorId: masterProduct.creatorId,
+              },
+            });
+
+            variantMapByKey.set(key, createdVariant);
+            item.variantProductId = createdVariant.id;
+          }
+        }
+      }
+
+      // Step C: Validate all Variant IDs and Destination Locations
+      const variantIds = [
+        ...new Set(activeItems.map((i) => i.variantProductId).filter(Boolean)),
+      ] as string[];
+      const locationIds = [
+        ...new Set(
+          activeItems.map((i) => i.locationId || dto.defaultLocationId).filter(Boolean),
+        ),
+      ] as string[];
+
+      if (locationIds.length === 0) {
+        throw new BadRequestException(
+          'A destination storage location must be provided either globally (defaultLocationId) or per item',
+        );
+      }
+
+      const [variants, locations] = await Promise.all([
+        tx.variantProduct.findMany({
+          where: { id: { in: variantIds } },
+          include: { masterProduct: true, color: true },
+        }),
+        tx.storageLocation.findMany({
+          where: { id: { in: locationIds }, status: { not: 'DELETED' } },
+        }),
+      ]);
+
+      const variantMap = new Map(variants.map((v) => [v.id, v]));
+      const locationMap = new Map(locations.map((l) => [l.id, l]));
+
+      for (const item of activeItems) {
+        const variant = variantMap.get(item.variantProductId!);
+        if (!variant) {
+          throw new NotFoundException(`Variant Product '${item.variantProductId}' not found`);
+        }
+
+        const targetLocationId = item.locationId || dto.defaultLocationId;
+        if (!targetLocationId || !locationMap.has(targetLocationId)) {
+          throw new NotFoundException(`Storage Location '${targetLocationId}' not found`);
+        }
+      }
+
+      // Step D: Create Batch
       const batch = await tx.batch.create({
         data: {
           batch_id: batchId,
@@ -257,9 +275,12 @@ export class StockInService {
       const batchItemsToCreate = activeItems.map((item) => {
         const variant = variantMap.get(item.variantProductId!)!;
         const targetLocationId = (item.locationId || dto.defaultLocationId)!;
-        const itemsPerPacket = item.itemsPerPacket || dto.itemsPerPacket || variant.itemsPerPacket || 1;
+        const itemsPerPacket =
+          item.itemsPerPacket || dto.itemsPerPacket || variant.itemsPerPacket || 1;
         const receivedQty =
-          item.receivedQty || item.quantity || (item.packetCount ? item.packetCount * itemsPerPacket : itemsPerPacket);
+          item.receivedQty ||
+          item.quantity ||
+          (item.packetCount ? item.packetCount * itemsPerPacket : itemsPerPacket);
         const packetCount =
           item.packetCount || Math.ceil(receivedQty / itemsPerPacket);
 
@@ -280,6 +301,7 @@ export class StockInService {
         };
       });
 
+      // Step E: Bulk Insert Batch Items & Movement Audit Ledger
       const createdBatchItems = await tx.batchItem.createManyAndReturn({
         data: batchItemsToCreate,
         include: {
@@ -294,10 +316,13 @@ export class StockInService {
           type: 'RECEIVED' as const,
           quantity: bi.receivedQty,
           referenceId: batch.id,
-          note: dto.note || `Batch stock-in '${batch.batch_id}' into location '${bi.location?.code}'`,
+          note:
+            dto.note ||
+            `Batch stock-in '${batch.batch_id}' into location '${bi.location?.code}'`,
         })),
       });
 
+      // Step F: Increment shippable stock on variants
       await Promise.all(
         Array.from(variantQtyMap.entries()).map(([variantId, qty]) =>
           tx.variantProduct.update({
@@ -307,6 +332,7 @@ export class StockInService {
         ),
       );
 
+      // Step G: Auto advance PO progress if poId is attached
       if (dto.poId) {
         await Promise.all(
           Array.from(variantQtyMap.entries()).map(([variantId, qty]) =>
@@ -377,5 +403,11 @@ export class StockInService {
   private generateBatchNumber(): string {
     const rand = Math.floor(1000 + Math.random() * 9000);
     return `LOT-${rand}`;
+  }
+
+  private generateBarcode(): string {
+    const prefix = 'PROD';
+    const random = Math.floor(1000000000 + Math.random() * 9000000000).toString();
+    return `${prefix}${random}`.slice(0, 13);
   }
 }

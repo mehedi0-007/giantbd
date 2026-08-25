@@ -11,6 +11,7 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { UserService } from './user.service';
 import { RegistrationDTO, UpdateUserDTO } from './dto/user.dto';
 import {
@@ -28,6 +29,7 @@ export class UserController {
 
   @Post('register')
   @Public()
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @UseInterceptors(UserFileUploadInterceptor())
   async register(
     @Body() dto: RegistrationDTO,

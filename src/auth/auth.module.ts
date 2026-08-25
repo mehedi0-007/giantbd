@@ -16,11 +16,10 @@ import { PrismaModule } from '../prisma/prisma.module';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: async (configService: ConfigService) => ({
-        secret:
-          configService.get<string>('JWT_ACCESS_SECRET') ?? 'DEV-ACCESS-SECRET',
+        secret: configService.get<string>('JWT_ACCESS_SECRET')!,
         signOptions: {
           expiresIn:
-            configService.get<StringValue>('JWT_ACCESS_EXPIRES') ?? '15m',
+            configService.get<StringValue>('JWT_ACCESS_EXPIRES') ?? '1d',
         },
       }),
     }),
