@@ -1,0 +1,405 @@
+'use client';
+
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import api from '@/lib/api';
+import { Warehouse, Zone, SubZone, Rack, StorageLocation } from '@/types/warehouse';
+import { BarcodeModal } from '@/components/warehouse/barcode-modal';
+import { WarehouseDrawer } from '@/components/warehouse/warehouse-drawer';
+import {
+  Warehouse as WarehouseIcon,
+  Search,
+  Plus,
+  Printer,
+  Trash2,
+  RotateCcw,
+  ChevronRight,
+  ChevronDown,
+  Layers,
+  FolderTree,
+  Boxes,
+  Barcode,
+  Loader2,
+} from 'lucide-react';
+
+export default function WarehousePage() {
+  const queryClient = useQueryClient();
+  const [search, setSearch] = useState('');
+  const [selectedWarehouseId, setSelectedWarehouseId] = useState<string>('');
+  const [selectedZoneId, setSelectedZoneId] = useState<string>('');
+  const [selectedLocationForBarcode, setSelectedLocationForBarcode] = useState<StorageLocation | null>(null);
+
+  // Drawer States
+  const [drawerType, setDrawerType] = useState<'warehouse' | 'zone' | 'subzone' | 'rack' | 'location'>('warehouse');
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [expandedNodes, setExpandedNodes] = useState<Record<string, boolean>>({});
+
+  // Fetch Warehouses Hierarchy
+  const { data: whData, isLoading: loadingWh } = useQuery({
+    queryKey: ['warehouses-hierarchy'],
+    queryFn: async () => {
+      const res = await api.get('/attributes/warehouses', { params: { per_page: 50 } });
+      return res.data?.data;
+    },
+  });
+
+  // Fetch Zones
+  const { data: zonesData } = useQuery({
+    queryKey: ['zones-all'],
+    queryFn: async () => {
+      const res = await api.get('/attributes/zones', { params: { per_page: 100 } });
+      return res.data?.data;
+    },
+  });
+
+  // Fetch Locations Table
+  const { data: locationsData, isLoading: loadingLoc, isFetching } = useQuery({
+    queryKey: ['locations-table', search, selectedWarehouseId, selectedZoneId],
+    queryFn: async () => {
+      const res = await api.get('/attributes/locations', {
+        params: {
+          per_page: 50,
+          search: search.trim() || undefined,
+          warehouseId: selectedWarehouseId || undefined,
+          zoneId: selectedZoneId || undefined,
+        },
+      });
+      return res.data?.data;
+    },
+  });
+
+  const warehouses: Warehouse[] = Array.isArray(whData?.data) ? whData.data : Array.isArray(whData) ? whData : [];
+  const zones: Zone[] = Array.isArray(zonesData?.data) ? zonesData.data : Array.isArray(zonesData) ? zonesData : [];
+  const locations: StorageLocation[] = Array.isArray(locationsData?.data) ? locationsData.data : Array.isArray(locationsData) ? locationsData : [];
+
+  const toggleNode = (id: string) => {
+    setExpandedNodes((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const handleOpenAdd = (type: 'warehouse' | 'zone' | 'subzone' | 'rack' | 'location') => {
+    setDrawerType(type);
+    setIsDrawerOpen(true);
+  };
+
+  const handleDeleteLocation = async (id: string, code: string) => {
+    if (!confirm(`Are you sure you want to delete location ${code}?`)) return;
+    try {
+      await api.delete(`/attributes/locations/${id}`);
+      queryClient.invalidateQueries({ queryKey: ['locations-table'] });
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Failed to delete location.');
+    }
+  };
+
+  return (
+    <div className="space-y-6 max-w-7xl mx-auto pb-12">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+              Warehouses & Storage Locations
+            </h1>
+            <span className="rounded-md bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700">
+              {locations.length} Bins Active
+            </span>
+          </div>
+          <p className="text-xs text-slate-500 mt-1">
+            Configure storage zones, racks, shelf bin slots, and print Code 128 barcode stickers
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            type="button"
+            onClick={() => handleOpenAdd('warehouse')}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 shadow-2xs transition cursor-pointer"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            <span>Warehouse</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => handleOpenAdd('zone')}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 shadow-2xs transition cursor-pointer"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            <span>Zone</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => handleOpenAdd('location')}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-3.5 py-2 text-xs font-semibold text-white shadow-sm shadow-blue-500/20 hover:bg-blue-700 transition cursor-pointer"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            <span>New Bin Location</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Main Split Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* Left 4 Cols: Interactive Hierarchy Explorer */}
+        <div className="lg:col-span-4 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+            <div className="flex items-center gap-2">
+              <FolderTree className="h-4 w-4 text-blue-600" />
+              <h3 className="text-sm font-bold text-slate-900">Hierarchy Navigator</h3>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedWarehouseId('');
+                setSelectedZoneId('');
+              }}
+              className="text-[11px] font-semibold text-blue-600 hover:underline"
+            >
+              Show All
+            </button>
+          </div>
+
+          {loadingWh ? (
+            <div className="flex items-center justify-center py-10">
+              <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
+            </div>
+          ) : warehouses.length === 0 ? (
+            <div className="text-center py-8 text-slate-400 text-xs">
+              No warehouses defined. Add a warehouse to start.
+            </div>
+          ) : (
+            <div className="space-y-1.5 text-xs">
+              {warehouses.map((wh) => {
+                const isSelected = selectedWarehouseId === wh.id;
+                const isExpanded = expandedNodes[wh.id] !== false; // default expanded
+                const whZones = zones.filter((z) => z.warehouseId === wh.id);
+
+                return (
+                  <div key={wh.id} className="rounded-xl border border-slate-100 overflow-hidden">
+                    {/* Warehouse Header */}
+                    <div
+                      className={`flex items-center justify-between p-2.5 cursor-pointer transition ${
+                        isSelected ? 'bg-blue-50/80 font-bold text-blue-700' : 'bg-slate-50/60 hover:bg-slate-50'
+                      }`}
+                      onClick={() => {
+                        setSelectedWarehouseId(wh.id);
+                        setSelectedZoneId('');
+                        toggleNode(wh.id);
+                      }}
+                    >
+                      <div className="flex items-center gap-2">
+                        {isExpanded ? (
+                          <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
+                        ) : (
+                          <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
+                        )}
+                        <WarehouseIcon className="h-4 w-4 text-amber-600" />
+                        <span>{wh.name}</span>
+                        <span className="font-mono text-[10px] text-slate-400">({wh.code})</span>
+                      </div>
+                      <span className="text-[10px] text-slate-400 font-normal">
+                        {whZones.length} Zones
+                      </span>
+                    </div>
+
+                    {/* Nested Zones */}
+                    {isExpanded && whZones.length > 0 && (
+                      <div className="pl-6 pr-2 py-1 space-y-1 border-t border-slate-100 bg-white">
+                        {whZones.map((z) => {
+                          const isZSelected = selectedZoneId === z.id;
+                          return (
+                            <div
+                              key={z.id}
+                              onClick={() => {
+                                setSelectedWarehouseId(wh.id);
+                                setSelectedZoneId(z.id);
+                              }}
+                              className={`flex items-center justify-between py-1.5 px-2 rounded-lg cursor-pointer transition ${
+                                isZSelected
+                                  ? 'bg-indigo-50 font-bold text-indigo-700'
+                                  : 'text-slate-600 hover:bg-slate-50'
+                              }`}
+                            >
+                              <div className="flex items-center gap-1.5 truncate">
+                                <Layers className="h-3.5 w-3.5 text-blue-500 shrink-0" />
+                                <span className="truncate">{z.name}</span>
+                              </div>
+                              <span className="font-mono text-[10px] text-slate-400 shrink-0">
+                                {z.code}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Right 8 Cols: Storage Locations Table */}
+        <div className="lg:col-span-8 space-y-4">
+          {/* Search Bar */}
+          <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-white p-3 shadow-xs">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search by location code or barcode..."
+                className="w-full rounded-xl border border-slate-200 bg-slate-50/50 py-2 pl-9 pr-3 text-xs text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:outline-hidden"
+              />
+            </div>
+
+            {isFetching && (
+              <div className="flex items-center gap-1.5 text-xs text-slate-400 pr-2">
+                <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-600" />
+              </div>
+            )}
+          </div>
+
+          {/* Locations Table */}
+          <div className="rounded-2xl border border-slate-200/80 bg-white shadow-xs overflow-hidden">
+            {loadingLoc ? (
+              <div className="flex flex-col items-center justify-center py-20">
+                <Loader2 className="h-8 w-8 animate-spin text-blue-600 mb-3" />
+                <p className="text-xs font-medium text-slate-500">Loading location bins...</p>
+              </div>
+            ) : locations.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <Boxes className="h-10 w-10 text-slate-300 mb-2" />
+                <h4 className="text-sm font-bold text-slate-800">No bin locations found</h4>
+                <p className="text-xs text-slate-500 mt-1 max-w-sm">
+                  Create bin slots to assign storage addresses for incoming stock batches.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => handleOpenAdd('location')}
+                  className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-blue-700 transition cursor-pointer"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  <span>Create Location</span>
+                </button>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                    <tr>
+                      <th className="px-5 py-3.5">Bin Code & Barcode</th>
+                      <th className="px-5 py-3.5">Warehouse Hierarchy Path</th>
+                      <th className="px-5 py-3.5">Status</th>
+                      <th className="px-5 py-3.5 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
+                    {locations.map((loc) => (
+                      <tr key={loc.id} className="hover:bg-slate-50/70 transition-colors">
+                        {/* Bin Code & Barcode */}
+                        <td className="px-5 py-3.5">
+                          <div className="font-mono font-bold text-slate-900 text-xs">
+                            {loc.code}
+                          </div>
+                          {loc.barcode && (
+                            <div className="flex items-center gap-1 font-mono text-[10px] text-slate-500 mt-0.5">
+                              <Barcode className="h-3 w-3 text-slate-400" />
+                              <span>{loc.barcode}</span>
+                            </div>
+                          )}
+                        </td>
+
+                        {/* Hierarchy Path */}
+                        <td className="px-5 py-3.5">
+                          <div className="flex items-center gap-1.5 text-slate-700 font-medium flex-wrap">
+                            <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px]">
+                              {loc.warehouse?.name || 'WH'}
+                            </span>
+                            <span className="text-slate-400">&rsaquo;</span>
+                            <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px]">
+                              {loc.zone?.name || 'Zone'}
+                            </span>
+                            {loc.subZone && (
+                              <>
+                                <span className="text-slate-400">&rsaquo;</span>
+                                <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px]">
+                                  {loc.subZone.name}
+                                </span>
+                              </>
+                            )}
+                            {loc.rack && (
+                              <>
+                                <span className="text-slate-400">&rsaquo;</span>
+                                <span className="rounded bg-amber-50 border border-amber-200/60 px-1.5 py-0.5 text-[11px] font-semibold text-amber-800">
+                                  Rack {loc.rack.code || loc.rack.name}
+                                </span>
+                              </>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* Status */}
+                        <td className="px-5 py-3.5">
+                          <span className="inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-200">
+                            {loc.status}
+                          </span>
+                        </td>
+
+                        {/* Actions */}
+                        <td className="px-5 py-3.5 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => setSelectedLocationForBarcode(loc)}
+                              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-blue-600 hover:bg-blue-50 transition cursor-pointer"
+                              title="Print Barcode Sticker"
+                            >
+                              <Printer className="h-3.5 w-3.5" />
+                              <span>Sticker</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteLocation(loc.id, loc.code)}
+                              className="rounded-lg p-1 text-slate-400 hover:bg-red-50 hover:text-red-600 transition cursor-pointer"
+                              title="Delete Location"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Barcode Print Modal */}
+      <BarcodeModal
+        isOpen={!!selectedLocationForBarcode}
+        onClose={() => setSelectedLocationForBarcode(null)}
+        location={selectedLocationForBarcode}
+      />
+
+      {/* Warehouse / Zone / Location Drawer */}
+      <WarehouseDrawer
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['warehouses-hierarchy'] });
+          queryClient.invalidateQueries({ queryKey: ['zones-all'] });
+          queryClient.invalidateQueries({ queryKey: ['locations-table'] });
+        }}
+        type={drawerType}
+        parentContext={{
+          warehouseId: selectedWarehouseId,
+          zoneId: selectedZoneId,
+        }}
+      />
+    </div>
+  );
+}

@@ -34,7 +34,7 @@ export default function PoPage() {
   const { data, isLoading, isFetching } = useQuery({
     queryKey: ['pos', page, search, statusFilter],
     queryFn: async () => {
-      const res = await api.get('/pos', {
+      const res = await api.get('/po', {
         params: {
           page,
           per_page: 15,
@@ -49,7 +49,7 @@ export default function PoPage() {
   // Soft-Delete Mutation
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      await api.delete(`/pos/${id}`);
+      await api.delete(`/po/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pos'] });
@@ -60,7 +60,7 @@ export default function PoPage() {
   // Restore Mutation
   const restoreMutation = useMutation({
     mutationFn: async (id: string) => {
-      await api.post(`/pos/${id}/restore`);
+      await api.post(`/po/${id}/restore`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pos'] });

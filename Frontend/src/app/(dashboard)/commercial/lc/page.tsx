@@ -31,7 +31,7 @@ export default function LcPage() {
   const { data, isLoading, isFetching } = useQuery({
     queryKey: ['lcs', page, search, statusFilter],
     queryFn: async () => {
-      const res = await api.get('/lcs', {
+      const res = await api.get('/lc', {
         params: {
           page,
           per_page: 15,
@@ -46,7 +46,7 @@ export default function LcPage() {
   // Soft-Delete Mutation
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      await api.delete(`/lcs/${id}`);
+      await api.delete(`/lc/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['lcs'] });
@@ -57,7 +57,7 @@ export default function LcPage() {
   // Restore Mutation
   const restoreMutation = useMutation({
     mutationFn: async (id: string) => {
-      await api.post(`/lcs/${id}/restore`);
+      await api.post(`/lc/${id}/restore`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['lcs'] });

@@ -91,7 +91,7 @@ export function BulkVariantModal({
     try {
       await api.post('/variants/bulk', {
         masterProductId,
-        colorId: selectedColorId,
+        colorIds: [selectedColorId],
         gender: selectedGender,
         uom,
         itemsPerPacket: Number(itemsPerPacket) || 1,

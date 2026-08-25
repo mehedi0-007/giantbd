@@ -1,4 +1,4 @@
-export type Gender = 'MALE' | 'FEMALE';
+export type Gender = 'MALE' | 'FEMALE' | 'OTHER';
 export type Status = 'ACTIVE' | 'INACTIVE' | 'PENDING' | 'DELETED';
 
 export interface Permission {
@@ -13,8 +13,11 @@ export interface Role {
   name: string;
   description?: string;
   status: Status;
+  permissions?: string[];
   rolePermissions?: {
-    permission: {
+    permissionId?: string;
+    permission?: {
+      id?: string;
       name: string;
     };
   }[];
@@ -26,6 +29,7 @@ export interface User {
   email: string;
   phone?: string | null;
   gender: Gender;
+  avatar?: string | null;
   image?: string | null;
   signature?: string | null;
   status: Status;

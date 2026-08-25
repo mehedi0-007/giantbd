@@ -46,7 +46,7 @@ export function PoDrawer({
   const { data: lcsData } = useQuery({
     queryKey: ['lcs-dropdown'],
     queryFn: async () => {
-      const res = await api.get('/lcs', { params: { per_page: 100 } });
+      const res = await api.get('/lc', { params: { per_page: 100 } });
       return res.data?.data;
     },
     enabled: isOpen,
@@ -113,10 +113,10 @@ export function PoDrawer({
       };
 
       if (poToEdit) {
-        await api.patch(`/pos/${poToEdit.id}`, payload);
+        await api.patch(`/po/${poToEdit.id}`, payload);
         onSuccess(poToEdit.id);
       } else {
-        const res = await api.post('/pos', payload);
+        const res = await api.post('/po', payload);
         const newId = res.data?.data?.id || res.data?.id;
         onSuccess(newId);
       }

@@ -88,9 +88,9 @@ export function LcDrawer({
 
     try {
       if (lcToEdit) {
-        await api.patch(`/lcs/${lcToEdit.id}`, formData);
+        await api.patch(`/lc/${lcToEdit.id}`, formData);
       } else {
-        await api.post('/lcs', formData);
+        await api.post('/lc', formData);
       }
       onSuccess();
       onClose();

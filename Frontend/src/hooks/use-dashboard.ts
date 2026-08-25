@@ -14,8 +14,8 @@ export function useDashboardData() {
       const [stockRes, poRes, lcRes, stockOutRes, movementsRes] =
         await Promise.allSettled([
           api.get('/inventory/stock', { params: { per_page: 500 } }),
-          api.get('/pos', { params: { per_page: 200 } }),
-          api.get('/lcs', { params: { per_page: 200 } }),
+          api.get('/po', { params: { per_page: 200 } }),
+          api.get('/lc', { params: { per_page: 200 } }),
           api.get('/inventory/stock-out', { params: { per_page: 100 } }),
           api.get('/inventory/movements', { params: { per_page: 500 } }),
         ]);

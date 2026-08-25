@@ -36,7 +36,7 @@ export default function PoDetailPage() {
   const { data: poData, isLoading } = useQuery({
     queryKey: ['po-detail', id],
     queryFn: async () => {
-      const res = await api.get(`/pos/${id}`);
+      const res = await api.get(`/po/${id}`);
       return res.data?.data;
     },
     enabled: !!id,
@@ -61,7 +61,7 @@ export default function PoDetailPage() {
   // Add Items Mutation
   const addItemsMutation = useMutation({
     mutationFn: async (payload: { items: Array<{ variantProductId: string; quantity: number }> }) => {
-      await api.post(`/pos/${id}/items`, payload);
+      await api.post(`/po/${id}/items`, payload);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['po-detail', id] });
