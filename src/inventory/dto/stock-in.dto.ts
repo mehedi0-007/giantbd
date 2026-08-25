@@ -9,6 +9,7 @@ import {
   IsOptional,
   IsString,
   Min,
+  ValidateIf,
   ValidateNested,
 } from 'class-validator';
 
@@ -30,8 +31,11 @@ export class StockInItemDTO {
   @IsString()
   variantProductId?: string;
 
-  @IsOptional()
+  @ValidateIf((o) => !o.variantProductId)
   @IsString()
+  @IsNotEmpty({
+    message: 'Either variantProductId or size must be specified for each item',
+  })
   size?: string;
 
   @IsOptional()

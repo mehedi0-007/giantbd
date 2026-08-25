@@ -8,7 +8,7 @@ import { PreviewStockInDTO, StockInDTO } from '../dto/stock-in.dto';
 
 @Injectable()
 export class StockInService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async previewStockIn(dto: PreviewStockInDTO) {
     const [masterProduct, color] = await Promise.all([

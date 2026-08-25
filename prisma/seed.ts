@@ -32,8 +32,16 @@ const PERMISSIONS = [
 
   { name: 'inventory:read', module: 'INVENTORY', description: 'View stock levels and batch items' },
   { name: 'inventory:receive', module: 'INVENTORY', description: 'Receive new batches and stock in items to racks' },
+  { name: 'inventory:issue', module: 'INVENTORY', description: 'Issue goods, dispatch shipments, and generate delivery challans' },
+  { name: 'inventory:update', module: 'INVENTORY', description: 'Update stock-out status and attach delivery receipts' },
+  { name: 'inventory:cancel', module: 'INVENTORY', description: 'Cancel and void stock-out challans' },
   { name: 'inventory:transfer', module: 'INVENTORY', description: 'Transfer stock between racks/zones/warehouses' },
   { name: 'inventory:adjust', module: 'INVENTORY', description: 'Perform stock adjustments and audit counts' },
+
+  { name: 'commercial:create', module: 'COMMERCIAL', description: 'Create Buyers, LCs, and Purchase Orders' },
+  { name: 'commercial:read', module: 'COMMERCIAL', description: 'View Buyers, LCs, and Purchase Orders' },
+  { name: 'commercial:update', module: 'COMMERCIAL', description: 'Update Buyers, LCs, and Purchase Orders' },
+  { name: 'commercial:delete', module: 'COMMERCIAL', description: 'Delete Commercial records' },
 
   { name: 'reports:stock', module: 'REPORTS', description: 'View and export stock inventory reports' },
   { name: 'reports:movement', module: 'REPORTS', description: 'View stock movement history and audit logs' },

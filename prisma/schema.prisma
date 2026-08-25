@@ -63,6 +63,21 @@ enum POStatus {
   CANCELLED
 }
 
+enum StockOutType {
+  PO_SHIPMENT
+  DIRECT_SALE
+  SAMPLE_DISPATCH
+  DAMAGE_SCRAP
+  INTERNAL_TRANSFER
+}
+
+enum StockOutStatus {
+  ISSUED
+  DELIVERED
+  PAYMENT_RECEIVED
+  CANCELLED
+}
+
 model User {
   id        String  @id @default(cuid())
   name      String
@@ -81,6 +96,7 @@ model User {
 
   createdProducts       VariantProduct[]
   createdMasterProducts MasterProduct[]
+  issuedStockOuts       StockOut[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -263,8 +279,9 @@ model VariantProduct {
   subCategoryId String
   subCategory   SubCategory @relation(fields: [subCategoryId], references: [id])
 
-  batchItems BatchItem[]
-  poItems    POItem[]
+  batchItems    BatchItem[]
+  poItems       POItem[]
+  stockOutItems StockOutItem[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -328,6 +345,7 @@ model BatchItem {
   updatedAt DateTime @updatedAt
 
   inventoryMovements InventoryMovement[]
+  stockOutItems      StockOutItem[]
 
   @@unique([productId, batchId, locationId])
   @@index([productId])
@@ -482,6 +500,7 @@ model Buyer {
 
   lcs            LC[]
   purchaseOrders PO[]
+  stockOuts      StockOut[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -525,8 +544,9 @@ model PO {
   status        POStatus  @default(DRAFT)
   remarks       String?
 
-  items   POItem[]
-  batches Batch[]
+  items     POItem[]
+  batches   Batch[]
+  stockOuts StockOut[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -552,4 +572,58 @@ model POItem {
 
   @@index([poId])
   @@index([variantProductId])
+}
+
+model StockOut {
+  id              String         @id @default(cuid())
+  challanNumber   String         @unique
+  type            StockOutType   @default(PO_SHIPMENT)
+  status          StockOutStatus @default(ISSUED)
+  partialSequence Int?           @default(1)
+  dispatchDate    DateTime       @default(now())
+
+  poId String?
+  po   PO?     @relation(fields: [poId], references: [id])
+
+  buyerId String?
+  buyer   Buyer?  @relation(fields: [buyerId], references: [id])
+
+  destination     String?
+  note            String?
+  receiptDocument String?
+
+  issuerId String
+  issuer   User   @relation(fields: [issuerId], references: [id])
+
+  items StockOutItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([poId])
+  @@index([buyerId])
+  @@index([type])
+  @@index([status])
+  @@index([dispatchDate])
+  @@index([createdAt])
+}
+
+model StockOutItem {
+  id         String   @id @default(cuid())
+  stockOutId String
+  stockOut   StockOut @relation(fields: [stockOutId], references: [id], onDelete: Cascade)
+
+  variantProductId String
+  variantProduct   VariantProduct @relation(fields: [variantProductId], references: [id])
+
+  batchItemId String
+  batchItem   BatchItem @relation(fields: [batchItemId], references: [id])
+
+  quantity Int
+
+  createdAt DateTime @default(now())
+
+  @@index([stockOutId])
+  @@index([variantProductId])
+  @@index([batchItemId])
 }
