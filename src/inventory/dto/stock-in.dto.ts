@@ -34,6 +34,18 @@ export class StockInItemDTO {
   @Type(() => Number)
   @IsInt()
   @Min(1)
+  receivedQty?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  quantity?: number; // Alias for receivedQty for frontend flexibility
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
   packetCount?: number;
 
   @IsOptional()
@@ -41,12 +53,6 @@ export class StockInItemDTO {
   @IsInt()
   @Min(1)
   itemsPerPacket?: number;
-
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  receivedQty?: number;
 
   @IsOptional()
   @IsString()
@@ -61,6 +67,11 @@ export class StockInDTO {
   @IsOptional()
   @IsString()
   batch_number?: string;
+
+  @IsOptional()
+  @Type(() => Date)
+  @IsDate()
+  stockInDate?: Date;
 
   @Type(() => Date)
   @IsDate()

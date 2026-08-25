@@ -89,16 +89,13 @@ export class StockInService {
       throw new BadRequestException('At least one item must be provided for stock-in');
     }
 
-    // Auto-calculate dates
     const productionDate = new Date(dto.productionDate);
     const expirationDate =
       dto.expirationDate ? new Date(dto.expirationDate) : this.addYears(productionDate, 2);
 
-    // Auto-generate batch identifiers if omitted
     const batchId = dto.batch_id?.trim().toUpperCase() || this.generateBatchId(productionDate);
     const batchNumber = dto.batch_number?.trim().toUpperCase() || this.generateBatchNumber();
 
-    // Validate and collect variant IDs & location IDs
     const variantIds = [...new Set(dto.items.map((i) => i.variantProductId))];
     const locationIds = [
       ...new Set(
@@ -138,20 +135,8 @@ export class StockInService {
     }
 
     return this.prisma.$transaction(async (tx) => {
-      // 1. Create or Find Batch
-      const batch = await tx.batch.upsert({
-        where: {
-          batch_id_productionDate: {
-            batch_id: batchId,
-            productionDate,
-          },
-        },
-        update: {
-          batch_number: batchNumber,
-          expirationDate,
-          poId: dto.poId || null,
-        },
-        create: {
+      const batch = await tx.batch.create({
+        data: {
           batch_id: batchId,
           batch_number: batchNumber,
           productionDate,
@@ -162,93 +147,75 @@ export class StockInService {
 
       let totalReceivedPairs = 0;
       let totalReceivedPackets = 0;
-      const createdBatchItems = [];
+      const variantQtyMap = new Map<string, number>();
 
-      // 2. Process each item in the Size Matrix
-      for (const item of dto.items) {
+      const batchItemsToCreate = dto.items.map((item) => {
         const variant = variantMap.get(item.variantProductId)!;
         const targetLocationId = (item.locationId || dto.defaultLocationId)!;
-        const location = locationMap.get(targetLocationId)!;
-
         const itemsPerPacket = item.itemsPerPacket || variant.itemsPerPacket || 1;
         const receivedQty =
-          item.receivedQty || (item.packetCount ? item.packetCount * itemsPerPacket : itemsPerPacket);
+          item.receivedQty || item.quantity || (item.packetCount ? item.packetCount * itemsPerPacket : itemsPerPacket);
         const packetCount =
           item.packetCount || Math.ceil(receivedQty / itemsPerPacket);
 
         totalReceivedPairs += receivedQty;
         totalReceivedPackets += packetCount;
 
-        // Upsert BatchItem (supports adding to same rack/batch)
-        const batchItem = await tx.batchItem.upsert({
-          where: {
-            productId_batchId_locationId: {
-              productId: variant.id,
-              batchId: batch.id,
-              locationId: targetLocationId,
-            },
-          },
-          update: {
-            receivedQty: { increment: receivedQty },
-            availableQty: { increment: receivedQty },
-            packetCount: { increment: packetCount },
-            itemsPerPacket,
-          },
-          create: {
-            productId: variant.id,
-            batchId: batch.id,
-            locationId: targetLocationId,
-            receivedQty,
-            availableQty: receivedQty,
-            itemsPerPacket,
-            packetCount,
-          },
-          include: {
-            product: { select: { id: true, name: true, sku: true, size: true } },
-            location: { select: { id: true, code: true, name: true } },
-          },
-        });
+        const currentSum = variantQtyMap.get(variant.id) || 0;
+        variantQtyMap.set(variant.id, currentSum + receivedQty);
 
-        // 3. Update Variant Shippable Stock
-        await tx.variantProduct.update({
-          where: { id: variant.id },
-          data: {
-            shippableQuantity: { increment: receivedQty },
-          },
-        });
+        return {
+          productId: variant.id,
+          batchId: batch.id,
+          locationId: targetLocationId,
+          receivedQty,
+          availableQty: receivedQty,
+          itemsPerPacket,
+          packetCount,
+        };
+      });
 
-        // 4. Create Immutable Movement Ledger Entry
-        await tx.inventoryMovement.create({
-          data: {
-            inventoryBatchItemId: batchItem.id,
-            type: 'RECEIVED',
-            quantity: receivedQty,
-            referenceId: batch.id,
-            note: dto.note || `Batch stock-in '${batch.batch_id}' into location '${location.code}'`,
-          },
-        });
+      const createdBatchItems = await tx.batchItem.createManyAndReturn({
+        data: batchItemsToCreate,
+        include: {
+          product: { select: { id: true, name: true, sku: true, size: true } },
+          location: { select: { id: true, code: true, name: true } },
+        },
+      });
 
-        createdBatchItems.push(batchItem);
-      }
+      await tx.inventoryMovement.createMany({
+        data: createdBatchItems.map((bi) => ({
+          inventoryBatchItemId: bi.id,
+          type: 'RECEIVED' as const,
+          quantity: bi.receivedQty,
+          referenceId: batch.id,
+          note: dto.note || `Batch stock-in '${batch.batch_id}' into location '${bi.location?.code}'`,
+        })),
+      });
 
-      // 5. Update PO Item delivered quantities if linked & auto-advance PO status
+      await Promise.all(
+        Array.from(variantQtyMap.entries()).map(([variantId, qty]) =>
+          tx.variantProduct.update({
+            where: { id: variantId },
+            data: { shippableQuantity: { increment: qty } },
+          }),
+        ),
+      );
+
       if (dto.poId) {
-        for (const item of dto.items) {
-          const variant = variantMap.get(item.variantProductId)!;
-          const itemsPerPacket = item.itemsPerPacket || variant.itemsPerPacket || 1;
-          const receivedQty =
-            item.receivedQty || (item.packetCount ? item.packetCount * itemsPerPacket : itemsPerPacket);
-
-          await tx.pOItem.updateMany({
-            where: {
-              poId: dto.poId,
-              variantProductId: variant.id,
-            },
-            data: {
-              shippedQuantity: { increment: receivedQty },
-            },
-          });
-        }
+        await Promise.all(
+          Array.from(variantQtyMap.entries()).map(([variantId, qty]) =>
+            tx.pOItem.updateMany({
+              where: {
+                poId: dto.poId,
+                variantProductId: variantId,
+              },
+              data: {
+                shippedQuantity: { increment: qty },
+              },
+            }),
+          ),
+        );
 
         const poItems = await tx.pOItem.findMany({ where: { poId: dto.poId } });
         if (poItems.length > 0) {
@@ -298,7 +265,7 @@ export class StockInService {
     const y = date.getFullYear();
     const m = String(date.getMonth() + 1).padStart(2, '0');
     const d = String(date.getDate()).padStart(2, '0');
-    const rand = Math.floor(100 + Math.random() * 900);
+    const rand = Math.floor(1000 + Math.random() * 9000);
     return `BAT-${y}${m}${d}-${rand}`;
   }
 

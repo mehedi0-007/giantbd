@@ -53,6 +53,7 @@ export class AuthController {
     const result = await this.authService.refresh(token);
 
     res.cookie('refreshToken', result.refreshToken, REFRESH_COOKIE_OPTIONS);
+
     const { refreshToken, ...response } = result;
     return response;
   }
