@@ -3,6 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { randomBytes } from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service';
 import {
   ExecuteStockOutDTO,
@@ -411,38 +412,13 @@ export class StockOutService {
           },
           buyer: { select: { id: true, name: true, code: true } },
           issuer: { select: { id: true, name: true, email: true } },
-          items: {
-            include: {
-              variantProduct: {
-                select: {
-                  id: true,
-                  name: true,
-                  sku: true,
-                  size: true,
-                  color: { select: { name: true } },
-                },
-              },
-              batchItem: {
-                select: {
-                  batch: { select: { batch_id: true, batch_number: true } },
-                  location: {
-                    select: {
-                      code: true,
-                      warehouse: { select: { name: true } },
-                      rack: { select: { name: true } },
-                    },
-                  },
-                },
-              },
-            },
-          },
+          _count: { select: { items: true } },
         },
         orderBy: { dispatchDate: 'desc' },
       }),
     ]);
 
     const formatted = stockOuts.map((so) => {
-      const totalQuantity = so.items.reduce((sum, i) => sum + i.quantity, 0);
       return {
         id: so.id,
         challanNumber: so.challanNumber,
@@ -455,10 +431,8 @@ export class StockOutService {
         destination: so.destination,
         receiptDocument: so.receiptDocument,
         note: so.note,
-        totalQuantity,
-        itemsCount: so.items.length,
+        itemsCount: so._count.items,
         issuer: so.issuer,
-        items: so.items,
         createdAt: so.createdAt,
         updatedAt: so.updatedAt,
       };
@@ -675,7 +649,8 @@ export class StockOutService {
     const y = date.getFullYear();
     const m = String(date.getMonth() + 1).padStart(2, '0');
     const d = String(date.getDate()).padStart(2, '0');
-    const rand = Math.floor(1000 + Math.random() * 9000);
+    // Use cryptographic randomness to prevent collisions under concurrent requests
+    const rand = randomBytes(3).toString('hex').toUpperCase(); // 6 hex chars = 16^6 = 16M possibilities
     return `CHAL-${y}${m}${d}-${rand}`;
   }
 }

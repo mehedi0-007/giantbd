@@ -36,8 +36,18 @@ async function bootstrap() {
 
   app.use(cookieParser());
 
+  const allowedOrigins = process.env.FRONTEND_URL
+    ? process.env.FRONTEND_URL.split(',')
+    : process.env.NODE_ENV === 'production'
+    ? []
+    : ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:4200'];
+
+  if (process.env.NODE_ENV === 'production' && !process.env.FRONTEND_URL) {
+    console.warn('\x1b[33m%s\x1b[0m', '⚠️  WARNING: FRONTEND_URL is not set. CORS will deny all cross-origin requests in production.');
+  }
+
   app.enableCors({
-    origin: process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(',') : true,
+    origin: allowedOrigins.length > 0 ? allowedOrigins : false,
     credentials: true,
   });
 
