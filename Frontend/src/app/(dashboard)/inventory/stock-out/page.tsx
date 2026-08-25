@@ -148,12 +148,36 @@ export default function StockOutPage() {
     setFormError('');
 
     try {
+      // Build FIFO allocations from previewed available stock
+      const itemsToDispatch: { batchItemId: string; issueQty: number }[] = [];
+
+      if (poPreviewData?.items) {
+        for (const item of poPreviewData.items) {
+          let needed = item.remainingQty || item.reqQty || 0;
+          for (const stock of item.availableWarehouseStock || []) {
+            if (needed <= 0) break;
+            const take = Math.min(stock.inHand, needed);
+            if (take > 0) {
+              itemsToDispatch.push({ batchItemId: stock.batchItemId, issueQty: take });
+              needed -= take;
+            }
+          }
+        }
+      }
+
+      if (itemsToDispatch.length === 0) {
+        setFormError('No available warehouse batch stock found to fulfill this shipment.');
+        setIsCreating(false);
+        return;
+      }
+
       const payload = {
         type: dispatchMode,
         poId: dispatchMode === 'PO_SHIPMENT' ? selectedPoId : undefined,
         destination,
         dispatchDate: new Date(dispatchDate).toISOString(),
         note,
+        items: itemsToDispatch,
       };
 
       const res = await api.post('/inventory/stock-out', payload);
