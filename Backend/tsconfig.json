@@ -21,7 +21,7 @@
   },
   "include": [
     "src/**/*.ts",
-    "prisma/**/*.ts"
+    "Backend/prisma/**/*.ts"
   ],
   "exclude": [
     "node_modules",
