@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import {
+  CreateBulkRacksDTO,
   CreateRackDTO,
   CreateSubZoneDTO,
   CreateWarehouseDTO,
@@ -566,6 +567,110 @@ export class WarehouseAttributesService {
       });
 
       return rack;
+    });
+  }
+
+  async createBulkRacks(dto: CreateBulkRacksDTO) {
+    const subZone = await this.prisma.subZone.findFirst({
+      where: { id: dto.subZoneId, status: { not: 'DELETED' } },
+      include: {
+        zone: { include: { warehouse: true } },
+      },
+    });
+
+    if (!subZone) {
+      throw new NotFoundException('SubZone not found');
+    }
+
+    const count = Number(dto.count);
+    if (!count || count < 1 || count > 100) {
+      throw new BadRequestException('Count must be between 1 and 100');
+    }
+
+    const startIndex = Number(dto.startIndex) || 1;
+    const namePrefix = (dto.prefix || 'Rack').trim();
+    const codePrefix = (dto.codePrefix || 'R').trim().toUpperCase();
+
+    // Check existing racks in this subzone
+    const existingRacks = await this.prisma.rack.findMany({
+      where: {
+        subZoneId: dto.subZoneId,
+        status: { not: 'DELETED' },
+      },
+      select: { code: true },
+    });
+    const existingCodeSet = new Set(existingRacks.map((r) => r.code.toUpperCase()));
+
+    const racksToCreate: Array<{ name: string; code: string; locationBarcode: string; locationName: string }> = [];
+
+    for (let i = 0; i < count; i++) {
+      const num = startIndex + i;
+      const paddedNum = num < 10 ? `0${num}` : `${num}`;
+      const rackName = `${namePrefix} ${paddedNum}`;
+      const rackCode = `${codePrefix}${paddedNum}`;
+
+      if (existingCodeSet.has(rackCode)) {
+        throw new ConflictException(
+          `Rack with code '${rackCode}' already exists in subzone '${subZone.name}'`,
+        );
+      }
+
+      const locationBarcode = `${subZone.zone.warehouse.code}-${subZone.zone.code}-${subZone.code}-${rackCode}`;
+      const locationName = `${subZone.zone.warehouse.name} > ${subZone.zone.name} > ${subZone.name} > ${rackName}`;
+
+      racksToCreate.push({
+        name: rackName,
+        code: rackCode,
+        locationBarcode,
+        locationName,
+      });
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const createdRacks = [];
+
+      for (const item of racksToCreate) {
+        const rack = await tx.rack.create({
+          data: {
+            name: item.name,
+            code: item.code,
+            subZoneId: dto.subZoneId,
+          },
+          include: {
+            subZone: {
+              include: { zone: { include: { warehouse: true } } },
+            },
+          },
+        });
+
+        await tx.storageLocation.upsert({
+          where: { code: item.locationBarcode },
+          update: {
+            name: item.locationName,
+            warehouseId: subZone.zone.warehouse.id,
+            zoneId: subZone.zone.id,
+            subZoneId: subZone.id,
+            rackId: rack.id,
+            status: 'ACTIVE',
+          },
+          create: {
+            code: item.locationBarcode,
+            name: item.locationName,
+            warehouseId: subZone.zone.warehouse.id,
+            zoneId: subZone.zone.id,
+            subZoneId: subZone.id,
+            rackId: rack.id,
+          },
+        });
+
+        createdRacks.push(rack);
+      }
+
+      return {
+        message: `Successfully created ${createdRacks.length} racks with storage bin locations`,
+        count: createdRacks.length,
+        data: createdRacks,
+      };
     });
   }
 

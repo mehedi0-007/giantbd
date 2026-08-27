@@ -31,6 +31,10 @@ export class StockInItemDTO {
   @IsString()
   variantProductId?: string;
 
+  @IsOptional()
+  @IsString()
+  colorId?: string;
+
   @ValidateIf((o) => !o.variantProductId)
   @IsString()
   @IsNotEmpty({

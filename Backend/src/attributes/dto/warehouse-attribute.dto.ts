@@ -1,5 +1,6 @@
 import { Status } from '@prisma/client';
-import { IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString, Max, Min } from 'class-validator';
+import { Type } from 'class-transformer';
 import { PaginationQueryDTO } from '../../common';
 
 export class CreateWarehouseDTO {
@@ -130,6 +131,32 @@ export class CreateRackDTO {
   @IsOptional()
   @IsString()
   description?: string;
+}
+
+export class CreateBulkRacksDTO {
+  @IsString()
+  @IsNotEmpty()
+  subZoneId!: string;
+
+  @IsOptional()
+  @IsString()
+  prefix?: string;
+
+  @IsOptional()
+  @IsString()
+  codePrefix?: string;
+
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  @Max(100)
+  count!: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  startIndex?: number;
 }
 
 export class UpdateRackDTO {

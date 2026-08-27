@@ -10,7 +10,8 @@ import {
 } from '@/types/catalog';
 import api from '@/lib/api';
 import { useQuery } from '@tanstack/react-query';
-import { X, Loader2, Package, Edit3, AlertCircle } from 'lucide-react';
+import { generateMasterProductSku } from '@/lib/sku-generator';
+import { X, Loader2, Package, Edit3, AlertCircle, Sparkles, RefreshCw } from 'lucide-react';
 
 interface MasterProductDrawerProps {
   isOpen: boolean;
@@ -34,6 +35,7 @@ export function MasterProductDrawer({
     description: '',
   });
 
+  const [isSkuCustomized, setIsSkuCustomized] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -100,6 +102,7 @@ export function MasterProductDrawer({
         materialId: productToEdit.materialId || '',
         description: productToEdit.description || '',
       });
+      setIsSkuCustomized(true);
     } else {
       setFormData({
         name: '',
@@ -109,9 +112,32 @@ export function MasterProductDrawer({
         materialId: materials[0]?.id || '',
         description: '',
       });
+      setIsSkuCustomized(false);
     }
     setErrorMsg('');
   }, [productToEdit, isOpen]);
+
+  // Handle live Auto-SKU generation
+  const handleFormChange = (updatedFields: Partial<typeof formData>) => {
+    const nextForm = { ...formData, ...updatedFields };
+    
+    if (!isSkuCustomized && (updatedFields.name || updatedFields.categoryId || updatedFields.subCategoryId)) {
+      const catName = categories.find((c) => c.id === nextForm.categoryId)?.name;
+      const subCatName = subCategories.find((s) => s.id === nextForm.subCategoryId)?.name;
+      const autoSku = generateMasterProductSku(nextForm.name, catName, subCatName);
+      nextForm.sku = autoSku;
+    }
+
+    setFormData(nextForm);
+  };
+
+  const regenerateSku = () => {
+    const catName = categories.find((c) => c.id === formData.categoryId)?.name;
+    const subCatName = subCategories.find((s) => s.id === formData.subCategoryId)?.name;
+    const autoSku = generateMasterProductSku(formData.name, catName, subCatName);
+    setFormData((prev) => ({ ...prev, sku: autoSku }));
+    setIsSkuCustomized(false);
+  };
 
   if (!isOpen) return null;
 
@@ -203,24 +229,49 @@ export function MasterProductDrawer({
                 type="text"
                 required
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onChange={(e) => handleFormChange({ name: e.target.value })}
                 placeholder="e.g. Classic Sport Sneaker"
                 className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20"
               />
             </div>
 
             <div>
-              <label className="mb-1 block text-xs font-semibold text-slate-700">
-                Master SKU Prefix <span className="text-red-500">*</span>
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-semibold text-slate-700">
+                  Master SKU Prefix <span className="text-red-500">*</span>
+                </label>
+                <div className="flex items-center gap-1.5">
+                  {!isSkuCustomized ? (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-700 border border-blue-200">
+                      <Sparkles className="h-2.5 w-2.5" />
+                      Auto-Generated
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={regenerateSku}
+                      className="inline-flex items-center gap-1 text-[10px] font-semibold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                    >
+                      <RefreshCw className="h-2.5 w-2.5" />
+                      Auto-Generate
+                    </button>
+                  )}
+                </div>
+              </div>
               <input
                 type="text"
                 required
                 value={formData.sku}
-                onChange={(e) => setFormData({ ...formData, sku: e.target.value.toUpperCase() })}
-                placeholder="e.g. CSS-2026"
+                onChange={(e) => {
+                  setFormData({ ...formData, sku: e.target.value.toUpperCase() });
+                  setIsSkuCustomized(true);
+                }}
+                placeholder="e.g. FTW-RUN-CSS-26"
                 className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 font-mono font-bold"
               />
+              <p className="text-[11px] text-slate-400 mt-1">
+                System auto-generates format: [Category]-[SubCat]-[Name]-[Year]. You can edit manually anytime.
+              </p>
             </div>
 
             <div>
@@ -230,7 +281,7 @@ export function MasterProductDrawer({
               <select
                 required
                 value={formData.categoryId}
-                onChange={(e) => setFormData({ ...formData, categoryId: e.target.value, subCategoryId: '' })}
+                onChange={(e) => handleFormChange({ categoryId: e.target.value, subCategoryId: '' })}
                 className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20"
               >
                 <option value="" disabled>
@@ -251,7 +302,7 @@ export function MasterProductDrawer({
                 </label>
                 <select
                   value={formData.subCategoryId || ''}
-                  onChange={(e) => setFormData({ ...formData, subCategoryId: e.target.value })}
+                  onChange={(e) => handleFormChange({ subCategoryId: e.target.value })}
                   className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20"
                 >
                   <option value="">None</option>

@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import { WarehouseAttributesService } from '../services/warehouse-attributes.service';
 import {
+  CreateBulkRacksDTO,
   CreateRackDTO,
   CreateSubZoneDTO,
   CreateWarehouseDTO,
@@ -124,6 +125,12 @@ export class WarehouseAttributesController {
   @RequirePermissions('warehouse:delete')
   async deleteSubZone(@Param('id') id: string) {
     return this.warehouseAttributesService.deleteSubZone(id);
+  }
+
+  @Post('racks/bulk')
+  @RequirePermissions('warehouse:create')
+  async createBulkRacks(@Body() dto: CreateBulkRacksDTO) {
+    return this.warehouseAttributesService.createBulkRacks(dto);
   }
 
   @Post('racks')

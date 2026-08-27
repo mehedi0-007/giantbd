@@ -94,6 +94,16 @@ export default function WarehousePage() {
     setSelectedRackId('');
   };
 
+  const handleDeleteLocation = async (id: string, code: string) => {
+    if (!confirm(`Are you sure you want to delete location ${code}?`)) return;
+    try {
+      await api.delete(`/attributes/locations/${id}`);
+      queryClient.invalidateQueries({ queryKey: ['locations-table'] });
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Failed to delete location.');
+    }
+  };
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
       {/* Header */}
@@ -387,6 +397,11 @@ export default function WarehousePage() {
                     )}
                   </div>
                 );
+              })}
+            </div>
+          )}
+        </div>
+
         {/* Right 7 Cols: Storage Locations Table */}
         <div className="lg:col-span-7 space-y-4">
           {/* Search Bar */}
@@ -465,13 +480,13 @@ export default function WarehousePage() {
                             <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px]">
                               {loc.warehouse?.name || 'WH'}
                             </span>
-                            <span className="text-slate-400">&rsaquo;</span>
+                            <span className="text-slate-400">›</span>
                             <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px]">
                               {loc.zone?.name || 'Zone'}
                             </span>
                             {loc.subZone && (
                               <>
-                                <span className="text-slate-400">&rsaquo;</span>
+                                <span className="text-slate-400">›</span>
                                 <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px]">
                                   {loc.subZone.name}
                                 </span>
@@ -479,7 +494,7 @@ export default function WarehousePage() {
                             )}
                             {loc.rack && (
                               <>
-                                <span className="text-slate-400">&rsaquo;</span>
+                                <span className="text-slate-400">›</span>
                                 <span className="rounded bg-amber-50 border border-amber-200/60 px-1.5 py-0.5 text-[11px] font-semibold text-amber-800">
                                   Rack {loc.rack.code || loc.rack.name}
                                 </span>

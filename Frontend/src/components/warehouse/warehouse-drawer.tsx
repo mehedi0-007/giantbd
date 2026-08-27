@@ -4,7 +4,14 @@ import { useState, useEffect } from 'react';
 import { Warehouse, Zone, SubZone, Rack, StorageLocation } from '@/types/warehouse';
 import api from '@/lib/api';
 import { useQuery } from '@tanstack/react-query';
-import { X, Loader2, Warehouse as WarehouseIcon, AlertCircle } from 'lucide-react';
+import {
+  generateWarehouseCode,
+  generateZoneCode,
+  generateSubZoneCode,
+  generateRackCode,
+  generateLocationBarcode,
+} from '@/lib/sku-generator';
+import { X, Loader2, Warehouse as WarehouseIcon, AlertCircle, Sparkles, RefreshCw } from 'lucide-react';
 
 interface WarehouseDrawerProps {
   isOpen: boolean;
@@ -33,6 +40,14 @@ export function WarehouseDrawer({
   const [zoneId, setZoneId] = useState(parentContext?.zoneId || '');
   const [subZoneId, setSubZoneId] = useState(parentContext?.subZoneId || '');
   const [rackId, setRackId] = useState(parentContext?.rackId || '');
+  const [isCodeCustomized, setIsCodeCustomized] = useState(false);
+
+  // Rack Batch Mode States
+  const [rackMode, setRackMode] = useState<'batch' | 'single'>('batch');
+  const [rackPrefix, setRackPrefix] = useState('Rack');
+  const [rackCodePrefix, setRackCodePrefix] = useState('R');
+  const [rackCount, setRackCount] = useState<number>(5);
+  const [rackStartIndex, setRackStartIndex] = useState<number>(1);
 
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -87,8 +102,56 @@ export function WarehouseDrawer({
     setZoneId(parentContext?.zoneId || '');
     setSubZoneId(parentContext?.subZoneId || '');
     setRackId(parentContext?.rackId || '');
+    setIsCodeCustomized(false);
+    setRackMode('batch');
+    setRackPrefix('Rack');
+    setRackCodePrefix('R');
+    setRackCount(5);
+    setRackStartIndex(1);
     setErrorMsg('');
   }, [isOpen, type, parentContext]);
+
+  // Compute auto-code based on type and input
+  const computeAutoCode = (
+    currentName: string,
+    currentWhId = warehouseId,
+    currentZId = zoneId,
+    currentSzId = subZoneId,
+    currentRId = rackId
+  ) => {
+    if (type === 'warehouse') {
+      return generateWarehouseCode(currentName);
+    }
+    if (type === 'zone') {
+      return generateZoneCode(currentName);
+    }
+    if (type === 'subzone') {
+      return generateSubZoneCode(currentName);
+    }
+    if (type === 'rack') {
+      return generateRackCode(currentName);
+    }
+    if (type === 'location') {
+      const whCode = warehouses.find((w) => w.id === currentWhId)?.code;
+      const zCode = zones.find((z) => z.id === currentZId)?.code;
+      const szCode = subZones.find((sz) => sz.id === currentSzId)?.code;
+      const rCode = racks.find((r) => r.id === currentRId)?.code;
+      return generateLocationBarcode(whCode, zCode, szCode, rCode);
+    }
+    return '';
+  };
+
+  const handleNameChange = (val: string) => {
+    setName(val);
+    if (!isCodeCustomized) {
+      setCode(computeAutoCode(val));
+    }
+  };
+
+  const handleRegenerateCode = () => {
+    setCode(computeAutoCode(name));
+    setIsCodeCustomized(false);
+  };
 
   if (!isOpen) return null;
 
@@ -105,7 +168,17 @@ export function WarehouseDrawer({
       } else if (type === 'subzone') {
         await api.post('/attributes/subzones', { name, code: code.toUpperCase(), zoneId });
       } else if (type === 'rack') {
-        await api.post('/attributes/racks', { name, code: code.toUpperCase(), subZoneId });
+        if (rackMode === 'batch') {
+          await api.post('/attributes/racks/bulk', {
+            subZoneId,
+            prefix: rackPrefix.trim() || 'Rack',
+            codePrefix: rackCodePrefix.trim().toUpperCase() || 'R',
+            count: Number(rackCount) || 1,
+            startIndex: Number(rackStartIndex) || 1,
+          });
+        } else {
+          await api.post('/attributes/racks', { name, code: code.toUpperCase(), subZoneId });
+        }
       } else if (type === 'location') {
         await api.post('/attributes/locations', {
           code: code.toUpperCase(),
@@ -181,7 +254,13 @@ export function WarehouseDrawer({
                 <select
                   required
                   value={warehouseId}
-                  onChange={(e) => setWarehouseId(e.target.value)}
+                  onChange={(e) => {
+                    const newWhId = e.target.value;
+                    setWarehouseId(newWhId);
+                    if (!isCodeCustomized && type === 'location') {
+                      setCode(computeAutoCode(name, newWhId, zoneId, subZoneId, rackId));
+                    }
+                  }}
                   className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 focus:border-blue-500 focus:outline-hidden"
                 >
                   <option value="" disabled>Select Warehouse</option>
@@ -198,7 +277,13 @@ export function WarehouseDrawer({
                 <select
                   required
                   value={zoneId}
-                  onChange={(e) => setZoneId(e.target.value)}
+                  onChange={(e) => {
+                    const newZId = e.target.value;
+                    setZoneId(newZId);
+                    if (!isCodeCustomized && type === 'location') {
+                      setCode(computeAutoCode(name, warehouseId, newZId, subZoneId, rackId));
+                    }
+                  }}
                   className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 focus:border-blue-500 focus:outline-hidden"
                 >
                   <option value="" disabled>Select Zone</option>
@@ -215,7 +300,13 @@ export function WarehouseDrawer({
                 <select
                   required
                   value={subZoneId}
-                  onChange={(e) => setSubZoneId(e.target.value)}
+                  onChange={(e) => {
+                    const newSzId = e.target.value;
+                    setSubZoneId(newSzId);
+                    if (!isCodeCustomized && type === 'location') {
+                      setCode(computeAutoCode(name, warehouseId, zoneId, newSzId, rackId));
+                    }
+                  }}
                   className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 focus:border-blue-500 focus:outline-hidden"
                 >
                   <option value="" disabled>Select Sub-Zone</option>
@@ -232,7 +323,13 @@ export function WarehouseDrawer({
                 <select
                   required
                   value={rackId}
-                  onChange={(e) => setRackId(e.target.value)}
+                  onChange={(e) => {
+                    const newRId = e.target.value;
+                    setRackId(newRId);
+                    if (!isCodeCustomized) {
+                      setCode(computeAutoCode(name, warehouseId, zoneId, subZoneId, newRId));
+                    }
+                  }}
                   className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 focus:border-blue-500 focus:outline-hidden"
                 >
                   <option value="" disabled>Select Rack</option>
@@ -243,33 +340,190 @@ export function WarehouseDrawer({
               </div>
             )}
 
-            {type !== 'location' && (
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-700">Name *</label>
-                <input
-                  type="text"
-                  required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Ground Floor East Wing"
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-900 focus:border-blue-500 focus:outline-hidden"
-                />
+            {/* Rack Batch vs Single Mode Selector */}
+            {type === 'rack' && (
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-1 flex gap-1">
+                <button
+                  type="button"
+                  onClick={() => setRackMode('batch')}
+                  className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition ${
+                    rackMode === 'batch'
+                      ? 'bg-blue-600 text-white shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  ⚡ Batch Auto-Generate
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRackMode('single')}
+                  className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition ${
+                    rackMode === 'single'
+                      ? 'bg-white text-slate-900 shadow-2xs border border-slate-200'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  Single Custom Rack
+                </button>
               </div>
             )}
 
-            <div>
-              <label className="mb-1 block text-xs font-semibold text-slate-700">
-                {type === 'location' ? 'Location Bin Code *' : 'Code Identifier *'}
-              </label>
-              <input
-                type="text"
-                required
-                value={code}
-                onChange={(e) => setCode(e.target.value.toUpperCase())}
-                placeholder={type === 'location' ? 'e.g. WH1-ZA-SZ1-R1-L01' : 'e.g. WH1'}
-                className="w-full font-mono font-bold rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-900 focus:border-blue-500 focus:outline-hidden"
-              />
-            </div>
+            {/* Batch Rack Mode Controls */}
+            {type === 'rack' && rackMode === 'batch' ? (
+              <div className="space-y-4 rounded-xl border border-blue-100 bg-blue-50/40 p-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-slate-700">Name Prefix *</label>
+                    <input
+                      type="text"
+                      required
+                      value={rackPrefix}
+                      onChange={(e) => setRackPrefix(e.target.value)}
+                      placeholder="e.g. Rack or Row"
+                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 focus:border-blue-500 focus:outline-hidden"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-slate-700">Code Prefix *</label>
+                    <input
+                      type="text"
+                      required
+                      value={rackCodePrefix}
+                      onChange={(e) => setRackCodePrefix(e.target.value.toUpperCase())}
+                      placeholder="e.g. R"
+                      className="w-full font-mono font-bold rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 focus:border-blue-500 focus:outline-hidden"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-slate-700">Total Racks Count *</label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={50}
+                      required
+                      value={rackCount}
+                      onChange={(e) => setRackCount(Math.max(1, Math.min(50, Number(e.target.value) || 1)))}
+                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 focus:border-blue-500 focus:outline-hidden font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-slate-700">Start Index</label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={rackStartIndex}
+                      onChange={(e) => setRackStartIndex(Math.max(1, Number(e.target.value) || 1))}
+                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 focus:border-blue-500 focus:outline-hidden"
+                    />
+                  </div>
+                </div>
+
+                {/* Quick Count Stepper Chips */}
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] text-slate-500 font-medium">Quick pick:</span>
+                  {[3, 5, 10, 15, 20].map((num) => (
+                    <button
+                      key={num}
+                      type="button"
+                      onClick={() => setRackCount(num)}
+                      className={`px-2 py-0.5 rounded-md text-[11px] font-semibold border transition ${
+                        rackCount === num
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                      }`}
+                    >
+                      {num}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Live Preview Strip */}
+                <div className="rounded-lg border border-blue-200 bg-white p-2.5">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[11px] font-bold text-blue-900">
+                      Auto-Generated Racks Preview ({rackCount}):
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto">
+                    {Array.from({ length: Math.min(rackCount, 20) }).map((_, idx) => {
+                      const num = rackStartIndex + idx;
+                      const padded = num < 10 ? `0${num}` : `${num}`;
+                      return (
+                        <span
+                          key={num}
+                          className="font-mono text-[10px] bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-md text-blue-800 font-bold"
+                        >
+                          {rackPrefix} {padded} ({rackCodePrefix}{padded})
+                        </span>
+                      );
+                    })}
+                    {rackCount > 20 && (
+                      <span className="text-[10px] text-slate-400 font-medium self-center">
+                        +{rackCount - 20} more...
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <>
+                {type !== 'location' && (
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-slate-700">Name *</label>
+                    <input
+                      type="text"
+                      required
+                      value={name}
+                      onChange={(e) => handleNameChange(e.target.value)}
+                      placeholder="e.g. Ground Floor East Wing"
+                      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-900 focus:border-blue-500 focus:outline-hidden"
+                    />
+                  </div>
+                )}
+
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-semibold text-slate-700">
+                      {type === 'location' ? 'Location Bin Code *' : 'Code Identifier *'}
+                    </label>
+                    <div className="flex items-center gap-1.5">
+                      {!isCodeCustomized ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-700 border border-blue-200">
+                          <Sparkles className="h-2.5 w-2.5" />
+                          Auto-Generated
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={handleRegenerateCode}
+                          className="inline-flex items-center gap-1 text-[10px] font-semibold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                        >
+                          <RefreshCw className="h-2.5 w-2.5" />
+                          Auto-Generate
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  <input
+                    type="text"
+                    required
+                    value={code}
+                    onChange={(e) => {
+                      setCode(e.target.value.toUpperCase());
+                      setIsCodeCustomized(true);
+                    }}
+                    placeholder={type === 'location' ? 'e.g. WH1-ZA-SZ1-R1-L01' : 'e.g. WH1'}
+                    className="w-full font-mono font-bold rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-900 focus:border-blue-500 focus:outline-hidden"
+                  />
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    Field is unlocked: you can keep the system-generated code or type a custom one.
+                  </p>
+                </div>
+              </>
+            )}
 
             {type === 'warehouse' && (
               <div>
@@ -296,16 +550,16 @@ export function WarehouseDrawer({
             <button
               type="button"
               onClick={handleSubmit}
-              disabled={isLoading || !code}
+              disabled={isLoading || (type === 'rack' && rackMode === 'batch' ? !rackPrefix || !rackCodePrefix || rackCount < 1 : !code)}
               className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-blue-700 disabled:opacity-50 transition cursor-pointer"
             >
               {isLoading ? (
                 <>
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  <span>Saving...</span>
+                  <span>Creating...</span>
                 </>
               ) : (
-                <span>Save {type}</span>
+                <span>{type === 'rack' && rackMode === 'batch' ? `Create ${rackCount} Storage Racks` : `Save ${type}`}</span>
               )}
             </button>
           </div>

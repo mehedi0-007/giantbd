@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { StockOut, StockOutType, StockOutStatus } from '@/types/inventory';
@@ -23,6 +23,12 @@ import {
   ShieldCheck,
   Ban,
   Package,
+  Boxes,
+  ChevronDown,
+  ChevronRight,
+  MapPin,
+  CheckSquare,
+  Square,
 } from 'lucide-react';
 
 export default function StockOutPage() {
@@ -51,8 +57,12 @@ export default function StockOutPage() {
   const [isCreating, setIsCreating] = useState(false);
   const [formError, setFormError] = useState('');
 
+  // Interactive Batch & Item Selection States
+  const [expandedBatchIds, setExpandedBatchIds] = useState<Record<string, boolean>>({});
+  const [selectedItemQuantities, setSelectedItemQuantities] = useState<Record<string, number>>({});
+
   // 1. Fetch Challans List
-  const { data: challansData, isLoading, isFetching } = useQuery({
+  const { data: challansData, isLoading: loadingChallans, isFetching } = useQuery({
     queryKey: ['stock-outs', page, search, statusFilter],
     queryFn: async () => {
       const res = await api.get('/inventory/stock-out', {
@@ -77,14 +87,18 @@ export default function StockOutPage() {
     enabled: activeTab === 'create',
   });
 
-  // 3. Fetch PO Preview Allocation if PO is selected
-  const { data: poPreviewData, isLoading: loadingPoPreview } = useQuery({
-    queryKey: ['po-dispatch-preview', selectedPoId],
+  // 3. Fetch All Available Batches for Dispatch Selection
+  const { data: batchesData, isLoading: loadingBatches } = useQuery({
+    queryKey: ['available-batches-for-dispatch'],
     queryFn: async () => {
-      const res = await api.get(`/inventory/stock-out/preview-po/${selectedPoId}`);
+      const res = await api.get('/inventory/batches', {
+        params: {
+          per_page: 100,
+        },
+      });
       return res.data?.data;
     },
-    enabled: !!selectedPoId && dispatchMode === 'PO_SHIPMENT',
+    enabled: activeTab === 'create',
   });
 
   const challans: StockOut[] = Array.isArray(challansData?.data)
@@ -94,6 +108,60 @@ export default function StockOutPage() {
     : [];
 
   const pos: PO[] = Array.isArray(posData?.data) ? posData.data : Array.isArray(posData) ? posData : [];
+  
+  const allBatches: any[] = Array.isArray(batchesData?.data)
+    ? batchesData.data
+    : Array.isArray(batchesData)
+    ? batchesData
+    : [];
+
+  // Filter out completely empty/exhausted batches (in-hand = 0)
+  const availableBatches = allBatches.filter((b) => {
+    const totalAvail = (b.batchItems || []).reduce((sum: number, i: any) => sum + (i.availableQty ?? i.receivedQty ?? 0), 0);
+    return totalAvail > 0;
+  });
+
+  // Toggle Batch Accordion
+  const toggleBatchExpand = (id: string) => {
+    setExpandedBatchIds((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  // Toggle Item selection
+  const handleItemQtyChange = (batchItemId: string, maxAvailable: number, qty: number) => {
+    const validQty = Math.max(0, Math.min(maxAvailable, qty));
+    setSelectedItemQuantities((prev) => {
+      const updated = { ...prev };
+      if (validQty <= 0) {
+        delete updated[batchItemId];
+      } else {
+        updated[batchItemId] = validQty;
+      }
+      return updated;
+    });
+  };
+
+  // Select / Deselect All Items in a Batch
+  const handleToggleSelectBatch = (batch: any) => {
+    const items: any[] = batch.batchItems || [];
+    const allSelected = items.every((i) => (selectedItemQuantities[i.id] || 0) > 0);
+
+    setSelectedItemQuantities((prev) => {
+      const updated = { ...prev };
+      items.forEach((i) => {
+        const avail = i.availableQty ?? i.receivedQty ?? 0;
+        if (allSelected) {
+          delete updated[i.id];
+        } else if (avail > 0) {
+          updated[i.id] = avail;
+        }
+      });
+      return updated;
+    });
+  };
+
+  // Compute Total Selected Quantities
+  const totalSelectedPairs = Object.values(selectedItemQuantities).reduce((sum, q) => sum + q, 0);
+  const totalSelectedItemsCount = Object.keys(selectedItemQuantities).length;
 
   // Update Status Mutation
   const handleUpdateStatus = async (id: string, newStatus: StockOutStatus, doc?: File) => {
@@ -111,7 +179,8 @@ export default function StockOutPage() {
       }
 
       queryClient.invalidateQueries({ queryKey: ['stock-outs'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard-data'] });
+      queryClient.invalidateQueries({ queryKey: ['inventory-batches'] });
+      queryClient.invalidateQueries({ queryKey: ['live-stock'] });
       setDeliveringChallan(null);
       setReceiptFile(null);
     } catch (err: any) {
@@ -130,7 +199,8 @@ export default function StockOutPage() {
     try {
       await api.post(`/inventory/stock-out/${id}/cancel`, { note: 'Cancelled via dashboard' });
       queryClient.invalidateQueries({ queryKey: ['stock-outs'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard-data'] });
+      queryClient.invalidateQueries({ queryKey: ['inventory-batches'] });
+      queryClient.invalidateQueries({ queryKey: ['live-stock'] });
     } catch (err: any) {
       alert(err.response?.data?.message || 'Failed to cancel challan.');
     }
@@ -144,39 +214,28 @@ export default function StockOutPage() {
       return;
     }
 
+    const itemsToDispatch = Object.entries(selectedItemQuantities)
+      .filter(([_, qty]) => qty > 0)
+      .map(([batchItemId, issueQty]) => ({
+        batchItemId,
+        issueQty,
+      }));
+
+    if (itemsToDispatch.length === 0) {
+      setFormError('Please select at least one batch size item and enter a dispatch quantity > 0.');
+      return;
+    }
+
     setIsCreating(true);
     setFormError('');
 
     try {
-      // Build FIFO allocations from previewed available stock
-      const itemsToDispatch: { batchItemId: string; issueQty: number }[] = [];
-
-      if (poPreviewData?.items) {
-        for (const item of poPreviewData.items) {
-          let needed = item.remainingQty || item.reqQty || 0;
-          for (const stock of item.availableWarehouseStock || []) {
-            if (needed <= 0) break;
-            const take = Math.min(stock.inHand, needed);
-            if (take > 0) {
-              itemsToDispatch.push({ batchItemId: stock.batchItemId, issueQty: take });
-              needed -= take;
-            }
-          }
-        }
-      }
-
-      if (itemsToDispatch.length === 0) {
-        setFormError('No available warehouse batch stock found to fulfill this shipment.');
-        setIsCreating(false);
-        return;
-      }
-
       const payload = {
         type: dispatchMode,
         poId: dispatchMode === 'PO_SHIPMENT' ? selectedPoId : undefined,
-        destination,
+        destination: destination.trim() || undefined,
         dispatchDate: new Date(dispatchDate).toISOString(),
-        note,
+        note: note.trim() || undefined,
         items: itemsToDispatch,
       };
 
@@ -184,7 +243,8 @@ export default function StockOutPage() {
       const createdChallan = res.data?.data?.challan || res.data?.data;
 
       queryClient.invalidateQueries({ queryKey: ['stock-outs'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard-data'] });
+      queryClient.invalidateQueries({ queryKey: ['inventory-batches'] });
+      queryClient.invalidateQueries({ queryKey: ['live-stock'] });
 
       // Open print modal immediately
       setSelectedChallanForPrint(createdChallan);
@@ -192,6 +252,7 @@ export default function StockOutPage() {
       setSelectedPoId('');
       setDestination('');
       setNote('');
+      setSelectedItemQuantities({});
     } catch (err: any) {
       const msg =
         err.response?.data?.message ||
@@ -330,7 +391,7 @@ export default function StockOutPage() {
 
           {/* Challans Table */}
           <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs">
-            {isLoading ? (
+            {loadingChallans ? (
               <div className="flex flex-col items-center justify-center py-20">
                 <Loader2 className="h-8 w-8 animate-spin text-blue-600 mb-3" />
                 <p className="text-xs font-medium text-slate-500">Loading delivery challans...</p>
@@ -348,7 +409,7 @@ export default function StockOutPage() {
                   className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-blue-700 transition cursor-pointer"
                 >
                   <Plus className="h-3.5 w-3.5" />
-                  <span>New Challan</span>
+                  <span>Dispatch New Shipment</span>
                 </button>
               </div>
             ) : (
@@ -356,116 +417,96 @@ export default function StockOutPage() {
                 <table className="w-full text-left text-xs">
                   <thead className="border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-500">
                     <tr>
-                      <th className="px-5 py-3.5">Challan # & Date</th>
-                      <th className="px-5 py-3.5">Buyer & PO Contract</th>
-                      <th className="px-5 py-3.5">Dispatched Volume</th>
-                      <th className="px-5 py-3.5">Lifecycle Status</th>
+                      <th className="px-5 py-3.5">Challan Number</th>
+                      <th className="px-5 py-3.5">PO / Buyer Contract</th>
+                      <th className="px-5 py-3.5">Dispatch Date</th>
+                      <th className="px-5 py-3.5">Destination Port</th>
+                      <th className="px-5 py-3.5">Status</th>
                       <th className="px-5 py-3.5 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
-                    {challans.map((c) => {
-                      const totalQty =
-                        c.items?.reduce((sum, i) => sum + (i.quantity || 0), 0) ||
-                        c.totalQuantity ||
-                        0;
+                    {challans.map((c) => (
+                      <tr key={c.id} className="hover:bg-slate-50/70 transition-colors">
+                        <td className="px-5 py-4">
+                          <div className="font-mono font-bold text-slate-900 text-xs">
+                            {c.challanNumber}
+                          </div>
+                          <div className="text-[10px] text-slate-400">
+                            Sequence #{c.partialSequence || 1} • {c.type}
+                          </div>
+                        </td>
 
-                      return (
-                        <tr key={c.id} className="hover:bg-slate-50/70 transition-colors">
-                          {/* Challan # & Date */}
-                          <td className="px-5 py-4">
-                            <div className="font-mono font-bold text-slate-900 text-xs">
-                              {c.challanNumber}
-                            </div>
-                            <div className="text-[11px] text-slate-400 mt-0.5">
-                              {formatDate(c.dispatchDate)}
-                            </div>
-                          </td>
-
-                          {/* Buyer & PO */}
-                          <td className="px-5 py-4">
-                            <div className="font-bold text-slate-800">
-                              {c.buyer?.name || c.po?.buyer?.name || 'Direct Dispatch'}
-                            </div>
-                            {c.po && (
-                              <div className="font-mono text-[11px] text-blue-600">
-                                PO: {c.po.poNumber}
+                        <td className="px-5 py-4">
+                          {c.po ? (
+                            <div>
+                              <div className="font-mono font-semibold text-blue-600">
+                                {c.po.poNumber}
                               </div>
-                            )}
-                          </td>
-
-                          {/* Dispatched Volume */}
-                          <td className="px-5 py-4">
-                            <div className="font-bold text-slate-900 text-sm">
-                              {formatNumber(totalQty)} <span className="text-xs font-normal text-slate-500">pairs</span>
+                              <div className="text-[11px] text-slate-500">
+                                {c.buyer?.name || 'Buyer'}
+                              </div>
                             </div>
-                            <div className="text-[10px] text-slate-400">
-                              {c.items?.length || 0} variant line items
-                            </div>
-                          </td>
+                          ) : (
+                            <span className="text-slate-400 italic">Direct Dispatch</span>
+                          )}
+                        </td>
 
-                          {/* Lifecycle Status */}
-                          <td className="px-5 py-4">
-                            <span
-                              className={`inline-flex rounded-full border px-2.5 py-0.5 text-[10px] font-bold ${getStatusBadge(
-                                c.status,
-                              )}`}
+                        <td className="px-5 py-4 text-slate-600">
+                          {formatDate(c.dispatchDate)}
+                        </td>
+
+                        <td className="px-5 py-4 text-slate-600">
+                          {c.destination || 'Standard Factory Delivery'}
+                        </td>
+
+                        <td className="px-5 py-4">
+                          <span
+                            className={`inline-flex rounded-full px-2.5 py-0.5 text-[10px] font-bold border ${getStatusBadge(
+                              c.status,
+                            )}`}
+                          >
+                            {c.status}
+                          </span>
+                        </td>
+
+                        <td className="px-5 py-4 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => setSelectedChallanForPrint(c)}
+                              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-blue-600 hover:bg-blue-50 transition cursor-pointer"
+                              title="Print Official Challan"
                             >
-                              {c.status}
-                            </span>
-                          </td>
+                              <Printer className="h-3.5 w-3.5" />
+                              <span>Print</span>
+                            </button>
 
-                          {/* Actions */}
-                          <td className="px-5 py-4 text-right">
-                            <div className="flex items-center justify-end gap-1.5">
-                              {/* Print Button */}
-                              <button
-                                type="button"
-                                onClick={() => setSelectedChallanForPrint(c)}
-                                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
-                                title="Print Official PDF Challan"
-                              >
-                                <Printer className="h-3.5 w-3.5 text-blue-600" />
-                                <span>Challan</span>
-                              </button>
-
-                              {/* State Workflow Triggers */}
-                              {c.status === 'ISSUED' && (
-                                <>
-                                  <button
-                                    type="button"
-                                    onClick={() => setDeliveringChallan(c)}
-                                    className="inline-flex items-center gap-1 rounded-lg bg-purple-50 text-purple-700 border border-purple-200 px-2 py-1 text-[11px] font-bold hover:bg-purple-100 transition cursor-pointer"
-                                  >
-                                    <Truck className="h-3 w-3" />
-                                    <span>Deliver</span>
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleCancelChallan(c.id, c.challanNumber)}
-                                    className="p-1 text-slate-400 hover:text-rose-600 transition cursor-pointer"
-                                    title="Cancel & Rollback Stock"
-                                  >
-                                    <Ban className="h-3.5 w-3.5" />
-                                  </button>
-                                </>
-                              )}
-
-                              {c.status === 'DELIVERED' && (
+                            {c.status === 'ISSUED' && (
+                              <>
                                 <button
                                   type="button"
-                                  onClick={() => handleUpdateStatus(c.id, 'PAYMENT_RECEIVED')}
-                                  className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-1 text-[11px] font-bold hover:bg-emerald-100 transition cursor-pointer"
+                                  onClick={() => setDeliveringChallan(c)}
+                                  className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 border border-emerald-200 px-2 py-1 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-100 transition cursor-pointer"
+                                  title="Mark as Delivered"
                                 >
-                                  <ShieldCheck className="h-3 w-3" />
-                                  <span>Paid</span>
+                                  <CheckCircle2 className="h-3.5 w-3.5" />
+                                  <span>Delivered</span>
                                 </button>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
+                                <button
+                                  type="button"
+                                  onClick={() => handleCancelChallan(c.id, c.challanNumber)}
+                                  className="rounded-lg p-1 text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition cursor-pointer"
+                                  title="Cancel Challan"
+                                >
+                                  <Ban className="h-3.5 w-3.5" />
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
@@ -474,46 +515,46 @@ export default function StockOutPage() {
         </div>
       )}
 
-      {/* TAB 2: CREATE CHALLAN FORM */}
+      {/* TAB 2: CREATE CHALLAN (WITH VISUAL BATCH & SIZE PICKER) */}
       {activeTab === 'create' && (
-        <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs max-w-4xl mx-auto space-y-6">
-          <div className="border-b border-slate-100 pb-3">
-            <h3 className="text-base font-bold text-slate-900">
-              Create Stock-Out Delivery Challan
-            </h3>
-            <p className="text-xs text-slate-500">
-              Allocate and deduct inventory using First-In-First-Out (FIFO) batch principles
-            </p>
-          </div>
-
-          {formError && (
-            <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">
-              <AlertCircle className="h-4 w-4 shrink-0 text-red-500" />
-              <span>{formError}</span>
+        <form onSubmit={handleCreateChallan} className="space-y-6">
+          <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs space-y-6">
+            <div className="border-b border-slate-100 pb-4">
+              <h3 className="text-base font-bold text-slate-900">
+                Dispatch Shipment & Generate Delivery Challan
+              </h3>
+              <p className="text-xs text-slate-500">
+                Select available production batches, pick exact size quantities to load, and generate official challan documents.
+              </p>
             </div>
-          )}
 
-          <form onSubmit={handleCreateChallan} className="space-y-5">
+            {formError && (
+              <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">
+                <AlertCircle className="h-4 w-4 shrink-0 text-red-500" />
+                <span>{formError}</span>
+              </div>
+            )}
+
             {/* Dispatch Mode Selector */}
             <div>
-              <label className="mb-1 block text-xs font-semibold text-slate-700">
-                Dispatch Category <span className="text-red-500">*</span>
+              <label className="mb-2 block text-xs font-semibold text-slate-700">
+                Dispatch Purpose / Mode <span className="text-red-500">*</span>
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {[
-                  { value: 'PO_SHIPMENT', label: 'PO Shipment' },
-                  { value: 'DIRECT_SALE', label: 'Direct Sale' },
-                  { value: 'SAMPLE_DISPATCH', label: 'Sample Dispatch' },
-                  { value: 'DAMAGE_SCRAP', label: 'Damage / Scrap' },
+                  { id: 'PO_SHIPMENT', label: 'PO Export Shipment' },
+                  { id: 'DIRECT_SALE', label: 'Direct Local Sale' },
+                  { id: 'SAMPLE_DISPATCH', label: 'Sample Dispatch' },
+                  { id: 'DAMAGE_SCRAP', label: 'Damage / Scrap' },
                 ].map((mode) => (
                   <button
-                    key={mode.value}
+                    key={mode.id}
                     type="button"
-                    onClick={() => setDispatchMode(mode.value as any)}
-                    className={`rounded-xl py-2 px-3 text-xs font-bold border transition cursor-pointer text-center ${
-                      dispatchMode === mode.value
-                        ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
-                        : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                    onClick={() => setDispatchMode(mode.id as any)}
+                    className={`rounded-xl border p-3 text-center text-xs font-bold transition cursor-pointer ${
+                      dispatchMode === mode.id
+                        ? 'border-blue-600 bg-blue-50/70 text-blue-700 shadow-2xs'
+                        : 'border-slate-200 bg-slate-50/50 text-slate-600 hover:bg-slate-50'
                     }`}
                   >
                     {mode.label}
@@ -526,7 +567,7 @@ export default function StockOutPage() {
             {dispatchMode === 'PO_SHIPMENT' && (
               <div>
                 <label className="mb-1 block text-xs font-semibold text-slate-700">
-                  Target Purchase Order <span className="text-red-500">*</span>
+                  Target Purchase Order Contract <span className="text-red-500">*</span>
                 </label>
                 <select
                   required
@@ -546,66 +587,209 @@ export default function StockOutPage() {
               </div>
             )}
 
-            {/* Live PO Fulfillment Preview */}
-            {dispatchMode === 'PO_SHIPMENT' && selectedPoId && (
-              <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Package className="h-4 w-4 text-blue-600" />
-                    <h4 className="text-xs font-bold text-blue-900">
-                      PO Line Items & Available Stock Allocation
-                    </h4>
-                  </div>
-                  {loadingPoPreview && (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-600" />
-                  )}
+            {/* AVAILABLE BATCHES ACCORDION PICKER */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Boxes className="h-4 w-4 text-blue-600" />
+                  <h4 className="text-sm font-bold text-slate-900">
+                    Available Warehouse Batches & Sizes ({availableBatches.length} batches in stock)
+                  </h4>
                 </div>
-
-                {poPreviewData?.items && (
-                  <div className="rounded-lg border border-blue-200/80 bg-white overflow-hidden">
-                    <table className="w-full text-left text-xs">
-                      <thead className="bg-blue-50/80 text-[10px] font-bold uppercase text-blue-900 border-b border-blue-200">
-                        <tr>
-                          <th className="px-3 py-2">Variant SKU</th>
-                          <th className="px-3 py-2">Size</th>
-                          <th className="px-3 py-2">Ordered</th>
-                          <th className="px-3 py-2">Shipped</th>
-                          <th className="px-3 py-2">Remaining</th>
-                          <th className="px-3 py-2 text-right">In-Hand Available</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100">
-                        {poPreviewData.items.map((item: any, idx: number) => {
-                          const remaining = item.quantity - (item.shippedQuantity || 0);
-                          const isShort = (item.availableInStock || 0) < remaining;
-                          return (
-                            <tr key={idx}>
-                              <td className="px-3 py-2 font-mono font-bold text-slate-800">
-                                {item.variantProduct?.sku || item.sku}
-                              </td>
-                              <td className="px-3 py-2 font-semibold">
-                                Size {item.variantProduct?.size || item.size}
-                              </td>
-                              <td className="px-3 py-2">{item.quantity}</td>
-                              <td className="px-3 py-2 text-slate-500">{item.shippedQuantity || 0}</td>
-                              <td className="px-3 py-2 font-bold text-blue-700">{remaining}</td>
-                              <td className="px-3 py-2 text-right font-bold">
-                                <span className={isShort ? 'text-amber-600' : 'text-emerald-700'}>
-                                  {item.availableInStock || 0} prs
-                                </span>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+                <span className="text-xs text-slate-400">
+                  Expand each batch dropdown to pick sizes & quantities
+                </span>
               </div>
-            )}
+
+              {loadingBatches ? (
+                <div className="flex items-center justify-center py-10 rounded-xl border border-slate-100 bg-slate-50/50">
+                  <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+                </div>
+              ) : availableBatches.length === 0 ? (
+                <div className="text-center py-10 rounded-xl border border-dashed border-slate-200 bg-slate-50/50 text-slate-400 text-xs">
+                  No active stock batches found. Please receive goods via Stock-In first.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {availableBatches.map((batch) => {
+                    const isExpanded = expandedBatchIds[batch.id] !== false; // default expanded
+                    const items: any[] = batch.batchItems || [];
+                    const totalAvailable = items.reduce((sum, i) => sum + (i.availableQty ?? i.receivedQty ?? 0), 0);
+                    const allSelectedInBatch = items.length > 0 && items.every((i) => (selectedItemQuantities[i.id] || 0) > 0);
+
+                    const productName = items[0]?.product?.name || batch.masterProduct?.name || 'Footwear Style';
+                    const colorName = items[0]?.product?.color?.name || batch.color?.name || 'Color N/A';
+
+                    return (
+                      <div key={batch.id} className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-2xs">
+                        {/* Batch Header Row */}
+                        <div
+                          onClick={() => toggleBatchExpand(batch.id)}
+                          className={`flex items-center justify-between p-3.5 cursor-pointer transition select-none ${
+                            isExpanded ? 'bg-slate-50/80 border-b border-slate-100' : 'hover:bg-slate-50'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <button
+                              type="button"
+                              className="text-slate-400 hover:text-slate-600"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleBatchExpand(batch.id);
+                              }}
+                            >
+                              {isExpanded ? (
+                                <ChevronDown className="h-4 w-4 text-blue-600" />
+                              ) : (
+                                <ChevronRight className="h-4 w-4" />
+                              )}
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleToggleSelectBatch(batch);
+                              }}
+                              className="text-blue-600 hover:text-blue-800 cursor-pointer"
+                              title={allSelectedInBatch ? 'Deselect All in Batch' : 'Select All in Batch'}
+                            >
+                              {allSelectedInBatch ? (
+                                <CheckSquare className="h-4 w-4" />
+                              ) : (
+                                <Square className="h-4 w-4 text-slate-300 hover:text-blue-400" />
+                              )}
+                            </button>
+
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="font-mono font-bold text-slate-900 text-xs">
+                                  {batch.batch_id || batch.batch_number}
+                                </span>
+                                <span className="text-[11px] font-semibold text-slate-700">
+                                  {productName} • <span className="text-blue-600">{colorName}</span>
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2 text-[10px] text-slate-400 mt-0.5">
+                                <span>Produced: {formatDate(batch.productionDate)}</span>
+                                {batch.po && (
+                                  <>
+                                    <span>•</span>
+                                    <span>PO: {batch.po.poNumber}</span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-3">
+                            <div className="text-right">
+                              <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold block">In-Hand</span>
+                              <span className="font-bold text-emerald-700 text-xs">
+                                {formatNumber(totalAvailable)} prs
+                              </span>
+                            </div>
+                            <span className="text-[11px] rounded-md bg-blue-50 text-blue-700 px-2 py-0.5 font-bold">
+                              {items.length} Sizes
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Nested Size Items Matrix */}
+                        {isExpanded && (
+                          <div className="p-3 bg-white">
+                            <table className="w-full text-left text-xs">
+                              <thead className="text-[10px] uppercase font-bold text-slate-400 border-b border-slate-100 pb-1">
+                                <tr>
+                                  <th className="pb-2 w-8"></th>
+                                  <th className="pb-2">Size / SKU</th>
+                                  <th className="pb-2">Storage Bin Address</th>
+                                  <th className="pb-2 text-right">Available in Bin</th>
+                                  <th className="pb-2 text-right w-36">Dispatch Quantity</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
+                                {items.map((item) => {
+                                  const maxAvail = item.availableQty ?? item.receivedQty ?? 0;
+                                  const currentQty = selectedItemQuantities[item.id] || 0;
+                                  const isSelected = currentQty > 0;
+
+                                  return (
+                                    <tr key={item.id} className={`hover:bg-slate-50/50 ${isSelected ? 'bg-blue-50/30' : ''}`}>
+                                      <td className="py-2.5">
+                                        <input
+                                          type="checkbox"
+                                          checked={isSelected}
+                                          disabled={maxAvail <= 0}
+                                          onChange={(e) => {
+                                            if (e.target.checked) {
+                                              handleItemQtyChange(item.id, maxAvail, maxAvail);
+                                            } else {
+                                              handleItemQtyChange(item.id, maxAvail, 0);
+                                            }
+                                          }}
+                                          className="h-3.5 w-3.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                        />
+                                      </td>
+                                      <td className="py-2.5">
+                                        <span className="font-bold text-slate-900">
+                                          Size {item.product?.size || item.size || 'N/A'}
+                                        </span>
+                                        <span className="font-mono text-[10px] text-slate-400 block">
+                                          {item.product?.sku || item.sku}
+                                        </span>
+                                      </td>
+                                      <td className="py-2.5">
+                                        {item.location ? (
+                                          <div className="flex items-center gap-1 font-mono text-[11px] text-indigo-700 font-semibold bg-indigo-50/60 border border-indigo-100 rounded px-1.5 py-0.5 w-fit">
+                                            <MapPin className="h-3 w-3 text-indigo-500 shrink-0" />
+                                            <span>{item.location.code || item.location.name}</span>
+                                          </div>
+                                        ) : (
+                                          <span className="text-slate-400 italic text-[11px]">Unassigned</span>
+                                        )}
+                                      </td>
+                                      <td className="py-2.5 text-right font-bold text-emerald-700">
+                                        {formatNumber(maxAvail)} prs
+                                      </td>
+                                      <td className="py-2.5 text-right">
+                                        <div className="flex items-center justify-end gap-1.5">
+                                          <input
+                                            type="number"
+                                            min={0}
+                                            max={maxAvail}
+                                            value={currentQty || ''}
+                                            placeholder="0"
+                                            onChange={(e) =>
+                                              handleItemQtyChange(item.id, maxAvail, Number(e.target.value) || 0)
+                                            }
+                                            className="w-20 rounded-lg border border-slate-200 px-2 py-1 text-xs text-right font-bold text-slate-900 focus:border-blue-500 focus:outline-hidden"
+                                          />
+                                          <button
+                                            type="button"
+                                            onClick={() => handleItemQtyChange(item.id, maxAvail, maxAvail)}
+                                            className="rounded bg-slate-100 px-1.5 py-1 text-[10px] font-bold text-slate-600 hover:bg-blue-50 hover:text-blue-700 transition cursor-pointer"
+                                          >
+                                            Max
+                                          </button>
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
 
             {/* Destination & Dispatch Date */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
               <div>
                 <label className="mb-1 block text-xs font-semibold text-slate-700">
                   Delivery Destination / Port Address
@@ -638,7 +822,7 @@ export default function StockOutPage() {
                 Challan Remarks & Special Instructions
               </label>
               <textarea
-                rows={3}
+                rows={2}
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 placeholder="Driver contact, truck plate number, container seal details..."
@@ -646,108 +830,123 @@ export default function StockOutPage() {
               />
             </div>
 
-            <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => setActiveTab('registry')}
-                className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={isCreating}
-                className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-2.5 text-xs font-semibold text-white shadow-xs hover:bg-blue-700 disabled:opacity-50 transition cursor-pointer"
-              >
-                {isCreating ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Executing Dispatch...</span>
-                  </>
-                ) : (
-                  <>
-                    <Truck className="h-4 w-4" />
-                    <span>Dispatch & Generate Challan</span>
-                  </>
-                )}
-              </button>
+            {/* Bottom Total Live Summary Card */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl border border-blue-200 bg-blue-50/60">
+              <div>
+                <div className="text-xs font-bold text-blue-900">
+                  Selected for Dispatch: <span className="text-lg font-extrabold text-blue-700">{formatNumber(totalSelectedPairs)} pairs</span>
+                </div>
+                <div className="text-[11px] text-slate-500">
+                  Across {totalSelectedItemsCount} batch size items
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab('registry');
+                    setSelectedItemQuantities({});
+                  }}
+                  className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isCreating || totalSelectedPairs === 0}
+                  className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-2.5 text-xs font-semibold text-white shadow-sm shadow-blue-500/20 hover:bg-blue-700 disabled:opacity-50 transition cursor-pointer"
+                >
+                  {isCreating ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Generating Challan...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Truck className="h-4 w-4" />
+                      <span>Generate Challan ({formatNumber(totalSelectedPairs)} pairs)</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
-          </form>
-        </div>
+          </div>
+        </form>
       )}
 
-      {/* Mark Delivered Modal (with Delivery Receipt Upload) */}
+      {/* Printable 3-Copy Challan PDF Document Modal */}
+      <ChallanPdfModal
+        isOpen={!!selectedChallanForPrint}
+        onClose={() => setSelectedChallanForPrint(null)}
+        challan={selectedChallanForPrint}
+      />
+
+      {/* Mark Delivered Modal */}
       {deliveringChallan && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
             className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs"
             onClick={() => setDeliveringChallan(null)}
           />
-
           <div className="relative w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="text-base font-bold text-slate-900">
-                Confirm Shipment Delivery
-              </h3>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                <h3 className="text-base font-bold text-slate-900">Mark as Delivered</h3>
+              </div>
               <button
                 type="button"
                 onClick={() => setDeliveringChallan(null)}
-                className="p-1 text-slate-400 hover:text-slate-600"
+                className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 cursor-pointer"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            <p className="text-xs text-slate-600">
-              Mark challan <strong className="font-mono text-slate-900">{deliveringChallan.challanNumber}</strong> as delivered. You can attach a scanned copy of the signed delivery receipt.
+            <p className="text-xs text-slate-500">
+              Confirming delivery for challan <strong className="text-slate-800 font-mono">{deliveringChallan.challanNumber}</strong>. You can optionally upload the signed receiver slip / bill of lading.
             </p>
 
             <div>
               <label className="mb-1 block text-xs font-semibold text-slate-700">
-                Signed Receipt Document (Optional)
+                Receiver Signed Document / Slip (Optional)
               </label>
               <input
                 type="file"
-                accept=".pdf,image/*"
+                accept=".pdf,.png,.jpg,.jpeg"
                 onChange={(e) => setReceiptFile(e.target.files?.[0] || null)}
-                className="w-full text-xs text-slate-500 file:mr-2 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"
+                className="w-full text-xs text-slate-500 file:mr-3 file:rounded-lg file:border-0 file:bg-blue-50 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-blue-700 hover:file:bg-blue-100"
               />
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-2">
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
               <button
                 type="button"
                 onClick={() => setDeliveringChallan(null)}
-                className="rounded-lg border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
+                className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 type="button"
-                onClick={() =>
-                  handleUpdateStatus(deliveringChallan.id, 'DELIVERED', receiptFile || undefined)
-                }
                 disabled={isUpdatingStatus}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-purple-600 px-4 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-purple-700 disabled:opacity-50 transition cursor-pointer"
+                onClick={() => handleUpdateStatus(deliveringChallan.id, 'DELIVERED', receiptFile || undefined)}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-emerald-700 disabled:opacity-50 cursor-pointer"
               >
                 {isUpdatingStatus ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    <span>Confirming...</span>
+                  </>
                 ) : (
-                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  <span>Confirm Delivery</span>
                 )}
-                <span>Confirm Delivery</span>
               </button>
             </div>
           </div>
         </div>
       )}
-
-      {/* Official Printable Challan Modal */}
-      <ChallanPdfModal
-        isOpen={!!selectedChallanForPrint}
-        onClose={() => setSelectedChallanForPrint(null)}
-        challan={selectedChallanForPrint}
-      />
     </div>
   );
 }

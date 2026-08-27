@@ -81,6 +81,7 @@ export interface StockOut {
   challanNumber: string;
   type: StockOutType;
   status: StockOutStatus;
+  partialSequence?: number;
   poId?: string | null;
   po?: PO | null;
   buyerId?: string | null;

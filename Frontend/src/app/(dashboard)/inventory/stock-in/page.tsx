@@ -235,10 +235,8 @@ export default function StockInPage() {
       const activeItems = sizeRows
         .filter((r) => r.receivedQty > 0)
         .map((r) => ({
-          variantProductId: r.variantProductId,
+          variantProductId: r.variantProductId || undefined,
           size: r.size,
-          gender: selectedGender,
-          colorId: selectedColorId,
           receivedQty: Number(r.receivedQty),
           itemsPerPacket: Number(r.itemsPerPacket) || 1,
           locationId: r.locationId,
@@ -246,6 +244,8 @@ export default function StockInPage() {
 
       const formData = new FormData();
       formData.append('masterProductId', selectedProductId);
+      formData.append('colorId', selectedColorId);
+      formData.append('gender', selectedGender);
       formData.append('productionDate', new Date(productionDate).toISOString());
       if (expirationDate) {
         formData.append('expirationDate', new Date(expirationDate).toISOString());

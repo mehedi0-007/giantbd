@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Color, ProductGender, UnitOfMeasurement } from '@/types/catalog';
 import api from '@/lib/api';
 import { useQuery } from '@tanstack/react-query';
+import { generateVariantSku } from '@/lib/sku-generator';
 import { X, Loader2, Wand2, AlertCircle, Plus, Check } from 'lucide-react';
 
 interface BulkVariantModalProps {
@@ -289,6 +290,31 @@ export function BulkVariantModal({
                 <span>Add</span>
               </button>
             </div>
+
+            {/* Generated SKUs Preview */}
+            {selectedColorId && selectedSizes.length > 0 && (
+              <div className="mt-3 rounded-xl border border-indigo-100 bg-indigo-50/50 p-3">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-[11px] font-bold text-indigo-900">
+                    Auto-Generated SKUs Preview ({selectedSizes.length}):
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
+                  {selectedSizes.map((sz) => {
+                    const colorName = colors.find((c) => c.id === selectedColorId)?.name || 'CLR';
+                    const previewSku = generateVariantSku(masterSku, colorName, selectedGender, sz);
+                    return (
+                      <span
+                        key={sz}
+                        className="font-mono text-[10px] bg-white border border-indigo-200 px-2 py-0.5 rounded-md text-indigo-700 font-bold shadow-2xs"
+                      >
+                        {previewSku}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Footer Actions */}
