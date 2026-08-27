@@ -114,11 +114,16 @@ export default function CurrentStockPage() {
       if (!hasColor) return false;
     }
 
-    // Gender filter
+    // Gender filter (case-insensitive & matches LADY / FEMALE)
     if (genderFilter) {
-      const hasGender = items.some(
-        (i) => (i.product?.masterProduct?.gender || i.product?.gender) === genderFilter,
-      );
+      const target = genderFilter.toUpperCase();
+      const hasGender = items.some((i) => {
+        const g = String(i.product?.masterProduct?.gender || i.product?.gender || '').toUpperCase();
+        if (target === 'FEMALE' || target === 'LADY') {
+          return g === 'FEMALE' || g === 'LADY';
+        }
+        return g === target;
+      });
       if (!hasGender) return false;
     }
 
@@ -135,7 +140,10 @@ export default function CurrentStockPage() {
     // Warehouse filter
     if (warehouseFilter) {
       const inWarehouse = items.some(
-        (i) => i.location?.warehouse?.id === warehouseFilter || i.location?.warehouseId === warehouseFilter,
+        (i) =>
+          i.location?.warehouse?.id === warehouseFilter ||
+          i.location?.warehouseId === warehouseFilter ||
+          i.location?.warehouse?.code === warehouseFilter,
       );
       if (!inWarehouse) return false;
     }
@@ -152,12 +160,28 @@ export default function CurrentStockPage() {
 
   const stockItems = rawStockItems.filter((item) => {
     // Color filter
-    if (colorFilter && item.color?.name !== colorFilter && item.colorId !== colorFilter) {
+    if (
+      colorFilter &&
+      item.product?.color?.name !== colorFilter &&
+      item.color?.name !== colorFilter &&
+      item.colorId !== colorFilter
+    ) {
       return false;
     }
     // Gender filter
-    if (genderFilter && (item.gender || item.masterProduct?.gender) !== genderFilter) {
-      return false;
+    if (genderFilter) {
+      const g = String(
+        item.product?.masterProduct?.gender ||
+          item.masterProduct?.gender ||
+          item.gender ||
+          '',
+      ).toUpperCase();
+      const target = genderFilter.toUpperCase();
+      if (target === 'FEMALE' || target === 'LADY') {
+        if (g !== 'FEMALE' && g !== 'LADY') return false;
+      } else if (g !== target) {
+        return false;
+      }
     }
     return true;
   });
@@ -609,9 +633,12 @@ export default function CurrentStockPage() {
                                         </td>
                                         <td className="px-4 py-2">
                                           {it.location ? (
-                                            <div className="flex items-center gap-1 font-mono text-[11px] text-blue-700 font-bold bg-blue-50/70 border border-blue-100 rounded px-1.5 py-0.5 w-fit">
-                                              <MapPin className="h-3 w-3 text-blue-500 shrink-0" />
-                                              <span>{it.location.code || it.location.name}</span>
+                                            <div className="flex items-center gap-1 text-[11px] text-slate-800 font-semibold bg-slate-100/90 border border-slate-200/80 rounded px-2 py-0.5 w-fit">
+                                              <MapPin className="h-3 w-3 text-blue-600 shrink-0" />
+                                              <span>
+                                                {it.location.warehouse?.name ? `${it.location.warehouse.name} • ` : ''}
+                                                {it.location.name || it.location.code}
+                                              </span>
                                             </div>
                                           ) : (
                                             <span className="text-slate-400 italic text-[11px]">Unassigned</span>
@@ -718,11 +745,15 @@ export default function CurrentStockPage() {
                         </td>
                         <td className="px-5 py-4">
                           {loc ? (
-                            <div className="font-mono font-bold text-blue-700 bg-blue-50/80 px-2 py-0.5 rounded-md inline-block">
-                              {loc.code}
+                            <div className="flex items-center gap-1.5 text-xs text-slate-800 font-semibold bg-slate-100/90 border border-slate-200/80 px-2.5 py-1 rounded-lg w-fit">
+                              <MapPin className="h-3.5 w-3.5 text-blue-600 shrink-0" />
+                              <span>
+                                {loc.warehouse?.name ? `${loc.warehouse.name} • ` : ''}
+                                {loc.name || loc.code}
+                              </span>
                             </div>
                           ) : (
-                            <span className="text-slate-400">Default WH</span>
+                            <span className="text-slate-400 italic text-xs">Unassigned</span>
                           )}
                         </td>
                         <td className="px-5 py-4 text-right">
