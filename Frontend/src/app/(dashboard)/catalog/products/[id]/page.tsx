@@ -6,12 +6,15 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { MasterProduct, VariantProduct } from '@/types/catalog';
 import { BulkVariantModal } from '@/components/catalog/bulk-variant-modal';
+import { EditVariantModal } from '@/components/catalog/edit-variant-modal';
 import { formatNumber } from '@/lib/utils';
 import NextLink from 'next/link';
 import {
   Package,
   ArrowLeft,
   Wand2,
+  Plus,
+  Edit2,
   Barcode,
   Layers,
   AlertTriangle,
@@ -31,11 +34,7 @@ export default function ProductDetailPage() {
   const queryClient = useQueryClient();
 
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
-  const [selectedVariantForPic, setSelectedVariantForPic] = useState<VariantProduct | null>(null);
-  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadError, setUploadError] = useState('');
+  const [selectedVariantForEdit, setSelectedVariantForEdit] = useState<VariantProduct | null>(null);
 
   // Fetch Master Product with Variants
   const { data: productData, isLoading } = useQuery({
@@ -59,45 +58,6 @@ export default function ProductDetailPage() {
   });
 
   const product: MasterProduct | undefined = productData;
-
-  // Handle Image File Selection
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setSelectedImageFile(file);
-      setImagePreview(URL.createObjectURL(file));
-      setUploadError('');
-    }
-  };
-
-  // Upload Picture Mutation
-  const handleUploadPicture = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedVariantForPic || !selectedImageFile) return;
-
-    setIsUploading(true);
-    setUploadError('');
-
-    try {
-      const formData = new FormData();
-      formData.append('picture', selectedImageFile);
-
-      await api.post(`/variants/${selectedVariantForPic.id}/picture`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-
-      queryClient.invalidateQueries({ queryKey: ['master-product-detail', id] });
-      setSelectedVariantForPic(null);
-      setSelectedImageFile(null);
-      setImagePreview(null);
-    } catch (err: any) {
-      const msg =
-        err.response?.data?.message || 'Failed to upload variant picture.';
-      setUploadError(msg);
-    } finally {
-      setIsUploading(false);
-    }
-  };
 
   if (isLoading) {
     return (
@@ -173,8 +133,8 @@ export default function ProductDetailPage() {
           onClick={() => setIsBulkModalOpen(true)}
           className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white shadow-sm shadow-blue-500/20 hover:bg-blue-700 transition cursor-pointer"
         >
-          <Wand2 className="h-4 w-4" />
-          <span>Generate Size Matrix</span>
+          <Plus className="h-4 w-4" />
+          <span>Create variant products</span>
         </button>
       </div>
 
@@ -218,7 +178,7 @@ export default function ProductDetailPage() {
         <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
           <div className="flex items-center gap-2">
             <h3 className="text-base font-bold text-slate-900">
-              Variant Product Matrix
+              Variant Products
             </h3>
             <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700">
               {variants.length} Records
@@ -230,25 +190,25 @@ export default function ProductDetailPage() {
             onClick={() => setIsBulkModalOpen(true)}
             className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition cursor-pointer"
           >
-            <Wand2 className="h-3.5 w-3.5 text-blue-600" />
-            <span>Generate Sizes</span>
+            <Plus className="h-3.5 w-3.5 text-blue-600" />
+            <span>Create variant products</span>
           </button>
         </div>
 
         {variants.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <Package className="h-10 w-10 text-slate-300 mb-2" />
-            <h4 className="text-sm font-bold text-slate-800">No variant SKUs generated yet</h4>
+            <h4 className="text-sm font-bold text-slate-800">No variant products created yet</h4>
             <p className="text-xs text-slate-500 mt-1 max-w-sm">
-              Use the bulk generator to automatically create sizes 36–45 with color and gender classifications.
+              Use the variant creator to automatically create sizes with color and gender classifications.
             </p>
             <button
               type="button"
               onClick={() => setIsBulkModalOpen(true)}
               className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-blue-700 transition cursor-pointer"
             >
-              <Wand2 className="h-3.5 w-3.5" />
-              <span>Launch Matrix Generator</span>
+              <Plus className="h-3.5 w-3.5" />
+              <span>Create variant products</span>
             </button>
           </div>
         ) : (
@@ -277,14 +237,14 @@ export default function ProductDetailPage() {
                             src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api'}/${v.picture}`}
                             alt={v.name}
                             className="h-9 w-9 rounded-lg object-cover border border-slate-200 cursor-pointer"
-                            onClick={() => setSelectedVariantForPic(v)}
+                            onClick={() => setSelectedVariantForEdit(v)}
                           />
                         ) : (
                           <button
                             type="button"
-                            onClick={() => setSelectedVariantForPic(v)}
+                            onClick={() => setSelectedVariantForEdit(v)}
                             className="flex h-9 w-9 items-center justify-center rounded-lg border border-dashed border-slate-300 text-slate-400 hover:border-blue-400 hover:text-blue-600 transition cursor-pointer"
-                            title="Upload picture"
+                            title="Edit variant & picture"
                           >
                             <ImageIcon className="h-4 w-4" />
                           </button>
@@ -370,11 +330,11 @@ export default function ProductDetailPage() {
                         <div className="flex items-center justify-end gap-1">
                           <button
                             type="button"
-                            onClick={() => setSelectedVariantForPic(v)}
-                            title="Upload Picture"
+                            onClick={() => setSelectedVariantForEdit(v)}
+                            title="Edit Variant Product"
                             className="rounded-lg p-1.5 text-slate-400 hover:bg-blue-50 hover:text-blue-600 transition cursor-pointer"
                           >
-                            <Upload className="h-3.5 w-3.5" />
+                            <Edit2 className="h-3.5 w-3.5" />
                           </button>
                           <button
                             type="button"
@@ -408,84 +368,13 @@ export default function ProductDetailPage() {
         masterSku={product.sku}
       />
 
-      {/* Upload Picture Modal */}
-      {selectedVariantForPic && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div
-            className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs"
-            onClick={() => setSelectedVariantForPic(null)}
-          />
-
-          <div className="relative w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-bold text-slate-900">
-                Upload Variant Picture
-              </h3>
-              <button
-                type="button"
-                onClick={() => setSelectedVariantForPic(null)}
-                className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 transition cursor-pointer"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            {uploadError && (
-              <div className="mb-4 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-2.5 text-xs text-red-700">
-                <AlertCircle className="h-4 w-4 shrink-0 text-red-500" />
-                <span>{uploadError}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleUploadPicture} className="space-y-4">
-              <div className="flex flex-col items-center justify-center border-2 border-dashed border-slate-200 rounded-xl p-4 hover:border-blue-400 transition">
-                {imagePreview ? (
-                  <img
-                    src={imagePreview}
-                    alt="Preview"
-                    className="h-32 w-32 object-cover rounded-lg mb-2"
-                  />
-                ) : (
-                  <div className="flex flex-col items-center text-slate-400 py-4">
-                    <ImageIcon className="h-10 w-10 mb-2" />
-                    <span className="text-xs">Click to browse image file</span>
-                  </div>
-                )}
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                  className="mt-2 text-xs text-slate-500 file:mr-2 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setSelectedVariantForPic(null)}
-                  className="rounded-lg border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isUploading || !selectedImageFile}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-blue-700 disabled:opacity-50 transition cursor-pointer"
-                >
-                  {isUploading ? (
-                    <>
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      <span>Uploading...</span>
-                    </>
-                  ) : (
-                    <span>Save Image</span>
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* Edit Variant Modal */}
+      <EditVariantModal
+        isOpen={!!selectedVariantForEdit}
+        onClose={() => setSelectedVariantForEdit(null)}
+        variant={selectedVariantForEdit}
+        onSuccess={() => queryClient.invalidateQueries({ queryKey: ['master-product-detail', id] })}
+      />
     </div>
   );
 }
