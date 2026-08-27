@@ -38,6 +38,8 @@ export default function StockOutPage() {
   // Search & Filters
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [buyerFilter, setBuyerFilter] = useState('');
+  const [typeFilter, setTypeFilter] = useState('');
   const [page, setPage] = useState(1);
 
   // Print Challan Modal State
@@ -67,9 +69,24 @@ export default function StockOutPage() {
   const [expandedBatchIds, setExpandedBatchIds] = useState<Record<string, boolean>>({});
   const [selectedItemQuantities, setSelectedItemQuantities] = useState<Record<string, number>>({});
 
-  // 1. Fetch Challans List
+  // 1. Fetch Buyers for filter dropdown
+  const { data: buyersData } = useQuery({
+    queryKey: ['buyers-challan-filter'],
+    queryFn: async () => {
+      const res = await api.get('/buyers', { params: { per_page: 100 } });
+      return res.data?.data;
+    },
+  });
+
+  const buyers: any[] = Array.isArray(buyersData?.data)
+    ? buyersData.data
+    : Array.isArray(buyersData)
+    ? buyersData
+    : [];
+
+  // 2. Fetch Challans List
   const { data: challansData, isLoading: loadingChallans, isFetching } = useQuery({
-    queryKey: ['stock-outs', page, search, statusFilter],
+    queryKey: ['stock-outs', page, search, statusFilter, buyerFilter, typeFilter],
     queryFn: async () => {
       const res = await api.get('/inventory/stock-out', {
         params: {
@@ -77,6 +94,8 @@ export default function StockOutPage() {
           per_page: 20,
           search: search.trim() || undefined,
           status: statusFilter || undefined,
+          buyerId: buyerFilter || undefined,
+          type: typeFilter || undefined,
         },
       });
       return res.data?.data;
@@ -355,9 +374,9 @@ export default function StockOutPage() {
       {/* TAB 1: CHALLAN REGISTRY */}
       {activeTab === 'registry' && (
         <div className="space-y-4">
-          {/* Search & Status Filter */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-white p-3 shadow-xs">
-            <div className="relative flex-1 w-full sm:max-w-md">
+          {/* Search & Multi-Filters */}
+          <div className="flex flex-col lg:flex-row items-center gap-3 rounded-2xl border border-slate-200/80 bg-white p-3 shadow-xs">
+            <div className="relative flex-1 w-full">
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
               <input
                 type="text"
@@ -371,28 +390,77 @@ export default function StockOutPage() {
               />
             </div>
 
-            <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
-              <select
-                value={statusFilter}
-                onChange={(e) => {
-                  setStatusFilter(e.target.value);
+            {/* Buyer Filter */}
+            <select
+              value={buyerFilter}
+              onChange={(e) => {
+                setBuyerFilter(e.target.value);
+                setPage(1);
+              }}
+              className="w-full lg:w-auto rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs font-semibold text-slate-700 focus:border-blue-500 focus:outline-hidden"
+            >
+              <option value="">🏢 All Buyers</option>
+              {buyers.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name} ({b.code})
+                </option>
+              ))}
+            </select>
+
+            {/* Shipment Type Filter */}
+            <select
+              value={typeFilter}
+              onChange={(e) => {
+                setTypeFilter(e.target.value);
+                setPage(1);
+              }}
+              className="w-full lg:w-auto rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs font-semibold text-slate-700 focus:border-blue-500 focus:outline-hidden"
+            >
+              <option value="">📦 All Dispatch Types</option>
+              <option value="PO_SHIPMENT">PO Shipment</option>
+              <option value="DIRECT_SALE">Direct Commercial Sale</option>
+              <option value="SAMPLE_DISPATCH">Sample Dispatch</option>
+              <option value="DAMAGE_SCRAP">Damage / Scrap</option>
+            </select>
+
+            {/* Status Filter */}
+            <select
+              value={statusFilter}
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
+                setPage(1);
+              }}
+              className="w-full lg:w-auto rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs font-semibold text-slate-700 focus:border-blue-500 focus:outline-hidden"
+            >
+              <option value="">All Statuses</option>
+              <option value="ISSUED">ISSUED</option>
+              <option value="DELIVERED">DELIVERED</option>
+              <option value="PAYMENT_RECEIVED">PAYMENT RECEIVED</option>
+              <option value="CANCELLED">CANCELLED</option>
+            </select>
+
+            {/* Reset Filters */}
+            {(search || buyerFilter || typeFilter || statusFilter) && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearch('');
+                  setBuyerFilter('');
+                  setTypeFilter('');
+                  setStatusFilter('');
                   setPage(1);
                 }}
-                className="rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs font-semibold text-slate-700 focus:border-blue-500 focus:outline-hidden"
+                className="w-full lg:w-auto shrink-0 rounded-xl border border-slate-200 bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-200 transition cursor-pointer"
               >
-                <option value="">All Statuses</option>
-                <option value="ISSUED">ISSUED</option>
-                <option value="DELIVERED">DELIVERED</option>
-                <option value="PAYMENT_RECEIVED">PAYMENT RECEIVED</option>
-                <option value="CANCELLED">CANCELLED</option>
-              </select>
+                Reset
+              </button>
+            )}
 
-              {isFetching && (
-                <div className="flex items-center gap-1.5 text-xs text-slate-400">
-                  <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-600" />
-                </div>
-              )}
-            </div>
+            {isFetching && (
+              <div className="flex items-center gap-1.5 text-xs text-slate-400">
+                <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-600" />
+              </div>
+            )}
           </div>
 
           {/* Challans Table */}

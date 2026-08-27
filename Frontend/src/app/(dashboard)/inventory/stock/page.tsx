@@ -28,6 +28,10 @@ import {
 export default function CurrentStockPage() {
   const [viewMode, setViewMode] = useState<'batches' | 'items'>('batches');
   const [search, setSearch] = useState('');
+  const [colorFilter, setColorFilter] = useState('');
+  const [genderFilter, setGenderFilter] = useState('');
+  const [agingFilter, setAgingFilter] = useState('');
+  const [allocationFilter, setAllocationFilter] = useState('');
   const [warehouseFilter, setWarehouseFilter] = useState('');
   const [lowStockOnly, setLowStockOnly] = useState(false);
   const [page, setPage] = useState(1);
@@ -46,14 +50,23 @@ export default function CurrentStockPage() {
     },
   });
 
-  // 2. Fetch Batches Overview (Grouped View)
+  // 2. Fetch Colors for filter dropdown
+  const { data: colorsData } = useQuery({
+    queryKey: ['colors-stock-filter'],
+    queryFn: async () => {
+      const res = await api.get('/attributes/colors', { params: { per_page: 100 } });
+      return res.data?.data;
+    },
+  });
+
+  // 3. Fetch Batches Overview (Grouped View)
   const { data: batchesData, isLoading: loadingBatches, isFetching: fetchingBatches } = useQuery({
     queryKey: ['inventory-batches', page, search],
     queryFn: async () => {
       const res = await api.get('/inventory/batches', {
         params: {
           page,
-          per_page: 25,
+          per_page: 50,
           search: search.trim() || undefined,
         },
       });
@@ -62,14 +75,14 @@ export default function CurrentStockPage() {
     enabled: viewMode === 'batches',
   });
 
-  // 3. Fetch Live Individual Stock Items (Flat View)
+  // 4. Fetch Live Individual Stock Items (Flat View)
   const { data: stockData, isLoading: loadingStock, isFetching: fetchingStock } = useQuery({
     queryKey: ['live-stock', page, search, warehouseFilter, lowStockOnly],
     queryFn: async () => {
       const res = await api.get('/inventory/stock', {
         params: {
           page,
-          per_page: 30,
+          per_page: 50,
           search: search.trim() || undefined,
           warehouseId: warehouseFilter || undefined,
           lowStock: lowStockOnly ? 'true' : undefined,
@@ -81,28 +94,95 @@ export default function CurrentStockPage() {
   });
 
   const warehouses: Warehouse[] = Array.isArray(whData?.data) ? whData.data : Array.isArray(whData) ? whData : [];
+  const colors: any[] = Array.isArray(colorsData?.data) ? colorsData.data : Array.isArray(colorsData) ? colorsData : [];
   
-  // Normalized Batches
-  const batches: any[] = Array.isArray(batchesData?.data)
+  // Normalized Batches with Client-Side Filter
+  const rawBatches: any[] = Array.isArray(batchesData?.data)
     ? batchesData.data
     : Array.isArray(batchesData)
     ? batchesData
     : [];
 
-  // Normalized Flat Stock Items
-  const stockItems: any[] = Array.isArray(stockData?.data)
+  const batches = rawBatches.filter((b) => {
+    const items: any[] = b.batchItems || [];
+    
+    // Color filter
+    if (colorFilter) {
+      const hasColor = items.some(
+        (i) => i.product?.color?.name === colorFilter || i.product?.color?.id === colorFilter,
+      );
+      if (!hasColor) return false;
+    }
+
+    // Gender filter
+    if (genderFilter) {
+      const hasGender = items.some(
+        (i) => (i.product?.masterProduct?.gender || i.product?.gender) === genderFilter,
+      );
+      if (!hasGender) return false;
+    }
+
+    // Aging filter
+    if (agingFilter) {
+      const ageInfo = calculateBatchAge(b.productionDate);
+      if (ageInfo.category !== agingFilter) return false;
+    }
+
+    // Allocation filter
+    if (allocationFilter === 'PO_ONLY' && !b.po) return false;
+    if (allocationFilter === 'GENERAL_ONLY' && b.po) return false;
+
+    // Warehouse filter
+    if (warehouseFilter) {
+      const inWarehouse = items.some(
+        (i) => i.location?.warehouse?.id === warehouseFilter || i.location?.warehouseId === warehouseFilter,
+      );
+      if (!inWarehouse) return false;
+    }
+
+    return true;
+  });
+
+  // Normalized Flat Stock Items with Client-Side Filter
+  const rawStockItems: any[] = Array.isArray(stockData?.data)
     ? stockData.data
     : Array.isArray(stockData)
     ? stockData
     : [];
 
+  const stockItems = rawStockItems.filter((item) => {
+    // Color filter
+    if (colorFilter && item.color?.name !== colorFilter && item.colorId !== colorFilter) {
+      return false;
+    }
+    // Gender filter
+    if (genderFilter && (item.gender || item.masterProduct?.gender) !== genderFilter) {
+      return false;
+    }
+    return true;
+  });
+
   const toggleBatchExpand = (id: string) => {
     setExpandedBatchIds((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
+  const hasActiveFilters = Boolean(
+    search || colorFilter || genderFilter || agingFilter || allocationFilter || warehouseFilter || lowStockOnly,
+  );
+
+  const handleResetFilters = () => {
+    setSearch('');
+    setColorFilter('');
+    setGenderFilter('');
+    setAgingFilter('');
+    setAllocationFilter('');
+    setWarehouseFilter('');
+    setLowStockOnly(false);
+  };
+
   // Summary Metrics
   let totalInHandPairs = 0;
-  let totalBatchesCount = batchesData?.total || batches.length;
+  let totalBatchesCount = batches.length;
   let lowStockCount = 0;
 
   if (viewMode === 'batches') {
@@ -141,60 +221,72 @@ export default function CurrentStockPage() {
           <button
             type="button"
             onClick={() => setViewMode('batches')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition cursor-pointer ${
               viewMode === 'batches'
-                ? 'bg-white text-slate-900 shadow-2xs'
+                ? 'bg-white text-blue-700 shadow-xs'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            <Boxes className="h-3.5 w-3.5 text-blue-600" />
-            <span>Grouped by Batches</span>
+            <Boxes className="h-3.5 w-3.5" />
+            <span>📦 By Batches (Grouped)</span>
           </button>
           <button
             type="button"
             onClick={() => setViewMode('items')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition cursor-pointer ${
               viewMode === 'items'
-                ? 'bg-white text-slate-900 shadow-2xs'
+                ? 'bg-white text-blue-700 shadow-xs'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            <Layers className="h-3.5 w-3.5 text-indigo-600" />
-            <span>All Items & Bins</span>
+            <Layers className="h-3.5 w-3.5" />
+            <span>🏷️ All Items & Bins</span>
           </button>
         </div>
       </div>
 
-      {/* KPI Top Cards */}
+      {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {/* Total In-Hand */}
         <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs">
-          <div className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-            Total In-Hand Pairs
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+              Total In-Hand Balance
+            </span>
+            <Package className="h-4 w-4 text-blue-600" />
           </div>
-          <div className="mt-2 text-2xl font-bold text-emerald-700">
-            {formatNumber(totalInHandPairs)} <span className="text-sm font-normal text-slate-500">pairs</span>
+          <div className="mt-2 flex items-baseline gap-2">
+            <span className="text-2xl font-bold text-slate-900">
+              {formatNumber(totalInHandPairs)}
+            </span>
+            <span className="text-xs text-slate-500">pairs</span>
           </div>
         </div>
 
+        {/* Total Batches Count */}
         <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs">
-          <div className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-            {viewMode === 'batches' ? 'Active Production Batches' : 'Active Location Bins'}
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+              {viewMode === 'batches' ? 'Active Batches' : 'Stock Positions'}
+            </span>
+            <Boxes className="h-4 w-4 text-emerald-600" />
           </div>
-          <div className="mt-2 text-2xl font-bold text-slate-900">
-            {viewMode === 'batches' ? totalBatchesCount : stockItems.length}{' '}
-            <span className="text-sm font-normal text-slate-500">
-              {viewMode === 'batches' ? 'batch lots' : 'records'}
+          <div className="mt-2 flex items-baseline gap-2">
+            <span className="text-2xl font-bold text-emerald-600">
+              {viewMode === 'batches' ? totalBatchesCount : stockItems.length}
+            </span>
+            <span className="text-xs text-slate-500">
+              {viewMode === 'batches' ? 'production lots' : 'active SKUs'}
             </span>
           </div>
         </div>
 
+        {/* Low Stock / Status */}
         <div
-          onClick={() => {
-            if (viewMode === 'items') setLowStockOnly(!lowStockOnly);
-          }}
+          onClick={() => viewMode === 'items' && setLowStockOnly(!lowStockOnly)}
           className={`rounded-2xl border p-5 shadow-xs transition ${
-            viewMode === 'items' ? 'cursor-pointer hover:border-amber-300' : ''
-          } ${lowStockOnly ? 'border-amber-500 bg-amber-50/50' : 'border-slate-200/80 bg-white'}`}
+            viewMode === 'items' ? 'cursor-pointer hover:border-amber-400' : ''
+          } ${lowStockOnly ? 'border-amber-400 bg-amber-50/50' : 'border-slate-200/80 bg-white'}`}
         >
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-amber-700">
@@ -204,73 +296,110 @@ export default function CurrentStockPage() {
           </div>
           <div className="mt-2 flex items-baseline gap-2">
             <span className="text-2xl font-bold text-amber-600">
-              {viewMode === 'batches' ? `${batches.length} Active` : lowStockCount}
+              {viewMode === 'batches' ? `${batches.length} Matching` : lowStockCount}
             </span>
             <span className="text-xs text-slate-500">
-              {viewMode === 'batches' ? 'Ready for order allocation' : lowStockOnly ? '(Filter active)' : '(Click to filter)'}
+              {viewMode === 'batches' ? 'Filtered lots' : lowStockOnly ? '(Filter active)' : '(Click to filter)'}
             </span>
           </div>
         </div>
       </div>
 
-      {/* Search & Filter Bar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-white p-3 shadow-xs">
-        <div className="relative flex-1 w-full sm:max-w-md">
-          <Barcode className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
-            placeholder={
-              viewMode === 'batches'
-                ? 'Search Batch ID, Number, PO, Product Style...'
-                : 'Scan barcode or search SKU / Product / Bin Code...'
-            }
-            className="w-full rounded-xl border border-slate-200 bg-slate-50/50 py-2 pl-9 pr-3 text-xs text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:outline-hidden"
-          />
-        </div>
+      {/* Multi-Filter Bar */}
+      <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs space-y-3">
+        <div className="flex flex-col lg:flex-row items-center gap-3">
+          {/* Search Input */}
+          <div className="relative flex-1 w-full">
+            <Barcode className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search Batch ID, PO, SKU, Style Name..."
+              className="w-full rounded-xl border border-slate-200 bg-slate-50/50 py-2 pl-9 pr-3 text-xs text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:outline-hidden"
+            />
+          </div>
 
-        <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
-          {viewMode === 'items' && (
-            <>
-              <select
-                value={warehouseFilter}
-                onChange={(e) => {
-                  setWarehouseFilter(e.target.value);
-                  setPage(1);
-                }}
-                className="rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs font-semibold text-slate-700 focus:border-blue-500 focus:outline-hidden"
-              >
-                <option value="">All Warehouses</option>
-                {warehouses.map((w) => (
-                  <option key={w.id} value={w.id}>
-                    {w.name}
-                  </option>
-                ))}
-              </select>
+          {/* Color Filter */}
+          <select
+            value={colorFilter}
+            onChange={(e) => setColorFilter(e.target.value)}
+            className="w-full lg:w-auto rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs font-semibold text-slate-700 focus:border-blue-500 focus:outline-hidden"
+          >
+            <option value="">🎨 All Colors</option>
+            {colors.map((c) => (
+              <option key={c.id} value={c.name}>
+                {c.name}
+              </option>
+            ))}
+          </select>
 
-              <button
-                type="button"
-                onClick={() => setLowStockOnly(!lowStockOnly)}
-                className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-semibold transition cursor-pointer ${
-                  lowStockOnly
-                    ? 'border-amber-400 bg-amber-50 text-amber-800'
-                    : 'border-slate-200 bg-slate-50/50 text-slate-700 hover:bg-slate-100'
-                }`}
-              >
-                <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
-                <span>&lt; 30 Low Stock</span>
-              </button>
-            </>
+          {/* Gender Filter */}
+          <select
+            value={genderFilter}
+            onChange={(e) => setGenderFilter(e.target.value)}
+            className="w-full lg:w-auto rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs font-semibold text-slate-700 focus:border-blue-500 focus:outline-hidden"
+          >
+            <option value="">👥 All Genders</option>
+            <option value="MALE">MALE</option>
+            <option value="FEMALE">FEMALE / LADY</option>
+            <option value="LADY">LADY</option>
+            <option value="KIDS">KIDS</option>
+            <option value="JUNIOR">JUNIOR</option>
+            <option value="TWIN_JUNIOR">TWIN JUNIOR</option>
+          </select>
+
+          {/* Aging Category Filter */}
+          {viewMode === 'batches' && (
+            <select
+              value={agingFilter}
+              onChange={(e) => setAgingFilter(e.target.value)}
+              className="w-full lg:w-auto rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs font-semibold text-slate-700 focus:border-blue-500 focus:outline-hidden"
+            >
+              <option value="">⏳ All Batch Ages</option>
+              <option value="FRESH">🟢 Fresh (&lt; 30 Days)</option>
+              <option value="NORMAL">🔵 Normal (30 - 90 Days)</option>
+              <option value="AGING">🟡 Aging (90 - 180 Days)</option>
+              <option value="CRITICAL">🔴 Stale (&gt; 180 Days)</option>
+            </select>
           )}
 
-          {(fetchingBatches || fetchingStock) && (
-            <div className="flex items-center gap-1.5 text-xs text-slate-400">
-              <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-600" />
-            </div>
+          {/* Allocation Filter */}
+          {viewMode === 'batches' && (
+            <select
+              value={allocationFilter}
+              onChange={(e) => setAllocationFilter(e.target.value)}
+              className="w-full lg:w-auto rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs font-semibold text-slate-700 focus:border-blue-500 focus:outline-hidden"
+            >
+              <option value="">📋 All Allocations</option>
+              <option value="PO_ONLY">PO Dedicated Only</option>
+              <option value="GENERAL_ONLY">General Unallocated</option>
+            </select>
+          )}
+
+          {/* Warehouse Filter */}
+          <select
+            value={warehouseFilter}
+            onChange={(e) => setWarehouseFilter(e.target.value)}
+            className="w-full lg:w-auto rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs font-semibold text-slate-700 focus:border-blue-500 focus:outline-hidden"
+          >
+            <option value="">🏭 All Warehouses</option>
+            {warehouses.map((w) => (
+              <option key={w.id} value={w.id}>
+                {w.name}
+              </option>
+            ))}
+          </select>
+
+          {/* Reset Filters Button */}
+          {hasActiveFilters && (
+            <button
+              type="button"
+              onClick={handleResetFilters}
+              className="w-full lg:w-auto shrink-0 rounded-xl border border-slate-200 bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-200 transition cursor-pointer"
+            >
+              Reset Filters
+            </button>
           )}
         </div>
       </div>

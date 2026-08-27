@@ -26,20 +26,39 @@ export default function PoPage() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [buyerFilter, setBuyerFilter] = useState('');
+  const [lcFilter, setLcFilter] = useState('');
   const [page, setPage] = useState(1);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [selectedPo, setSelectedPo] = useState<PO | null>(null);
 
+  // Fetch Buyers for filter dropdown
+  const { data: buyersData } = useQuery({
+    queryKey: ['buyers-po-filter'],
+    queryFn: async () => {
+      const res = await api.get('/buyers', { params: { per_page: 100 } });
+      return res.data?.data;
+    },
+  });
+
+  const buyers: any[] = Array.isArray(buyersData?.data)
+    ? buyersData.data
+    : Array.isArray(buyersData)
+    ? buyersData
+    : [];
+
   // Fetch PO List
   const { data, isLoading, isFetching } = useQuery({
-    queryKey: ['pos', page, search, statusFilter],
+    queryKey: ['pos', page, search, statusFilter, buyerFilter, lcFilter],
     queryFn: async () => {
       const res = await api.get('/po', {
         params: {
           page,
-          per_page: 15,
+          per_page: 25,
           search: search.trim() || undefined,
           status: statusFilter || undefined,
+          buyerId: buyerFilter || undefined,
+          lcId: lcFilter === 'NO_LC' ? undefined : lcFilter || undefined,
         },
       });
       return res.data?.data;
@@ -68,14 +87,31 @@ export default function PoPage() {
     },
   });
 
-  const pos: PO[] = Array.isArray(data?.data)
+  const rawPos: PO[] = Array.isArray(data?.data)
     ? data.data
     : Array.isArray(data)
     ? data
     : [];
 
+  // Client-side refinement for NO_LC or other specifics
+  const pos = rawPos.filter((po) => {
+    if (lcFilter === 'WITH_LC' && !po.lc) return false;
+    if (lcFilter === 'NO_LC' && po.lc) return false;
+    return true;
+  });
+
   const totalPages = data?.total_page || 1;
   const totalCount = data?.total || pos.length;
+
+  const hasActiveFilters = Boolean(search || statusFilter || buyerFilter || lcFilter);
+
+  const handleResetFilters = () => {
+    setSearch('');
+    setStatusFilter('');
+    setBuyerFilter('');
+    setLcFilter('');
+    setPage(1);
+  };
 
   const handleOpenCreate = () => {
     setSelectedPo(null);
@@ -144,8 +180,8 @@ export default function PoPage() {
       </div>
 
       {/* Filter & Search Bar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-white p-3 shadow-xs">
-        <div className="relative flex-1 w-full sm:max-w-md">
+      <div className="flex flex-col lg:flex-row items-center gap-3 rounded-2xl border border-slate-200/80 bg-white p-3 shadow-xs">
+        <div className="relative flex-1 w-full">
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
           <input
             type="text"
@@ -159,31 +195,72 @@ export default function PoPage() {
           />
         </div>
 
-        <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
-          <select
-            value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value);
-              setPage(1);
-            }}
-            className="rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs font-semibold text-slate-700 focus:border-blue-500 focus:outline-hidden"
-          >
-            <option value="">All Statuses</option>
-            <option value="DRAFT">DRAFT</option>
-            <option value="CONFIRMED">CONFIRMED</option>
-            <option value="IN_PRODUCTION">IN PRODUCTION</option>
-            <option value="READY_FOR_SHIPMENT">READY FOR SHIPMENT</option>
-            <option value="PARTIALLY_SHIPPED">PARTIALLY SHIPPED</option>
-            <option value="COMPLETED">COMPLETED</option>
-            <option value="CANCELLED">CANCELLED</option>
-          </select>
+        {/* Buyer Filter */}
+        <select
+          value={buyerFilter}
+          onChange={(e) => {
+            setBuyerFilter(e.target.value);
+            setPage(1);
+          }}
+          className="w-full lg:w-auto rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs font-semibold text-slate-700 focus:border-blue-500 focus:outline-hidden"
+        >
+          <option value="">🏢 All Buyers</option>
+          {buyers.map((b) => (
+            <option key={b.id} value={b.id}>
+              {b.name} ({b.code})
+            </option>
+          ))}
+        </select>
 
-          {isFetching && (
-            <div className="flex items-center gap-1.5 text-xs text-slate-400">
-              <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-600" />
-            </div>
-          )}
-        </div>
+        {/* LC Attachment Filter */}
+        <select
+          value={lcFilter}
+          onChange={(e) => {
+            setLcFilter(e.target.value);
+            setPage(1);
+          }}
+          className="w-full lg:w-auto rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs font-semibold text-slate-700 focus:border-blue-500 focus:outline-hidden"
+        >
+          <option value="">📄 All LC Types</option>
+          <option value="WITH_LC">Linked to LC</option>
+          <option value="NO_LC">Direct / No LC</option>
+        </select>
+
+        {/* Status Filter */}
+        <select
+          value={statusFilter}
+          onChange={(e) => {
+            setStatusFilter(e.target.value);
+            setPage(1);
+          }}
+          className="w-full lg:w-auto rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs font-semibold text-slate-700 focus:border-blue-500 focus:outline-hidden"
+        >
+          <option value="">All Statuses</option>
+          <option value="DRAFT">DRAFT</option>
+          <option value="CONFIRMED">CONFIRMED</option>
+          <option value="IN_PRODUCTION">IN PRODUCTION</option>
+          <option value="READY_FOR_SHIPMENT">READY FOR SHIPMENT</option>
+          <option value="PARTIALLY_SHIPPED">PARTIALLY SHIPPED</option>
+          <option value="COMPLETED">COMPLETED</option>
+          <option value="CANCELLED">CANCELLED</option>
+        </select>
+
+        {/* Reset Filters Button */}
+        {hasActiveFilters && (
+          <button
+            type="button"
+            onClick={handleResetFilters}
+            className="w-full lg:w-auto shrink-0 rounded-xl border border-slate-200 bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-200 transition cursor-pointer"
+          >
+            Reset
+          </button>
+        )}
+
+        {isFetching && (
+          <div className="flex items-center gap-1.5 text-xs text-slate-400">
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-600" />
+          </div>
+        )}
       </div>
 
       {/* PO Data Table */}

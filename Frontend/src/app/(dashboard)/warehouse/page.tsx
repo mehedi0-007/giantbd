@@ -43,6 +43,7 @@ export default function WarehousePage() {
   // Filter States
   const [selectedSubZoneId, setSelectedSubZoneId] = useState<string>('');
   const [selectedRackId, setSelectedRackId] = useState<string>('');
+  const [occupancyFilter, setOccupancyFilter] = useState<'ALL' | 'OCCUPIED' | 'EMPTY'>('ALL');
 
   // Fetch Warehouses Hierarchy
   const { data: whData, isLoading: loadingWh } = useQuery({
@@ -72,7 +73,14 @@ export default function WarehousePage() {
   });
 
   const warehouses: any[] = Array.isArray(whData?.data) ? whData.data : Array.isArray(whData) ? whData : [];
-  const locations: StorageLocation[] = Array.isArray(locationsData?.data) ? locationsData.data : Array.isArray(locationsData) ? locationsData : [];
+  const rawLocations: StorageLocation[] = Array.isArray(locationsData?.data) ? locationsData.data : Array.isArray(locationsData) ? locationsData : [];
+
+  const locations = rawLocations.filter((loc: any) => {
+    const count = loc._count?.batchItems || loc.batchItems?.length || 0;
+    if (occupancyFilter === 'OCCUPIED' && count === 0) return false;
+    if (occupancyFilter === 'EMPTY' && count > 0) return false;
+    return true;
+  });
 
   const toggleNode = (id: string) => {
     setExpandedNodes((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -88,10 +96,12 @@ export default function WarehousePage() {
   };
 
   const clearFilters = () => {
+    setSearch('');
     setSelectedWarehouseId('');
     setSelectedZoneId('');
     setSelectedSubZoneId('');
     setSelectedRackId('');
+    setOccupancyFilter('ALL');
   };
 
   const handleDeleteLocation = async (id: string, code: string) => {
@@ -404,9 +414,9 @@ export default function WarehousePage() {
 
         {/* Right 7 Cols: Storage Locations Table */}
         <div className="lg:col-span-7 space-y-4">
-          {/* Search Bar */}
-          <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-white p-3 shadow-xs">
-            <div className="relative flex-1">
+          {/* Multi-Filter Bar */}
+          <div className="flex flex-col sm:flex-row items-center gap-3 rounded-2xl border border-slate-200/80 bg-white p-3 shadow-xs">
+            <div className="relative flex-1 w-full">
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
               <input
                 type="text"
@@ -417,8 +427,49 @@ export default function WarehousePage() {
               />
             </div>
 
+            {/* Warehouse Filter */}
+            <select
+              value={selectedWarehouseId}
+              onChange={(e) => {
+                setSelectedWarehouseId(e.target.value);
+                setSelectedZoneId('');
+                setSelectedSubZoneId('');
+                setSelectedRackId('');
+              }}
+              className="w-full sm:w-auto rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs font-semibold text-slate-700 focus:border-blue-500 focus:outline-hidden"
+            >
+              <option value="">🏭 All Warehouses</option>
+              {warehouses.map((w) => (
+                <option key={w.id} value={w.id}>
+                  {w.name}
+                </option>
+              ))}
+            </select>
+
+            {/* Occupancy Filter */}
+            <select
+              value={occupancyFilter}
+              onChange={(e) => setOccupancyFilter(e.target.value as any)}
+              className="w-full sm:w-auto rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs font-semibold text-slate-700 focus:border-blue-500 focus:outline-hidden"
+            >
+              <option value="ALL">📦 All Bins</option>
+              <option value="OCCUPIED">🟢 Occupied Bins</option>
+              <option value="EMPTY">⚪ Empty Bins</option>
+            </select>
+
+            {/* Reset Button */}
+            {(search || selectedWarehouseId || selectedZoneId || selectedSubZoneId || selectedRackId || occupancyFilter !== 'ALL') && (
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="w-full sm:w-auto shrink-0 rounded-xl border border-slate-200 bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-200 transition cursor-pointer"
+              >
+                Reset
+              </button>
+            )}
+
             {isFetching && (
-              <div className="flex items-center gap-1.5 text-xs text-slate-400 pr-2">
+              <div className="flex items-center gap-1.5 text-xs text-slate-400 pr-1">
                 <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-600" />
               </div>
             )}

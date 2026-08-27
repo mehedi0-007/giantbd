@@ -14,7 +14,7 @@ import {
 
 @Injectable()
 export class InventoryService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async findAllBatches(query: QueryBatchesDTO) {
     const per_page = Number(query.per_page) || 20;

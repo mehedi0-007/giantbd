@@ -20,13 +20,14 @@ export class MailService {
       '"Giant BD ERP Security" <no-reply@giantbd.com>';
 
     if (host && user && pass) {
+      const isSecure = Number(port) === 465 || String(secure) === 'true';
       this.transporter = nodemailer.createTransport({
         host,
         port: Number(port),
-        secure: Boolean(secure),
+        secure: isSecure,
         auth: { user, pass },
       });
-      this.logger.log(`SMTP Mail Transport configured with host: ${host}:${port}`);
+      this.logger.log(`SMTP Mail Transport configured with host: ${host}:${port} (${user})`);
     } else {
       this.logger.warn(
         'SMTP credentials not fully configured in .env. OTPs will be securely logged to console for development.',
