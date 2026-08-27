@@ -119,7 +119,7 @@ export function Topbar() {
               </div>
 
               <NextLink
-                href="/system/profile"
+                href="/profile"
                 onClick={() => setDropdownOpen(false)}
                 className="flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 transition"
               >

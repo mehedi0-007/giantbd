@@ -17,7 +17,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      router.replace('/dashboard');
+      router.replace('/');
     }
   }, [isAuthenticated, router]);
 
@@ -35,7 +35,7 @@ export default function LoginPage() {
       const data = response.data?.data || response.data;
       if (data?.accessToken && data?.user) {
         setAuth(data.user, data.accessToken);
-        router.push('/dashboard');
+        router.push('/');
       } else {
         setErrorMsg('Login response did not contain expected session tokens.');
       }

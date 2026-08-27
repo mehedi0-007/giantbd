@@ -41,7 +41,7 @@ const navSections: NavSection[] = [
     items: [
       {
         label: 'Dashboard',
-        href: '/dashboard',
+        href: '/',
         icon: LayoutDashboard,
       },
     ],
@@ -93,7 +93,7 @@ const navSections: NavSection[] = [
         label: 'Warehouses & Bins',
         href: '/warehouse',
         icon: Warehouse,
-        permission: 'inventory:read',
+        permission: 'warehouse:read',
       },
     ],
   },
@@ -131,19 +131,19 @@ const navSections: NavSection[] = [
     items: [
       {
         label: 'User Management',
-        href: '/system/users',
+        href: '/admin/users',
         icon: UserCheck,
-        permission: 'user:read',
+        permission: 'users:read',
       },
       {
         label: 'Roles & Access',
-        href: '/system/roles',
+        href: '/admin/roles',
         icon: ShieldCheck,
-        permission: 'user:read',
+        permission: 'roles:read',
       },
       {
         label: 'My Profile',
-        href: '/system/profile',
+        href: '/profile',
         icon: User,
       },
     ],
@@ -189,8 +189,8 @@ export function Sidebar() {
               <div className="space-y-1">
                 {visibleItems.map((item) => {
                   const isActive =
-                    item.href === '/dashboard'
-                      ? pathname === '/dashboard' || pathname === '/'
+                    item.href === '/'
+                      ? pathname === '/'
                       : pathname.startsWith(item.href);
 
                   const Icon = item.icon;

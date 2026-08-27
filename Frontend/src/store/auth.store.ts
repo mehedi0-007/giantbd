@@ -60,7 +60,20 @@ export const useAuthStore = create<AuthState>()(
         const user = get().user;
         if (!user) return false;
         if (user.role?.name === 'SUPER_ADMIN') return true;
-        return user.permissions?.includes(permission) ?? false;
+
+        // 1. Direct permissions array
+        if (user.permissions?.includes(permission)) return true;
+
+        // 2. Role string permissions array
+        if (user.role?.permissions?.includes(permission)) return true;
+
+        // 3. Nested rolePermissions objects from backend Prisma include
+        if (user.role?.rolePermissions) {
+          const names = user.role.rolePermissions.map((rp: any) => rp.permission?.name || rp.permissionId);
+          if (names.includes(permission)) return true;
+        }
+
+        return false;
       },
     }),
     {

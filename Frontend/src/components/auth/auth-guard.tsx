@@ -31,7 +31,7 @@ export function AuthGuard({ children, requiredPermission }: AuthGuardProps) {
       requiredPermission &&
       !hasPermission(requiredPermission)
     ) {
-      router.replace('/dashboard');
+      router.replace('/');
     }
   }, [isAuthenticated, isHydrated, pathname, router, requiredPermission, hasPermission]);
 

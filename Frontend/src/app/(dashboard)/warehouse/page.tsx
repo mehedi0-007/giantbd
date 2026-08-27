@@ -31,8 +31,18 @@ export default function WarehousePage() {
 
   // Drawer States
   const [drawerType, setDrawerType] = useState<'warehouse' | 'zone' | 'subzone' | 'rack' | 'location'>('warehouse');
+  const [drawerParentContext, setDrawerParentContext] = useState<{
+    warehouseId?: string;
+    zoneId?: string;
+    subZoneId?: string;
+    rackId?: string;
+  }>({});
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [expandedNodes, setExpandedNodes] = useState<Record<string, boolean>>({});
+
+  // Filter States
+  const [selectedSubZoneId, setSelectedSubZoneId] = useState<string>('');
+  const [selectedRackId, setSelectedRackId] = useState<string>('');
 
   // Fetch Warehouses Hierarchy
   const { data: whData, isLoading: loadingWh } = useQuery({
@@ -43,18 +53,9 @@ export default function WarehousePage() {
     },
   });
 
-  // Fetch Zones
-  const { data: zonesData } = useQuery({
-    queryKey: ['zones-all'],
-    queryFn: async () => {
-      const res = await api.get('/attributes/zones', { params: { per_page: 100 } });
-      return res.data?.data;
-    },
-  });
-
   // Fetch Locations Table
   const { data: locationsData, isLoading: loadingLoc, isFetching } = useQuery({
-    queryKey: ['locations-table', search, selectedWarehouseId, selectedZoneId],
+    queryKey: ['locations-table', search, selectedWarehouseId, selectedZoneId, selectedSubZoneId, selectedRackId],
     queryFn: async () => {
       const res = await api.get('/attributes/locations', {
         params: {
@@ -62,33 +63,35 @@ export default function WarehousePage() {
           search: search.trim() || undefined,
           warehouseId: selectedWarehouseId || undefined,
           zoneId: selectedZoneId || undefined,
+          subZoneId: selectedSubZoneId || undefined,
+          rackId: selectedRackId || undefined,
         },
       });
       return res.data?.data;
     },
   });
 
-  const warehouses: Warehouse[] = Array.isArray(whData?.data) ? whData.data : Array.isArray(whData) ? whData : [];
-  const zones: Zone[] = Array.isArray(zonesData?.data) ? zonesData.data : Array.isArray(zonesData) ? zonesData : [];
+  const warehouses: any[] = Array.isArray(whData?.data) ? whData.data : Array.isArray(whData) ? whData : [];
   const locations: StorageLocation[] = Array.isArray(locationsData?.data) ? locationsData.data : Array.isArray(locationsData) ? locationsData : [];
 
   const toggleNode = (id: string) => {
     setExpandedNodes((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const handleOpenAdd = (type: 'warehouse' | 'zone' | 'subzone' | 'rack' | 'location') => {
+  const handleOpenAdd = (
+    type: 'warehouse' | 'zone' | 'subzone' | 'rack' | 'location',
+    context?: { warehouseId?: string; zoneId?: string; subZoneId?: string; rackId?: string }
+  ) => {
     setDrawerType(type);
+    setDrawerParentContext(context || {});
     setIsDrawerOpen(true);
   };
 
-  const handleDeleteLocation = async (id: string, code: string) => {
-    if (!confirm(`Are you sure you want to delete location ${code}?`)) return;
-    try {
-      await api.delete(`/attributes/locations/${id}`);
-      queryClient.invalidateQueries({ queryKey: ['locations-table'] });
-    } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to delete location.');
-    }
+  const clearFilters = () => {
+    setSelectedWarehouseId('');
+    setSelectedZoneId('');
+    setSelectedSubZoneId('');
+    setSelectedRackId('');
   };
 
   return (
@@ -105,7 +108,7 @@ export default function WarehousePage() {
             </span>
           </div>
           <p className="text-xs text-slate-500 mt-1">
-            Configure storage zones, racks, shelf bin slots, and print Code 128 barcode stickers
+            Configure storage zones, sub-zones, racks, shelf bin slots, and print Code 128 barcode stickers
           </p>
         </div>
 
@@ -120,7 +123,7 @@ export default function WarehousePage() {
           </button>
           <button
             type="button"
-            onClick={() => handleOpenAdd('zone')}
+            onClick={() => handleOpenAdd('zone', { warehouseId: selectedWarehouseId || undefined })}
             className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 shadow-2xs transition cursor-pointer"
           >
             <Plus className="h-3.5 w-3.5" />
@@ -128,11 +131,27 @@ export default function WarehousePage() {
           </button>
           <button
             type="button"
-            onClick={() => handleOpenAdd('location')}
+            onClick={() => handleOpenAdd('subzone', { warehouseId: selectedWarehouseId || undefined, zoneId: selectedZoneId || undefined })}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 shadow-2xs transition cursor-pointer"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            <span>Sub-Zone</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => handleOpenAdd('rack', { warehouseId: selectedWarehouseId || undefined, zoneId: selectedZoneId || undefined, subZoneId: selectedSubZoneId || undefined })}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 shadow-2xs transition cursor-pointer"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            <span>Storage Rack</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => handleOpenAdd('location', { warehouseId: selectedWarehouseId || undefined, zoneId: selectedZoneId || undefined, subZoneId: selectedSubZoneId || undefined, rackId: selectedRackId || undefined })}
             className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-3.5 py-2 text-xs font-semibold text-white shadow-sm shadow-blue-500/20 hover:bg-blue-700 transition cursor-pointer"
           >
             <Plus className="h-3.5 w-3.5" />
-            <span>New Bin Location</span>
+            <span>New Bin Slot</span>
           </button>
         </div>
       </div>
@@ -140,22 +159,21 @@ export default function WarehousePage() {
       {/* Main Split Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left 4 Cols: Interactive Hierarchy Explorer */}
-        <div className="lg:col-span-4 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs">
+        <div className="lg:col-span-5 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
             <div className="flex items-center gap-2">
               <FolderTree className="h-4 w-4 text-blue-600" />
               <h3 className="text-sm font-bold text-slate-900">Hierarchy Navigator</h3>
             </div>
-            <button
-              type="button"
-              onClick={() => {
-                setSelectedWarehouseId('');
-                setSelectedZoneId('');
-              }}
-              className="text-[11px] font-semibold text-blue-600 hover:underline"
-            >
-              Show All
-            </button>
+            {(selectedWarehouseId || selectedZoneId || selectedSubZoneId || selectedRackId) && (
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="text-[11px] font-semibold text-blue-600 hover:underline"
+              >
+                Clear Selection
+              </button>
+            )}
           </div>
 
           {loadingWh ? (
@@ -167,11 +185,11 @@ export default function WarehousePage() {
               No warehouses defined. Add a warehouse to start.
             </div>
           ) : (
-            <div className="space-y-1.5 text-xs">
+            <div className="space-y-2 text-xs">
               {warehouses.map((wh) => {
-                const isSelected = selectedWarehouseId === wh.id;
+                const isSelected = selectedWarehouseId === wh.id && !selectedZoneId;
                 const isExpanded = expandedNodes[wh.id] !== false; // default expanded
-                const whZones = zones.filter((z) => z.warehouseId === wh.id);
+                const whZones: any[] = wh.zones || [];
 
                 return (
                   <div key={wh.id} className="rounded-xl border border-slate-100 overflow-hidden">
@@ -183,49 +201,185 @@ export default function WarehousePage() {
                       onClick={() => {
                         setSelectedWarehouseId(wh.id);
                         setSelectedZoneId('');
+                        setSelectedSubZoneId('');
+                        setSelectedRackId('');
                         toggleNode(wh.id);
                       }}
                     >
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 truncate">
                         {isExpanded ? (
-                          <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
+                          <ChevronDown className="h-3.5 w-3.5 text-slate-400 shrink-0" />
                         ) : (
-                          <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
+                          <ChevronRight className="h-3.5 w-3.5 text-slate-400 shrink-0" />
                         )}
-                        <WarehouseIcon className="h-4 w-4 text-amber-600" />
-                        <span>{wh.name}</span>
-                        <span className="font-mono text-[10px] text-slate-400">({wh.code})</span>
+                        <WarehouseIcon className="h-4 w-4 text-amber-600 shrink-0" />
+                        <span className="truncate">{wh.name}</span>
+                        <span className="font-mono text-[10px] text-slate-400 shrink-0">({wh.code})</span>
                       </div>
-                      <span className="text-[10px] text-slate-400 font-normal">
-                        {whZones.length} Zones
-                      </span>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className="text-[10px] text-slate-400 font-normal">
+                          {whZones.length} Zones
+                        </span>
+                        <button
+                          type="button"
+                          title="Add Zone"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenAdd('zone', { warehouseId: wh.id });
+                          }}
+                          className="p-1 rounded-md text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition"
+                        >
+                          <Plus className="h-3 w-3" />
+                        </button>
+                      </div>
                     </div>
 
-                    {/* Nested Zones */}
+                    {/* Level 2: Zones */}
                     {isExpanded && whZones.length > 0 && (
-                      <div className="pl-6 pr-2 py-1 space-y-1 border-t border-slate-100 bg-white">
+                      <div className="pl-4 pr-2 py-1 space-y-1.5 border-t border-slate-100 bg-white">
                         {whZones.map((z) => {
-                          const isZSelected = selectedZoneId === z.id;
+                          const isZSelected = selectedZoneId === z.id && !selectedSubZoneId;
+                          const isZExpanded = expandedNodes[z.id] !== false;
+                          const zSubZones: any[] = z.subZones || [];
+
                           return (
-                            <div
-                              key={z.id}
-                              onClick={() => {
-                                setSelectedWarehouseId(wh.id);
-                                setSelectedZoneId(z.id);
-                              }}
-                              className={`flex items-center justify-between py-1.5 px-2 rounded-lg cursor-pointer transition ${
-                                isZSelected
-                                  ? 'bg-indigo-50 font-bold text-indigo-700'
-                                  : 'text-slate-600 hover:bg-slate-50'
-                              }`}
-                            >
-                              <div className="flex items-center gap-1.5 truncate">
-                                <Layers className="h-3.5 w-3.5 text-blue-500 shrink-0" />
-                                <span className="truncate">{z.name}</span>
+                            <div key={z.id} className="rounded-lg border border-slate-50 bg-slate-50/30 overflow-hidden">
+                              {/* Zone Header */}
+                              <div
+                                onClick={() => {
+                                  setSelectedWarehouseId(wh.id);
+                                  setSelectedZoneId(z.id);
+                                  setSelectedSubZoneId('');
+                                  setSelectedRackId('');
+                                  toggleNode(z.id);
+                                }}
+                                className={`flex items-center justify-between py-1.5 px-2 cursor-pointer transition ${
+                                  isZSelected
+                                    ? 'bg-indigo-50 font-bold text-indigo-700'
+                                    : 'text-slate-700 hover:bg-slate-100/60'
+                                }`}
+                              >
+                                <div className="flex items-center gap-1.5 truncate">
+                                  {zSubZones.length > 0 && (
+                                    isZExpanded ? (
+                                      <ChevronDown className="h-3 w-3 text-slate-400 shrink-0" />
+                                    ) : (
+                                      <ChevronRight className="h-3 w-3 text-slate-400 shrink-0" />
+                                    )
+                                  )}
+                                  <Layers className="h-3.5 w-3.5 text-indigo-500 shrink-0" />
+                                  <span className="truncate">{z.name}</span>
+                                  <span className="font-mono text-[10px] text-slate-400 shrink-0">({z.code})</span>
+                                </div>
+                                <div className="flex items-center gap-1 shrink-0">
+                                  <span className="text-[10px] text-slate-400 font-normal">
+                                    {zSubZones.length} Sub
+                                  </span>
+                                  <button
+                                    type="button"
+                                    title="Add SubZone"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleOpenAdd('subzone', { warehouseId: wh.id, zoneId: z.id });
+                                    }}
+                                    className="p-0.5 rounded text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition"
+                                  >
+                                    <Plus className="h-3 w-3" />
+                                  </button>
+                                </div>
                               </div>
-                              <span className="font-mono text-[10px] text-slate-400 shrink-0">
-                                {z.code}
-                              </span>
+
+                              {/* Level 3: SubZones */}
+                              {isZExpanded && zSubZones.length > 0 && (
+                                <div className="pl-4 pr-1 py-1 space-y-1 bg-white border-t border-slate-100">
+                                  {zSubZones.map((sz) => {
+                                    const isSZSelected = selectedSubZoneId === sz.id && !selectedRackId;
+                                    const isSZExpanded = expandedNodes[sz.id] !== false;
+                                    const szRacks: any[] = sz.racks || [];
+
+                                    return (
+                                      <div key={sz.id} className="rounded-md border border-slate-50 overflow-hidden">
+                                        <div
+                                          onClick={() => {
+                                            setSelectedWarehouseId(wh.id);
+                                            setSelectedZoneId(z.id);
+                                            setSelectedSubZoneId(sz.id);
+                                            setSelectedRackId('');
+                                            toggleNode(sz.id);
+                                          }}
+                                          className={`flex items-center justify-between py-1 px-2 cursor-pointer transition ${
+                                            isSZSelected
+                                              ? 'bg-amber-50 font-bold text-amber-800'
+                                              : 'text-slate-600 hover:bg-slate-50'
+                                          }`}
+                                        >
+                                          <div className="flex items-center gap-1.5 truncate">
+                                            {szRacks.length > 0 && (
+                                              isSZExpanded ? (
+                                                <ChevronDown className="h-2.5 w-2.5 text-slate-400 shrink-0" />
+                                              ) : (
+                                                <ChevronRight className="h-2.5 w-2.5 text-slate-400 shrink-0" />
+                                              )
+                                            )}
+                                            <Boxes className="h-3 w-3 text-amber-500 shrink-0" />
+                                            <span className="truncate">{sz.name}</span>
+                                            <span className="font-mono text-[9px] text-slate-400 shrink-0">({sz.code})</span>
+                                          </div>
+                                          <div className="flex items-center gap-1 shrink-0">
+                                            <span className="text-[9px] text-slate-400">
+                                              {szRacks.length} Racks
+                                            </span>
+                                            <button
+                                              type="button"
+                                              title="Add Rack"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleOpenAdd('rack', { warehouseId: wh.id, zoneId: z.id, subZoneId: sz.id });
+                                              }}
+                                              className="p-0.5 rounded text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition"
+                                            >
+                                              <Plus className="h-2.5 w-2.5" />
+                                            </button>
+                                          </div>
+                                        </div>
+
+                                        {/* Level 4: Racks */}
+                                        {isSZExpanded && szRacks.length > 0 && (
+                                          <div className="pl-4 pr-1 py-0.5 space-y-0.5 bg-slate-50/50">
+                                            {szRacks.map((r) => {
+                                              const isRSelected = selectedRackId === r.id;
+                                              return (
+                                                <div
+                                                  key={r.id}
+                                                  onClick={() => {
+                                                    setSelectedWarehouseId(wh.id);
+                                                    setSelectedZoneId(z.id);
+                                                    setSelectedSubZoneId(sz.id);
+                                                    setSelectedRackId(r.id);
+                                                  }}
+                                                  className={`flex items-center justify-between py-1 px-1.5 rounded cursor-pointer transition text-[11px] ${
+                                                    isRSelected
+                                                      ? 'bg-emerald-50 font-bold text-emerald-800'
+                                                      : 'text-slate-500 hover:bg-white'
+                                                  }`}
+                                                >
+                                                  <div className="flex items-center gap-1 truncate">
+                                                    <Barcode className="h-2.5 w-2.5 text-emerald-500 shrink-0" />
+                                                    <span className="truncate">{r.name}</span>
+                                                  </div>
+                                                  <span className="font-mono text-[9px] text-slate-400">
+                                                    {r.code}
+                                                  </span>
+                                                </div>
+                                              );
+                                            })}
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
                             </div>
                           );
                         })}
@@ -233,13 +387,8 @@ export default function WarehousePage() {
                     )}
                   </div>
                 );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Right 8 Cols: Storage Locations Table */}
-        <div className="lg:col-span-8 space-y-4">
+        {/* Right 7 Cols: Storage Locations Table */}
+        <div className="lg:col-span-7 space-y-4">
           {/* Search Bar */}
           <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-white p-3 shadow-xs">
             <div className="relative flex-1">
@@ -385,20 +534,19 @@ export default function WarehousePage() {
         location={selectedLocationForBarcode}
       />
 
-      {/* Warehouse / Zone / Location Drawer */}
+      {/* Warehouse / Zone / SubZone / Rack / Location Drawer */}
       <WarehouseDrawer
         isOpen={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
         onSuccess={() => {
           queryClient.invalidateQueries({ queryKey: ['warehouses-hierarchy'] });
-          queryClient.invalidateQueries({ queryKey: ['zones-all'] });
+          queryClient.invalidateQueries({ queryKey: ['zones-dropdown'] });
+          queryClient.invalidateQueries({ queryKey: ['subzones-dropdown'] });
+          queryClient.invalidateQueries({ queryKey: ['racks-dropdown'] });
           queryClient.invalidateQueries({ queryKey: ['locations-table'] });
         }}
         type={drawerType}
-        parentContext={{
-          warehouseId: selectedWarehouseId,
-          zoneId: selectedZoneId,
-        }}
+        parentContext={drawerParentContext}
       />
     </div>
   );
