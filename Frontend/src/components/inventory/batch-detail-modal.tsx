@@ -10,6 +10,18 @@ interface BatchDetailModalProps {
   onPrintSticker?: (batch: any) => void;
 }
 
+const formatLocationName = (loc: any) => {
+  if (!loc) return 'Unassigned';
+  const parts: string[] = [];
+  if (loc.warehouse?.name) parts.push(loc.warehouse.name);
+  if (loc.zone?.name) parts.push(loc.zone.name);
+  if (loc.subZone?.name) parts.push(loc.subZone.name);
+  if (loc.rack?.name) parts.push(loc.rack.name);
+  else if (loc.name && !loc.name.startsWith('LOC-')) parts.push(loc.name);
+
+  return parts.length > 0 ? parts.join(' • ') : loc.name || loc.code || 'Unassigned';
+};
+
 export function BatchDetailModal({
   isOpen,
   onClose,
@@ -151,7 +163,7 @@ export function BatchDetailModal({
           <div>
             <div className="flex items-center justify-between mb-3">
               <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                Size Breakdown & Bin Locations ({items.length} sizes)
+                Size Breakdown & Storage Locations ({items.length} sizes)
               </h4>
             </div>
 
@@ -162,7 +174,7 @@ export function BatchDetailModal({
                     <th className="px-4 py-2.5">Size / SKU</th>
                     <th className="px-4 py-2.5">In-Hand / Total</th>
                     <th className="px-4 py-2.5">Cartons (Ctns)</th>
-                    <th className="px-4 py-2.5">Storage Bin Location</th>
+                    <th className="px-4 py-2.5">Storage Location</th>
                     <th className="px-4 py-2.5 text-right">Status</th>
                   </tr>
                 </thead>
@@ -191,12 +203,12 @@ export function BatchDetailModal({
                       </td>
                       <td className="px-4 py-2.5">
                         {item.location ? (
-                          <div className="flex items-center gap-1.5 font-mono text-[11px] text-indigo-700 font-semibold bg-indigo-50/60 border border-indigo-100 rounded-md px-2 py-0.5 w-fit">
-                            <MapPin className="h-3 w-3 text-indigo-500 shrink-0" />
-                            <span>{item.location.code || item.location.name}</span>
+                          <div className="flex items-center gap-1.5 text-xs text-slate-800 font-semibold bg-slate-100/90 border border-slate-200/80 rounded-md px-2.5 py-1 w-fit">
+                            <MapPin className="h-3.5 w-3.5 text-blue-600 shrink-0" />
+                            <span>{formatLocationName(item.location)}</span>
                           </div>
                         ) : (
-                          <span className="text-slate-400 italic text-[11px]">Unassigned</span>
+                          <span className="text-slate-400 italic text-xs">Unassigned</span>
                         )}
                       </td>
                       <td className="px-4 py-2.5 text-right">

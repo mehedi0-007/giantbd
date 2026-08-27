@@ -193,7 +193,7 @@ export function ChallanPdfModal({
                       <th className="px-3 py-1.5">Color</th>
                       <th className="px-3 py-1.5">Gender</th>
                       <th className="px-3 py-1.5">Size</th>
-                      <th className="px-3 py-1.5">Batch / Bin Location</th>
+                      <th className="px-3 py-1.5">Batch / Storage Location</th>
                       <th className="px-3 py-1.5 text-right">Quantity (Pairs)</th>
                     </tr>
                   </thead>
@@ -233,7 +233,7 @@ export function ChallanPdfModal({
                             </td>
                             <td className="px-3 py-1.5 font-mono text-[9px] text-slate-600">
                               {batchCode && <div>{batchCode}</div>}
-                              {locCode && <div className="text-slate-400">Bin: {locCode}</div>}
+                              {locCode && <div className="text-slate-400">Loc: {locCode}</div>}
                             </td>
                             <td className="px-3 py-1.5 text-right font-bold text-slate-900">
                               {formatNumber(item.quantity)} prs

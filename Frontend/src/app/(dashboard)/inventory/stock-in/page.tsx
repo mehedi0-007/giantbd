@@ -31,6 +31,10 @@ interface SizeRow {
   sku?: string;
   receivedQty: number;
   itemsPerPacket: number;
+  warehouseId: string;
+  zoneId: string;
+  subZoneId: string;
+  rackId: string;
   locationId: string;
 }
 
@@ -43,7 +47,10 @@ export default function StockInPage() {
   // Step 1 Form States
   const [selectedProductId, setSelectedProductId] = useState('');
   const [selectedColorId, setSelectedColorId] = useState('');
-  const [selectedGender, setSelectedGender] = useState<ProductGender>('MALE');
+  const [selectedGender, setSelectedGender] = useState<ProductGender | ''>('');
+  const [stockInDate, setStockInDate] = useState(
+    new Date().toISOString().slice(0, 10),
+  );
   const [productionDate, setProductionDate] = useState(
     new Date().toISOString().slice(0, 10),
   );
@@ -53,10 +60,13 @@ export default function StockInPage() {
   const [note, setNote] = useState('');
   const [invoiceFile, setInvoiceFile] = useState<File | null>(null);
 
-  // Step 2 Form States (Dynamic Grid)
+  // Step 2 Form States (Dynamic Grid & Cascading Location Hierarchy)
   const [sizeRows, setSizeRows] = useState<SizeRow[]>([]);
   const [globalLocationId, setGlobalLocationId] = useState('');
-  const [customSize, setCustomSize] = useState('');
+  const [selectedWarehouseId, setSelectedWarehouseId] = useState('');
+  const [selectedZoneId, setSelectedZoneId] = useState('');
+  const [selectedSubZoneId, setSelectedSubZoneId] = useState('');
+  const [selectedRackId, setSelectedRackId] = useState('');
 
   // Submit & Modal States
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -72,13 +82,15 @@ export default function StockInPage() {
     },
   });
 
-  // 2. Fetch Colors
-  const { data: colorsData } = useQuery({
-    queryKey: ['colors-stockin'],
+  // 2. Fetch Selected Master Product Details with Variants
+  const { data: productDetailsData, isLoading: loadingProductDetails } = useQuery({
+    queryKey: ['master-product-stockin-details', selectedProductId],
     queryFn: async () => {
-      const res = await api.get('/attributes/colors', { params: { per_page: 100 } });
+      if (!selectedProductId) return null;
+      const res = await api.get(`/master-products/${selectedProductId}`);
       return res.data?.data;
     },
+    enabled: !!selectedProductId,
   });
 
   // 3. Fetch Purchase Orders
@@ -90,7 +102,16 @@ export default function StockInPage() {
     },
   });
 
-  // 4. Fetch Storage Locations
+  // 4. Fetch Warehouses for Cascading Location Hierarchy
+  const { data: warehousesData } = useQuery({
+    queryKey: ['warehouses-stockin'],
+    queryFn: async () => {
+      const res = await api.get('/attributes/warehouses', { params: { per_page: 50 } });
+      return res.data?.data;
+    },
+  });
+
+  // 5. Fetch Storage Locations
   const { data: locationsData } = useQuery({
     queryKey: ['locations-stockin'],
     queryFn: async () => {
@@ -100,17 +121,104 @@ export default function StockInPage() {
   });
 
   const products: MasterProduct[] = Array.isArray(productsData?.data) ? productsData.data : Array.isArray(productsData) ? productsData : [];
-  const colors: Color[] = Array.isArray(colorsData?.data) ? colorsData.data : Array.isArray(colorsData) ? colorsData : [];
   const pos: PO[] = Array.isArray(posData?.data) ? posData.data : Array.isArray(posData) ? posData : [];
+  const warehouses: any[] = Array.isArray(warehousesData?.data) ? warehousesData.data : Array.isArray(warehousesData) ? warehousesData : [];
   const locations: StorageLocation[] = Array.isArray(locationsData?.data) ? locationsData.data : Array.isArray(locationsData) ? locationsData : [];
 
+  // Cascading Location Hierarchy Helpers
+  const getZonesForWarehouse = (wId: string) => {
+    const w = warehouses.find((item) => item.id === wId);
+    return w?.zones || [];
+  };
+
+  const getSubZonesForZone = (wId: string, zId: string) => {
+    const zones = getZonesForWarehouse(wId);
+    const z = zones.find((item: any) => item.id === zId);
+    return z?.subZones || [];
+  };
+
+  const getRacksForSubZone = (wId: string, zId: string, szId: string) => {
+    const subZones = getSubZonesForZone(wId, zId);
+    const sz = subZones.find((item: any) => item.id === szId);
+    return sz?.racks || [];
+  };
+
+  const findLocationId = (wId: string, zId?: string, szId?: string, rId?: string) => {
+    if (rId) {
+      const locByRack = locations.find((l) => l.rackId === rId);
+      if (locByRack) return locByRack.id;
+    }
+    if (szId) {
+      const locBySubZone = locations.find((l) => l.subZoneId === szId);
+      if (locBySubZone) return locBySubZone.id;
+    }
+    if (zId) {
+      const locByZone = locations.find((l) => l.zoneId === zId);
+      if (locByZone) return locByZone.id;
+    }
+    if (wId) {
+      const locByWarehouse = locations.find((l) => l.warehouseId === wId);
+      if (locByWarehouse) return locByWarehouse.id;
+    }
+    return locations[0]?.id || '';
+  };
+
+  const selectedWarehouse = warehouses.find((w) => w.id === selectedWarehouseId);
+  const availableZones: any[] = selectedWarehouse?.zones || [];
+  const selectedZone = availableZones.find((z) => z.id === selectedZoneId);
+  const availableSubZones: any[] = selectedZone?.subZones || [];
+  const selectedSubZone = availableSubZones.find((sz) => sz.id === selectedSubZoneId);
+  const availableRacks: any[] = selectedSubZone?.racks || [];
+
+  const configuredVariants: any[] = productDetailsData?.variantProducts || [];
+
+  // Cascading Colors: Only colors that have pre-configured variants for this Master Product
+  const availableColors: Color[] = Array.from(
+    new Map(
+      configuredVariants
+        .filter((v) => v.color)
+        .map((v) => [v.colorId, v.color]),
+    ).values(),
+  );
+
+  // Cascading Genders: Only genders that have pre-configured variants for selected (Product + Color)
+  const availableGenders: ProductGender[] = Array.from(
+    new Set(
+      configuredVariants
+        .filter((v) => v.colorId === selectedColorId)
+        .map((v) => v.gender),
+    ),
+  ).filter(Boolean);
+
   const selectedProduct = products.find((p) => p.id === selectedProductId);
-  const selectedColor = colors.find((c) => c.id === selectedColorId);
+  const selectedColor = availableColors.find((c) => c.id === selectedColorId);
+
+  // Human-Friendly Location Name Formatter
+  const formatLocationName = (loc: any) => {
+    if (!loc) return 'Unassigned';
+    const parts = [];
+    if (loc.warehouse?.name) parts.push(loc.warehouse.name);
+    if (loc.rack?.name) parts.push(loc.rack.name);
+    parts.push(loc.name || loc.code);
+    return parts.join(' • ');
+  };
 
   // Transition Step 1 ➔ Step 2: Auto-load existing variants for this Product+Color+Gender
   const handleProceedToMatrix = async () => {
-    if (!selectedProductId || !selectedColorId || !productionDate) {
-      setErrorMsg('Please select a Product, Color, and Production Date.');
+    if (!selectedProductId) {
+      setErrorMsg('Please select a Master Product Style.');
+      return;
+    }
+    if (!selectedColorId) {
+      setErrorMsg('Please select a Color Variation.');
+      return;
+    }
+    if (!selectedGender) {
+      setErrorMsg('Please select a Gender Classification.');
+      return;
+    }
+    if (!productionDate) {
+      setErrorMsg('Please enter a valid Production Date.');
       return;
     }
 
@@ -125,74 +233,76 @@ export default function StockInPage() {
       });
 
       const previewVariants = res.data?.data?.variants || res.data?.data || [];
-      const defaultLoc = locations[0]?.id || '';
-      setGlobalLocationId(defaultLoc);
 
-      if (previewVariants.length > 0) {
-        const rows: SizeRow[] = previewVariants.map((v: any) => ({
-          variantProductId: v.id,
-          size: v.size,
-          sku: v.sku,
-          receivedQty: 0,
-          itemsPerPacket: v.itemsPerPacket || 1,
-          locationId: defaultLoc,
-        }));
-        setSizeRows(rows);
-      } else {
-        // Default standard size range if none created yet
-        const defaultSizes = ['38', '39', '40', '41', '42', '43', '44'];
-        const rows: SizeRow[] = defaultSizes.map((s) => ({
-          size: s,
-          receivedQty: 0,
-          itemsPerPacket: 1,
-          locationId: defaultLoc,
-        }));
-        setSizeRows(rows);
+      if (previewVariants.length === 0) {
+        setErrorMsg(
+          'No pre-configured variant sizes found for this Color and Gender. Product variants must be configured in Catalog Management before receiving stock.',
+        );
+        return;
       }
 
-      setStep(2);
-    } catch {
-      // Fallback
-      const defaultSizes = ['38', '39', '40', '41', '42', '43', '44'];
-      const defaultLoc = locations[0]?.id || '';
-      setSizeRows(
-        defaultSizes.map((s) => ({
-          size: s,
-          receivedQty: 0,
-          itemsPerPacket: 1,
-          locationId: defaultLoc,
-        })),
-      );
-      setStep(2);
-    }
-  };
+      const defaultW = warehouses[0];
+      const defaultWId = defaultW?.id || '';
+      const defaultZ = defaultW?.zones?.[0];
+      const defaultZId = defaultZ?.id || '';
+      const defaultSZ = defaultZ?.subZones?.[0];
+      const defaultSZId = defaultSZ?.id || '';
+      const defaultR = defaultSZ?.racks?.[0];
+      const defaultRId = defaultR?.id || '';
+      const defaultLocId = findLocationId(defaultWId, defaultZId, defaultSZId, defaultRId);
 
-  // Add Custom Size Row
-  const handleAddCustomSizeRow = () => {
-    const s = customSize.trim();
-    if (!s) return;
-    if (sizeRows.some((r) => r.size === s)) {
-      setErrorMsg(`Size ${s} is already in the matrix.`);
-      return;
-    }
+      setSelectedWarehouseId(defaultWId);
+      setSelectedZoneId(defaultZId);
+      setSelectedSubZoneId(defaultSZId);
+      setSelectedRackId(defaultRId);
+      setGlobalLocationId(defaultLocId);
 
-    setSizeRows([
-      ...sizeRows,
-      {
-        size: s,
+      const rows: SizeRow[] = previewVariants.map((v: any) => ({
+        variantProductId: v.id,
+        size: v.size,
+        sku: v.sku,
         receivedQty: 0,
-        itemsPerPacket: 1,
-        locationId: globalLocationId || locations[0]?.id || '',
-      },
-    ]);
-    setCustomSize('');
-    setErrorMsg('');
+        itemsPerPacket: v.itemsPerPacket || 1,
+        warehouseId: defaultWId,
+        zoneId: defaultZId,
+        subZoneId: defaultSZId,
+        rackId: defaultRId,
+        locationId: defaultLocId,
+      }));
+      setSizeRows(rows);
+      setStep(2);
+    } catch (err: any) {
+      setErrorMsg(
+        err.response?.data?.message ||
+          'Failed to load size matrix. Ensure variants are configured in Catalog Management.',
+      );
+    }
   };
 
   // Apply Global Location to All Rows
-  const handleApplyLocationToAll = (locId: string) => {
+  const handleApplyLocationToAll = (
+    wId: string,
+    zId: string,
+    szId: string,
+    rId: string,
+  ) => {
+    const locId = findLocationId(wId, zId, szId, rId);
+    setSelectedWarehouseId(wId);
+    setSelectedZoneId(zId);
+    setSelectedSubZoneId(szId);
+    setSelectedRackId(rId);
     setGlobalLocationId(locId);
-    setSizeRows(sizeRows.map((r) => ({ ...r, locationId: locId })));
+
+    setSizeRows((prev) =>
+      prev.map((r) => ({
+        ...r,
+        warehouseId: wId,
+        zoneId: zId,
+        subZoneId: szId,
+        rackId: rId,
+        locationId: locId,
+      })),
+    );
   };
 
   // Update specific row
@@ -246,6 +356,7 @@ export default function StockInPage() {
       formData.append('masterProductId', selectedProductId);
       formData.append('colorId', selectedColorId);
       formData.append('gender', selectedGender);
+      formData.append('stockInDate', new Date(stockInDate).toISOString());
       formData.append('productionDate', new Date(productionDate).toISOString());
       if (expirationDate) {
         formData.append('expirationDate', new Date(expirationDate).toISOString());
@@ -413,16 +524,20 @@ export default function StockInPage() {
           <h3 className="text-base font-bold text-slate-900 border-b border-slate-100 pb-3">
             Inward Batch Information
           </h3>
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Step 1.1: Master Product */}
             <div>
               <label className="mb-1 block text-xs font-semibold text-slate-700">
-                Master Product Style <span className="text-red-500">*</span>
+                1. Master Product Style <span className="text-red-500">*</span>
               </label>
               <select
                 required
                 value={selectedProductId}
-                onChange={(e) => setSelectedProductId(e.target.value)}
+                onChange={(e) => {
+                  setSelectedProductId(e.target.value);
+                  setSelectedColorId('');
+                  setSelectedGender('');
+                }}
                 className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 focus:border-blue-500 focus:outline-hidden"
               >
                 <option value="" disabled>
@@ -436,20 +551,31 @@ export default function StockInPage() {
               </select>
             </div>
 
+            {/* Step 1.2: Color Variation (Cascading) */}
             <div>
               <label className="mb-1 block text-xs font-semibold text-slate-700">
-                Color Variation <span className="text-red-500">*</span>
+                2. Color Variation <span className="text-red-500">*</span>
               </label>
               <select
                 required
+                disabled={!selectedProductId || loadingProductDetails}
                 value={selectedColorId}
-                onChange={(e) => setSelectedColorId(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 focus:border-blue-500 focus:outline-hidden"
+                onChange={(e) => {
+                  setSelectedColorId(e.target.value);
+                  setSelectedGender('');
+                }}
+                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 focus:border-blue-500 focus:outline-hidden disabled:bg-slate-100 disabled:text-slate-400"
               >
                 <option value="" disabled>
-                  Select Color
+                  {!selectedProductId
+                    ? '⚠️ First select a Master Product'
+                    : loadingProductDetails
+                    ? 'Loading configured colors...'
+                    : availableColors.length === 0
+                    ? 'No colors configured for this style'
+                    : 'Select Color Variation'}
                 </option>
-                {colors.map((c) => (
+                {availableColors.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name} {c.code ? `(${c.code})` : ''}
                   </option>
@@ -458,22 +584,46 @@ export default function StockInPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+            {/* Step 1.3: Gender Classification (Cascading) */}
             <div>
               <label className="mb-1 block text-xs font-semibold text-slate-700">
-                Gender Classification <span className="text-red-500">*</span>
+                3. Gender Line <span className="text-red-500">*</span>
               </label>
               <select
+                required
+                disabled={!selectedColorId || availableGenders.length === 0}
                 value={selectedGender}
                 onChange={(e) => setSelectedGender(e.target.value as ProductGender)}
-                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 focus:border-blue-500 focus:outline-hidden"
+                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 focus:border-blue-500 focus:outline-hidden disabled:bg-slate-100 disabled:text-slate-400"
               >
-                <option value="MALE">MALE</option>
-                <option value="LADY">LADY</option>
-                <option value="KIDS">KIDS</option>
-                <option value="JUNIOR">JUNIOR</option>
-                <option value="TWIN_JUNIOR">TWIN JUNIOR</option>
+                <option value="" disabled>
+                  {!selectedColorId
+                    ? '⚠️ First select a Color'
+                    : availableGenders.length === 0
+                    ? 'No gender lines for this color'
+                    : 'Select Gender Line'}
+                </option>
+                {availableGenders.map((g) => (
+                  <option key={g} value={g}>
+                    {g}
+                  </option>
+                ))}
               </select>
+            </div>
+
+            {/* Stock-In / Received Date */}
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-slate-700">
+                Stock-In Date <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="date"
+                required
+                value={stockInDate}
+                onChange={(e) => setStockInDate(e.target.value)}
+                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-900 focus:border-blue-500 focus:outline-hidden"
+              />
             </div>
 
             <div>
@@ -525,35 +675,39 @@ export default function StockInPage() {
                 onChange={(e) => setSelectedPoId(e.target.value)}
                 className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 focus:border-blue-500 focus:outline-hidden"
               >
-                <option value="">None (Stock Production)</option>
-                {pos.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.poNumber} — {p.buyer?.name}
+                <option value="">No PO Linked (General Stock-In)</option>
+                {pos.map((po) => (
+                  <option key={po.id} value={po.id}>
+                    {po.poNumber} ({po.buyer?.name || 'Buyer N/A'})
                   </option>
                 ))}
               </select>
             </div>
           </div>
 
-          {/* Document Attachment */}
           <div>
             <label className="mb-1 block text-xs font-semibold text-slate-700">
-              Supplier Invoice / Delivery Challan Document
+              Supplier Invoice / Delivery Slip (PDF, PNG, JPG)
             </label>
-            <div className="flex items-center gap-3 border border-dashed border-slate-200 rounded-xl p-4 bg-slate-50/50">
-              <Upload className="h-5 w-5 text-slate-400 shrink-0" />
-              <div className="flex-1">
+            <div className="flex items-center gap-3">
+              <label className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition cursor-pointer">
+                <Upload className="h-4 w-4 text-slate-500" />
+                <span>{invoiceFile ? invoiceFile.name : 'Upload Document'}</span>
                 <input
                   type="file"
-                  accept=".pdf,image/*"
+                  accept=".pdf,.png,.jpg,.jpeg"
+                  className="hidden"
                   onChange={(e) => setInvoiceFile(e.target.files?.[0] || null)}
-                  className="text-xs text-slate-500 file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"
                 />
-              </div>
+              </label>
               {invoiceFile && (
-                <span className="text-xs font-semibold text-emerald-600">
-                  {invoiceFile.name}
-                </span>
+                <button
+                  type="button"
+                  onClick={() => setInvoiceFile(null)}
+                  className="text-xs text-red-500 hover:underline cursor-pointer"
+                >
+                  Remove
+                </button>
               )}
             </div>
           </div>
@@ -562,8 +716,8 @@ export default function StockInPage() {
             <label className="mb-1 block text-xs font-semibold text-slate-700">
               Receiving Notes / Quality Remarks
             </label>
-            <textarea
-              rows={2}
+            <input
+              type="text"
               value={note}
               onChange={(e) => setNote(e.target.value)}
               placeholder="Inspection results, carton conditions, delivery vehicle..."
@@ -587,113 +741,312 @@ export default function StockInPage() {
       {/* STEP 2: DYNAMIC SIZE MATRIX */}
       {step === 2 && (
         <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs space-y-5">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
-            <div>
-              <h3 className="text-base font-bold text-slate-900">
-                Quantity Matrix per Size
-              </h3>
-              <p className="text-xs text-slate-500">
-                Enter received quantities and select destination bin racks
-              </p>
+          <div className="border-b border-slate-100 pb-4">
+            <h3 className="text-base font-bold text-slate-900">
+              Quantity Matrix ({sizeRows.length} Catalog Sizes)
+            </h3>
+            <p className="text-xs text-slate-500">
+              Enter received quantities and assign destination storage locations
+            </p>
+          </div>
+
+          {/* Cascading Bulk Location Assignment Panel */}
+          <div className="rounded-xl border border-slate-200/80 bg-slate-50/70 p-4 space-y-2.5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+              <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                <span>🎯 Default Storage Location</span>
+                <span className="text-[10px] font-normal text-slate-500 bg-slate-200/60 px-1.5 py-0.5 rounded">
+                  Cascading Selection
+                </span>
+              </span>
+              <span className="text-[11px] text-slate-500">
+                Select Warehouse ➔ Zone ➔ Sub-Zone ➔ Rack to auto-assign all sizes below
+              </span>
             </div>
 
-            {/* Quick Bulk Location Selector */}
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-medium text-slate-500 shrink-0">
-                Default Bin:
-              </span>
-              <select
-                value={globalLocationId}
-                onChange={(e) => handleApplyLocationToAll(e.target.value)}
-                className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs text-slate-800 focus:border-blue-500 focus:outline-hidden"
-              >
-                {locations.map((loc) => (
-                  <option key={loc.id} value={loc.id}>
-                    {loc.code} ({loc.warehouse?.name})
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5">
+              {/* 1. Warehouse */}
+              <div>
+                <label className="mb-1 block text-[11px] font-semibold text-slate-600">
+                  1. Warehouse
+                </label>
+                <select
+                  value={selectedWarehouseId}
+                  onChange={(e) => {
+                    const wId = e.target.value;
+                    const z = getZonesForWarehouse(wId)[0];
+                    const sz = getSubZonesForZone(wId, z?.id)[0];
+                    const r = getRacksForSubZone(wId, z?.id, sz?.id)[0];
+                    handleApplyLocationToAll(wId, z?.id || '', sz?.id || '', r?.id || '');
+                  }}
+                  className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-800 focus:border-blue-500 focus:outline-hidden"
+                >
+                  <option value="">Select Warehouse</option>
+                  {warehouses.map((w) => (
+                    <option key={w.id} value={w.id}>
+                      {w.name} ({w.code})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* 2. Zone */}
+              <div>
+                <label className="mb-1 block text-[11px] font-semibold text-slate-600">
+                  2. Zone
+                </label>
+                <select
+                  disabled={!selectedWarehouseId || availableZones.length === 0}
+                  value={selectedZoneId}
+                  onChange={(e) => {
+                    const zId = e.target.value;
+                    const sz = getSubZonesForZone(selectedWarehouseId, zId)[0];
+                    const r = getRacksForSubZone(selectedWarehouseId, zId, sz?.id)[0];
+                    handleApplyLocationToAll(selectedWarehouseId, zId, sz?.id || '', r?.id || '');
+                  }}
+                  className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-800 focus:border-blue-500 focus:outline-hidden disabled:bg-slate-100 disabled:text-slate-400"
+                >
+                  <option value="">
+                    {!selectedWarehouseId
+                      ? 'Select Warehouse first'
+                      : availableZones.length === 0
+                      ? 'No zones configured'
+                      : 'Select Zone'}
                   </option>
-                ))}
-              </select>
+                  {availableZones.map((z: any) => (
+                    <option key={z.id} value={z.id}>
+                      {z.name} ({z.code})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* 3. Sub-Zone */}
+              <div>
+                <label className="mb-1 block text-[11px] font-semibold text-slate-600">
+                  3. Sub-Zone
+                </label>
+                <select
+                  disabled={!selectedZoneId || availableSubZones.length === 0}
+                  value={selectedSubZoneId}
+                  onChange={(e) => {
+                    const szId = e.target.value;
+                    const r = getRacksForSubZone(selectedWarehouseId, selectedZoneId, szId)[0];
+                    handleApplyLocationToAll(selectedWarehouseId, selectedZoneId, szId, r?.id || '');
+                  }}
+                  className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-800 focus:border-blue-500 focus:outline-hidden disabled:bg-slate-100 disabled:text-slate-400"
+                >
+                  <option value="">
+                    {!selectedZoneId
+                      ? 'Select Zone first'
+                      : availableSubZones.length === 0
+                      ? 'No sub-zones'
+                      : 'Select Sub-Zone'}
+                  </option>
+                  {availableSubZones.map((sz: any) => (
+                    <option key={sz.id} value={sz.id}>
+                      {sz.name} ({sz.code})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* 4. Rack Location */}
+              <div>
+                <label className="mb-1 block text-[11px] font-semibold text-slate-600">
+                  4. Rack Location
+                </label>
+                <select
+                  disabled={!selectedSubZoneId || availableRacks.length === 0}
+                  value={selectedRackId}
+                  onChange={(e) => {
+                    const rId = e.target.value;
+                    handleApplyLocationToAll(selectedWarehouseId, selectedZoneId, selectedSubZoneId, rId);
+                  }}
+                  className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-800 focus:border-blue-500 focus:outline-hidden disabled:bg-slate-100 disabled:text-slate-400"
+                >
+                  <option value="">
+                    {!selectedSubZoneId
+                      ? 'Select Sub-Zone first'
+                      : availableRacks.length === 0
+                      ? 'No racks configured'
+                      : 'Select Rack Location'}
+                  </option>
+                  {availableRacks.map((r: any) => (
+                    <option key={r.id} value={r.id}>
+                      {r.name} {r.code ? `(${r.code})` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
 
           {/* Matrix Grid Table */}
           <div className="overflow-x-auto rounded-xl border border-slate-200">
-            <table className="w-full text-left text-xs">
+            <table className="w-full text-left text-xs min-w-[760px]">
               <thead className="border-b border-slate-100 bg-slate-50 font-bold uppercase tracking-wider text-slate-500 text-[11px]">
                 <tr>
-                  <th className="px-4 py-3">Size</th>
-                  <th className="px-4 py-3">SKU Identifier</th>
-                  <th className="px-4 py-3 w-36">Received Pairs *</th>
-                  <th className="px-4 py-3 w-28">Items / Packet</th>
-                  <th className="px-4 py-3">Destination Bin Slot *</th>
+                  <th className="px-3 py-3 w-20">Size</th>
+                  <th className="px-3 py-3 w-32">SKU</th>
+                  <th className="px-3 py-3 w-28">Received *</th>
+                  <th className="px-3 py-3 w-24">Packet</th>
+                  <th className="px-3 py-3">Warehouse</th>
+                  <th className="px-3 py-3">Zone</th>
+                  <th className="px-3 py-3">Sub-Zone</th>
+                  <th className="px-3 py-3">Rack Location *</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {sizeRows.map((row, idx) => (
-                  <tr key={idx} className="hover:bg-slate-50/50">
-                    <td className="px-4 py-3">
-                      <span className="inline-flex rounded-md bg-slate-100 px-2.5 py-1 font-bold text-slate-900 text-xs">
-                        Size {row.size}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 font-mono text-[11px] text-slate-600">
-                      {row.sku || `${selectedProduct?.sku}-${selectedColor?.name?.slice(0, 3).toUpperCase()}-${row.size}`}
-                    </td>
-                    <td className="px-4 py-3">
-                      <input
-                        type="number"
-                        min="0"
-                        value={row.receivedQty === 0 ? '' : row.receivedQty}
-                        onChange={(e) => updateRow(idx, { receivedQty: Number(e.target.value) || 0 })}
-                        placeholder="0"
-                        className="w-full font-bold text-sm rounded-lg border border-slate-200 px-3 py-1.5 text-slate-900 focus:border-blue-500 focus:outline-hidden"
-                      />
-                    </td>
-                    <td className="px-4 py-3">
-                      <input
-                        type="number"
-                        min="1"
-                        value={row.itemsPerPacket}
-                        onChange={(e) => updateRow(idx, { itemsPerPacket: Number(e.target.value) || 1 })}
-                        className="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs text-slate-800 focus:border-blue-500 focus:outline-hidden"
-                      />
-                    </td>
-                    <td className="px-4 py-3">
-                      <select
-                        value={row.locationId}
-                        onChange={(e) => updateRow(idx, { locationId: e.target.value })}
-                        className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-800 focus:border-blue-500 focus:outline-hidden"
-                      >
-                        {locations.map((loc) => (
-                          <option key={loc.id} value={loc.id}>
-                            {loc.code} ({loc.warehouse?.name} &bull; Rack {loc.rack?.code || 'R'})
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                  </tr>
-                ))}
+                {sizeRows.map((row, idx) => {
+                  const rowZones = getZonesForWarehouse(row.warehouseId);
+                  const rowSubZones = getSubZonesForZone(row.warehouseId, row.zoneId);
+                  const rowRacks = getRacksForSubZone(row.warehouseId, row.zoneId, row.subZoneId);
+
+                  return (
+                    <tr key={idx} className="hover:bg-slate-50/50">
+                      {/* Size */}
+                      <td className="px-3 py-2.5">
+                        <span className="inline-flex rounded-md bg-slate-100 px-2 py-1 font-bold text-slate-900 text-xs">
+                          Size {row.size}
+                        </span>
+                      </td>
+
+                      {/* SKU */}
+                      <td className="px-3 py-2.5 font-mono text-[11px] text-slate-600">
+                        {row.sku || `${selectedProduct?.sku}-${selectedColor?.name?.slice(0, 3).toUpperCase()}-${row.size}`}
+                      </td>
+
+                      {/* Received Qty */}
+                      <td className="px-3 py-2.5">
+                        <input
+                          type="number"
+                          min="0"
+                          value={row.receivedQty === 0 ? '' : row.receivedQty}
+                          onChange={(e) => updateRow(idx, { receivedQty: Number(e.target.value) || 0 })}
+                          placeholder="0"
+                          className="w-full font-bold text-xs rounded-lg border border-slate-200 px-2 py-1 text-slate-900 focus:border-blue-500 focus:outline-hidden"
+                        />
+                      </td>
+
+                      {/* Items / Packet */}
+                      <td className="px-3 py-2.5">
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200/60">
+                          {row.itemsPerPacket || 1}/pkt
+                        </span>
+                      </td>
+
+                      {/* Warehouse Selector */}
+                      <td className="px-2 py-2.5">
+                        <select
+                          value={row.warehouseId}
+                          onChange={(e) => {
+                            const wId = e.target.value;
+                            const z = getZonesForWarehouse(wId)[0];
+                            const sz = getSubZonesForZone(wId, z?.id)[0];
+                            const r = getRacksForSubZone(wId, z?.id, sz?.id)[0];
+                            const locId = findLocationId(wId, z?.id, sz?.id, r?.id);
+                            updateRow(idx, {
+                              warehouseId: wId,
+                              zoneId: z?.id || '',
+                              subZoneId: sz?.id || '',
+                              rackId: r?.id || '',
+                              locationId: locId,
+                            });
+                          }}
+                          className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs text-slate-800 focus:border-blue-500 focus:outline-hidden"
+                        >
+                          <option value="">Warehouse</option>
+                          {warehouses.map((w) => (
+                            <option key={w.id} value={w.id}>
+                              {w.name}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+
+                      {/* Zone Selector */}
+                      <td className="px-2 py-2.5">
+                        <select
+                          disabled={!row.warehouseId || rowZones.length === 0}
+                          value={row.zoneId}
+                          onChange={(e) => {
+                            const zId = e.target.value;
+                            const sz = getSubZonesForZone(row.warehouseId, zId)[0];
+                            const r = getRacksForSubZone(row.warehouseId, zId, sz?.id)[0];
+                            const locId = findLocationId(row.warehouseId, zId, sz?.id, r?.id);
+                            updateRow(idx, {
+                              zoneId: zId,
+                              subZoneId: sz?.id || '',
+                              rackId: r?.id || '',
+                              locationId: locId,
+                            });
+                          }}
+                          className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs text-slate-800 focus:border-blue-500 focus:outline-hidden disabled:bg-slate-100 disabled:text-slate-400"
+                        >
+                          <option value="">Zone</option>
+                          {rowZones.map((z: any) => (
+                            <option key={z.id} value={z.id}>
+                              {z.name}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+
+                      {/* Sub-Zone Selector */}
+                      <td className="px-2 py-2.5">
+                        <select
+                          disabled={!row.zoneId || rowSubZones.length === 0}
+                          value={row.subZoneId}
+                          onChange={(e) => {
+                            const szId = e.target.value;
+                            const r = getRacksForSubZone(row.warehouseId, row.zoneId, szId)[0];
+                            const locId = findLocationId(row.warehouseId, row.zoneId, szId, r?.id);
+                            updateRow(idx, {
+                              subZoneId: szId,
+                              rackId: r?.id || '',
+                              locationId: locId,
+                            });
+                          }}
+                          className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs text-slate-800 focus:border-blue-500 focus:outline-hidden disabled:bg-slate-100 disabled:text-slate-400"
+                        >
+                          <option value="">Sub-Zone</option>
+                          {rowSubZones.map((sz: any) => (
+                            <option key={sz.id} value={sz.id}>
+                              {sz.name}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+
+                      {/* Rack Location Selector */}
+                      <td className="px-2 py-2.5">
+                        <select
+                          disabled={!row.subZoneId || rowRacks.length === 0}
+                          value={row.rackId}
+                          onChange={(e) => {
+                            const rId = e.target.value;
+                            const locId = findLocationId(row.warehouseId, row.zoneId, row.subZoneId, rId);
+                            updateRow(idx, {
+                              rackId: rId,
+                              locationId: locId,
+                            });
+                          }}
+                          className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs text-slate-800 font-semibold focus:border-blue-500 focus:outline-hidden disabled:bg-slate-100 disabled:text-slate-400"
+                        >
+                          <option value="">Rack</option>
+                          {rowRacks.map((r: any) => (
+                            <option key={r.id} value={r.id}>
+                              {r.name} {r.code ? `(${r.code})` : ''}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
-          </div>
-
-          {/* Add Custom Size Line */}
-          <div className="flex items-center gap-2 pt-2">
-            <input
-              type="text"
-              value={customSize}
-              onChange={(e) => setCustomSize(e.target.value)}
-              placeholder="Add custom size (e.g. 47)..."
-              className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-900 focus:border-blue-500 focus:outline-hidden"
-            />
-            <button
-              type="button"
-              onClick={handleAddCustomSizeRow}
-              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition cursor-pointer"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              <span>Add Size Row</span>
-            </button>
           </div>
 
           {/* Total Summary Footer */}

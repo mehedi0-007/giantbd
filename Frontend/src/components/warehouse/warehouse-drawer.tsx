@@ -210,7 +210,7 @@ export function WarehouseDrawer({
       case 'rack':
         return 'Add Storage Rack';
       case 'location':
-        return 'Create Bin Location Slot';
+        return 'Create Storage Location Slot';
     }
   };
 
@@ -487,7 +487,7 @@ export function WarehouseDrawer({
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <label className="block text-xs font-semibold text-slate-700">
-                      {type === 'location' ? 'Location Bin Code *' : 'Code Identifier *'}
+                      {type === 'location' ? 'Location Code *' : 'Code Identifier *'}
                     </label>
                     <div className="flex items-center gap-1.5">
                       {!isCodeCustomized ? (

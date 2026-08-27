@@ -180,6 +180,63 @@ export function PoDrawer({
               </div>
             )}
 
+            {/* 1. Letter of Credit (LC) - Mandatory */}
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-slate-700">
+                Letter of Credit (LC) <span className="text-red-500">*</span>
+              </label>
+              <select
+                required
+                value={formData.lcId || ''}
+                onChange={(e) => {
+                  const selectedId = e.target.value;
+                  const matchedLc = lcs.find((l) => l.id === selectedId);
+                  setFormData({
+                    ...formData,
+                    lcId: selectedId,
+                    buyerId: matchedLc?.buyerId || '',
+                  });
+                }}
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20"
+              >
+                <option value="" disabled>
+                  Select Active Letter of Credit (LC)
+                </option>
+                {lcs.map((lc) => (
+                  <option key={lc.id} value={lc.id}>
+                    {lc.lcNumber} (Buyer: {lc.buyer?.name || 'N/A'})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Auto-populated Buyer Info Card */}
+            {(() => {
+              const matchedLc = lcs.find((l) => l.id === formData.lcId);
+              if (!matchedLc?.buyer) return null;
+              return (
+                <div className="rounded-xl border border-blue-100 bg-blue-50/60 p-3 text-xs">
+                  <div className="font-bold text-blue-900 flex items-center justify-between">
+                    <span>🏢 Buyer: {matchedLc.buyer.name}</span>
+                    <span className="font-mono text-[10px] bg-blue-100 px-1.5 py-0.5 rounded text-blue-700">
+                      {matchedLc.buyer.code}
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-blue-700/80 mt-1 flex items-center gap-3">
+                    <span>Country: {matchedLc.buyer.country || 'N/A'}</span>
+                    <span>•</span>
+                    <span>
+                      LC Expiry:{' '}
+                      {matchedLc.expiryDate
+                        ? new Date(matchedLc.expiryDate).toLocaleDateString()
+                        : 'N/A'}
+                    </span>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* 2. PO Number */}
             <div>
               <label className="mb-1 block text-xs font-semibold text-slate-700">
                 PO Number <span className="text-red-500">*</span>
@@ -188,49 +245,12 @@ export function PoDrawer({
                 type="text"
                 required
                 value={formData.poNumber}
-                onChange={(e) => setFormData({ ...formData, poNumber: e.target.value.toUpperCase() })}
+                onChange={(e) =>
+                  setFormData({ ...formData, poNumber: e.target.value.toUpperCase() })
+                }
                 placeholder="e.g. PO-2026-GIANT-001"
                 className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20"
               />
-            </div>
-
-            <div>
-              <label className="mb-1 block text-xs font-semibold text-slate-700">
-                Buyer <span className="text-red-500">*</span>
-              </label>
-              <select
-                required
-                value={formData.buyerId}
-                onChange={(e) => setFormData({ ...formData, buyerId: e.target.value, lcId: '' })}
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20"
-              >
-                <option value="" disabled>
-                  Select a Buyer
-                </option>
-                {buyers.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.name} ({b.code})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="mb-1 block text-xs font-semibold text-slate-700">
-                Linked Letter of Credit (LC) <span className="text-slate-400 font-normal">(Optional)</span>
-              </label>
-              <select
-                value={formData.lcId || ''}
-                onChange={(e) => setFormData({ ...formData, lcId: e.target.value })}
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20"
-              >
-                <option value="">No LC Linked (Direct Order)</option>
-                {availableLcs.map((lc) => (
-                  <option key={lc.id} value={lc.id}>
-                    {lc.lcNumber} (Exp: {lc.expiryDate ? new Date(lc.expiryDate).toLocaleDateString() : 'N/A'})
-                  </option>
-                ))}
-              </select>
             </div>
 
             <div className="grid grid-cols-2 gap-3">

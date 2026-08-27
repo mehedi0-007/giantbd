@@ -25,6 +25,18 @@ import {
   FileText,
 } from 'lucide-react';
 
+const formatLocationName = (loc: any) => {
+  if (!loc) return 'Unassigned';
+  const parts: string[] = [];
+  if (loc.warehouse?.name) parts.push(loc.warehouse.name);
+  if (loc.zone?.name) parts.push(loc.zone.name);
+  if (loc.subZone?.name) parts.push(loc.subZone.name);
+  if (loc.rack?.name) parts.push(loc.rack.name);
+  else if (loc.name && !loc.name.startsWith('LOC-')) parts.push(loc.name);
+
+  return parts.length > 0 ? parts.join(' • ') : loc.name || loc.code || 'Unassigned';
+};
+
 export default function CurrentStockPage() {
   const [viewMode, setViewMode] = useState<'batches' | 'items'>('batches');
   const [search, setSearch] = useState('');
@@ -264,7 +276,7 @@ export default function CurrentStockPage() {
             }`}
           >
             <Layers className="h-3.5 w-3.5" />
-            <span>🏷️ All Items & Bins</span>
+            <span>🏷️ All Items & Locations</span>
           </button>
         </div>
       </div>
@@ -598,7 +610,7 @@ export default function CurrentStockPage() {
                               <div className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-2xs">
                                 <div className="bg-slate-50 px-4 py-2 border-b border-slate-100 flex items-center justify-between text-[11px] font-bold text-slate-700">
                                   <span>Sizes & Storage Locations Matrix ({items.length} sizes)</span>
-                                  <span className="text-slate-400 font-normal">Click individual size to print bin sticker</span>
+                                  <span className="text-slate-400 font-normal">Click individual size to print barcode sticker</span>
                                 </div>
                                 <table className="w-full text-left text-xs">
                                   <thead className="border-b border-slate-100 bg-slate-50/40 text-[10px] uppercase font-bold text-slate-400">
@@ -607,7 +619,7 @@ export default function CurrentStockPage() {
                                       <th className="px-4 py-2">Available In-Hand</th>
                                       <th className="px-4 py-2">Received Total</th>
                                       <th className="px-4 py-2">Cartons</th>
-                                      <th className="px-4 py-2">Storage Bin Location</th>
+                                      <th className="px-4 py-2">Storage Location</th>
                                       <th className="px-4 py-2 text-right">Status</th>
                                     </tr>
                                   </thead>

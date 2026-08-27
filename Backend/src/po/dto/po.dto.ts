@@ -30,11 +30,11 @@ export class CreatePODTO {
 
   @IsString()
   @IsNotEmpty()
-  buyerId!: string;
+  lcId!: string;
 
   @IsOptional()
   @IsString()
-  lcId?: string;
+  buyerId?: string;
 
   @IsOptional()
   @Type(() => Date)

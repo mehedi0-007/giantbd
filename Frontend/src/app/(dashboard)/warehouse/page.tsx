@@ -124,11 +124,11 @@ export default function WarehousePage() {
               Warehouses & Storage Locations
             </h1>
             <span className="rounded-md bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700">
-              {locations.length} Bins Active
+              {locations.length} Locations Active
             </span>
           </div>
           <p className="text-xs text-slate-500 mt-1">
-            Configure storage zones, sub-zones, racks, shelf bin slots, and print Code 128 barcode stickers
+            Configure storage zones, sub-zones, racks, storage locations, and print Code 128 barcode stickers
           </p>
         </div>
 
@@ -171,7 +171,7 @@ export default function WarehousePage() {
             className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-3.5 py-2 text-xs font-semibold text-white shadow-sm shadow-blue-500/20 hover:bg-blue-700 transition cursor-pointer"
           >
             <Plus className="h-3.5 w-3.5" />
-            <span>New Bin Slot</span>
+            <span>New Location</span>
           </button>
         </div>
       </div>
@@ -452,9 +452,9 @@ export default function WarehousePage() {
               onChange={(e) => setOccupancyFilter(e.target.value as any)}
               className="w-full sm:w-auto rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs font-semibold text-slate-700 focus:border-blue-500 focus:outline-hidden"
             >
-              <option value="ALL">📦 All Bins</option>
-              <option value="OCCUPIED">🟢 Occupied Bins</option>
-              <option value="EMPTY">⚪ Empty Bins</option>
+              <option value="ALL">📦 All Locations</option>
+              <option value="OCCUPIED">🟢 Occupied Locations</option>
+              <option value="EMPTY">⚪ Empty Locations</option>
             </select>
 
             {/* Reset Button */}
@@ -480,14 +480,14 @@ export default function WarehousePage() {
             {loadingLoc ? (
               <div className="flex flex-col items-center justify-center py-20">
                 <Loader2 className="h-8 w-8 animate-spin text-blue-600 mb-3" />
-                <p className="text-xs font-medium text-slate-500">Loading location bins...</p>
+                <p className="text-xs font-medium text-slate-500">Loading locations...</p>
               </div>
             ) : locations.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-center">
                 <Boxes className="h-10 w-10 text-slate-300 mb-2" />
-                <h4 className="text-sm font-bold text-slate-800">No bin locations found</h4>
+                <h4 className="text-sm font-bold text-slate-800">No storage locations found</h4>
                 <p className="text-xs text-slate-500 mt-1 max-w-sm">
-                  Create bin slots to assign storage addresses for incoming stock batches.
+                  Create storage locations to assign addresses for incoming stock batches.
                 </p>
                 <button
                   type="button"
@@ -503,7 +503,7 @@ export default function WarehousePage() {
                 <table className="w-full text-left text-xs">
                   <thead className="border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-500">
                     <tr>
-                      <th className="px-5 py-3.5">Bin Code & Barcode</th>
+                      <th className="px-5 py-3.5">Location Code & Barcode</th>
                       <th className="px-5 py-3.5">Warehouse Hierarchy Path</th>
                       <th className="px-5 py-3.5">Status</th>
                       <th className="px-5 py-3.5 text-right">Actions</th>

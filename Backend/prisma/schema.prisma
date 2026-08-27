@@ -302,7 +302,7 @@ model VariantProduct {
 
 model Batch {
   id           String @id @default(cuid())
-  batch_id     String
+  batch_id     String @unique
   batch_number String
 
   productionDate DateTime

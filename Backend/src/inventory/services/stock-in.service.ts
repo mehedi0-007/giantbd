@@ -161,57 +161,66 @@ export class StockInService {
           ...new Set(customItems.map((i) => i.size!.trim().toUpperCase())),
         ];
 
-        // Single query for all candidate sizes (Eliminating N+1 queries)
+        const candidateSkus = candidateSizes.map(
+          (s) => `${masterProduct.sku}-${color.name.toUpperCase().replace(/\s+/g, '')}-${s}`,
+        );
+
+        // Find existing variants by masterProduct + color + size OR by SKU
         const existingVariants = await tx.variantProduct.findMany({
           where: {
-            masterProductId: dto.masterProductId,
-            colorId: dto.colorId,
-            size: { in: candidateSizes },
-            status: { not: 'DELETED' },
+            OR: [
+              {
+                masterProductId: dto.masterProductId,
+                colorId: dto.colorId,
+                size: { in: candidateSizes },
+              },
+              {
+                sku: { in: candidateSkus },
+              },
+            ],
           },
         });
-
-        const variantMapByKey = new Map(
-          existingVariants.map((v) => [`${v.gender}_${v.size}`, v]),
-        );
 
         for (const item of customItems) {
           const cleanSize = item.size!.trim().toUpperCase();
           const gender = item.gender || dto.gender || 'MALE';
-          const key = `${gender}_${cleanSize}`;
+          const cleanSku = `${masterProduct.sku}-${color.name.toUpperCase().replace(/\s+/g, '')}-${cleanSize}`;
 
-          if (variantMapByKey.has(key)) {
-            item.variantProductId = variantMapByKey.get(key)!.id;
+          // Find matching variant
+          let matched = existingVariants.find(
+            (v) =>
+              (v.masterProductId === masterProduct.id &&
+                v.colorId === color.id &&
+                v.size.toUpperCase() === cleanSize) ||
+              v.sku.toUpperCase() === cleanSku.toUpperCase(),
+          );
+
+          if (matched) {
+            if (matched.status === 'DELETED') {
+              await tx.variantProduct.update({
+                where: { id: matched.id },
+                data: { status: 'ACTIVE' },
+              });
+            }
+            item.variantProductId = matched.id;
           } else {
-            // Auto-create on-the-fly atomically inside this transaction
-            const cleanSku = `${masterProduct.sku}-${color.name.toUpperCase().replace(/\s+/g, '')}-${cleanSize}`;
-            const cleanName = `${masterProduct.name} - ${color.name} / ${cleanSize}`;
-            const barcode = this.generateBarcode();
-
-            const createdVariant = await tx.variantProduct.create({
-              data: {
-                name: cleanName,
-                sku: cleanSku,
-                barcode,
-                size: cleanSize,
-                colorId: color.id,
-                gender,
-                uom: 'PAIR',
-                itemsPerPacket: item.itemsPerPacket || dto.itemsPerPacket || 1,
-                packingType: 'POLY_BAG',
-                costPrice: 0,
-                sellingPrice: 0,
-                mrp: 0,
-                status: 'ACTIVE',
-                masterProductId: masterProduct.id,
-                categoryId: masterProduct.categoryId,
-                subCategoryId: masterProduct.subCategoryId,
-                creatorId: masterProduct.creatorId,
-              },
+            const existingBySku = await tx.variantProduct.findUnique({
+              where: { sku: cleanSku },
             });
 
-            variantMapByKey.set(key, createdVariant);
-            item.variantProductId = createdVariant.id;
+            if (existingBySku) {
+              if (existingBySku.status === 'DELETED') {
+                await tx.variantProduct.update({
+                  where: { id: existingBySku.id },
+                  data: { status: 'ACTIVE' },
+                });
+              }
+              item.variantProductId = existingBySku.id;
+            } else {
+              throw new BadRequestException(
+                `Product variant for size '${cleanSize}' (${cleanSku}) does not exist in the catalog. Products must be pre-configured by product management before receiving stock.`,
+              );
+            }
           }
         }
       }

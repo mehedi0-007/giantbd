@@ -56,9 +56,13 @@ export default function StockOutPage() {
   const [paymentNote, setPaymentNote] = useState('');
   const [cancelNote, setCancelNote] = useState('');
 
-  // Form States for Create Challan
+  // Form States for Create Challan (Strict Hierarchical Flow: LC -> PO -> Product -> Color -> Gender)
   const [dispatchMode, setDispatchMode] = useState<'PO_SHIPMENT' | 'DIRECT_SALE' | 'SAMPLE_DISPATCH' | 'DAMAGE_SCRAP'>('PO_SHIPMENT');
+  const [selectedLcId, setSelectedLcId] = useState('');
   const [selectedPoId, setSelectedPoId] = useState('');
+  const [selectedProductId, setSelectedProductId] = useState('');
+  const [selectedColorId, setSelectedColorId] = useState('');
+  const [selectedGender, setSelectedGender] = useState('');
   const [destination, setDestination] = useState('');
   const [dispatchDate, setDispatchDate] = useState(new Date().toISOString().slice(0, 10));
   const [note, setNote] = useState('');
@@ -102,7 +106,17 @@ export default function StockOutPage() {
     },
   });
 
-  // 2. Fetch Active Purchase Orders for Dispatch
+  // 3. Fetch LCs for Dispatch Selection
+  const { data: lcsData } = useQuery({
+    queryKey: ['lcs-for-dispatch'],
+    queryFn: async () => {
+      const res = await api.get('/lc', { params: { per_page: 100 } });
+      return res.data?.data;
+    },
+    enabled: activeTab === 'create',
+  });
+
+  // 4. Fetch Active Purchase Orders for Dispatch
   const { data: posData } = useQuery({
     queryKey: ['pos-for-dispatch'],
     queryFn: async () => {
@@ -112,7 +126,28 @@ export default function StockOutPage() {
     enabled: activeTab === 'create',
   });
 
-  // 3. Fetch All Available Batches for Dispatch Selection
+  // 5. Fetch Master Products
+  const { data: productsData } = useQuery({
+    queryKey: ['master-products-dispatch'],
+    queryFn: async () => {
+      const res = await api.get('/master-products', { params: { per_page: 100 } });
+      return res.data?.data;
+    },
+    enabled: activeTab === 'create',
+  });
+
+  // 6. Fetch Selected Master Product Details with Variants
+  const { data: productDetailsData, isLoading: loadingProductDetails } = useQuery({
+    queryKey: ['master-product-dispatch-details', selectedProductId],
+    queryFn: async () => {
+      if (!selectedProductId) return null;
+      const res = await api.get(`/master-products/${selectedProductId}`);
+      return res.data?.data;
+    },
+    enabled: !!selectedProductId && activeTab === 'create',
+  });
+
+  // 7. Fetch All Available Batches for Dispatch Selection
   const { data: batchesData, isLoading: loadingBatches } = useQuery({
     queryKey: ['available-batches-for-dispatch'],
     queryFn: async () => {
@@ -132,7 +167,9 @@ export default function StockOutPage() {
     ? challansData
     : [];
 
+  const lcs: any[] = Array.isArray(lcsData?.data) ? lcsData.data : Array.isArray(lcsData) ? lcsData : [];
   const pos: PO[] = Array.isArray(posData?.data) ? posData.data : Array.isArray(posData) ? posData : [];
+  const products: any[] = Array.isArray(productsData?.data) ? productsData.data : Array.isArray(productsData) ? productsData : [];
   
   const allBatches: any[] = Array.isArray(batchesData?.data)
     ? batchesData.data
@@ -140,11 +177,68 @@ export default function StockOutPage() {
     ? batchesData
     : [];
 
-  // Filter out completely empty/exhausted batches (in-hand = 0)
-  const availableBatches = allBatches.filter((b) => {
-    const totalAvail = (b.batchItems || []).reduce((sum: number, i: any) => sum + (i.availableQty ?? i.receivedQty ?? 0), 0);
-    return totalAvail > 0;
-  });
+  // Selected Objects
+  const selectedLc = lcs.find((l) => l.id === selectedLcId);
+  const selectedPo = pos.find((p) => p.id === selectedPoId);
+
+  // Filter POs by selected LC
+  const availablePos = selectedLcId
+    ? pos.filter((p) => p.lcId === selectedLcId || p.lc?.id === selectedLcId)
+    : pos;
+
+  // Cascading Colors from Product
+  const configuredVariants: any[] = productDetailsData?.variantProducts || [];
+  const availableColors: any[] = Array.from(
+    new Map(
+      configuredVariants
+        .filter((v) => v.color)
+        .map((v) => [v.colorId, v.color]),
+    ).values(),
+  );
+
+  // Cascading Genders for (Product + Color)
+  const availableGenders: string[] = Array.from(
+    new Set(
+      configuredVariants
+        .filter((v) => v.colorId === selectedColorId)
+        .map((v) => v.gender),
+    ),
+  ).filter(Boolean);
+
+  // Location Formatter (Human Friendly)
+  const formatLocationName = (loc: any) => {
+    if (!loc) return 'Unassigned';
+    const parts = [];
+    if (loc.warehouse?.name) parts.push(loc.warehouse.name);
+    if (loc.rack?.name) parts.push(loc.rack.name);
+    parts.push(loc.name || loc.code);
+    return parts.join(' • ');
+  };
+
+  // Strict Hierarchy Completion Guard: LC -> PO -> Master Product -> Color -> Gender
+  const isHierarchyComplete = Boolean(
+    selectedLcId && selectedPoId && selectedProductId && selectedColorId && selectedGender,
+  );
+
+  // Filter out completely empty/exhausted batches, and ONLY show matching batches when hierarchy is complete
+  const availableBatches = !isHierarchyComplete
+    ? []
+    : allBatches.filter((b) => {
+        const items: any[] = b.batchItems || [];
+        const matchingItems = items.filter((i) => {
+          const p = i.product;
+          const matchProd =
+            p?.masterProductId === selectedProductId ||
+            p?.masterProduct?.id === selectedProductId;
+          const matchColor =
+            p?.colorId === selectedColorId || p?.color?.id === selectedColorId;
+          const matchGender =
+            (p?.gender || p?.masterProduct?.gender) === selectedGender;
+          const hasQty = (i.availableQty ?? i.receivedQty ?? 0) > 0;
+          return matchProd && matchColor && matchGender && hasQty;
+        });
+        return matchingItems.length > 0;
+      });
 
   // Toggle Batch Accordion
   const toggleBatchExpand = (id: string) => {
@@ -274,7 +368,11 @@ export default function StockOutPage() {
       // Open print modal immediately
       setSelectedChallanForPrint(createdChallan);
       setActiveTab('registry');
+      setSelectedLcId('');
       setSelectedPoId('');
+      setSelectedProductId('');
+      setSelectedColorId('');
+      setSelectedGender('');
       setDestination('');
       setNote('');
       setSelectedItemQuantities({});
@@ -656,29 +754,183 @@ export default function StockOutPage() {
               </div>
             </div>
 
-            {/* PO Selector (for PO_SHIPMENT) */}
-            {dispatchMode === 'PO_SHIPMENT' && (
+            {/* Cascading Hierarchical Chain: LC -> PO -> Master Product -> Color -> Gender */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* 1. Select LC */}
               <div>
                 <label className="mb-1 block text-xs font-semibold text-slate-700">
-                  Target Purchase Order Contract <span className="text-red-500">*</span>
+                  1. Letter of Credit (LC) <span className="text-red-500">*</span>
                 </label>
                 <select
                   required
-                  value={selectedPoId}
-                  onChange={(e) => setSelectedPoId(e.target.value)}
+                  value={selectedLcId}
+                  onChange={(e) => {
+                    setSelectedLcId(e.target.value);
+                    setSelectedPoId('');
+                    setSelectedProductId('');
+                    setSelectedColorId('');
+                    setSelectedGender('');
+                    setSelectedItemQuantities({});
+                  }}
                   className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs text-slate-900 focus:border-blue-500 focus:outline-hidden"
                 >
-                  <option value="" disabled>
-                    Select Purchase Order Contract
-                  </option>
-                  {pos.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.poNumber} — {p.buyer?.name} ({p.items?.length || 0} line items)
+                  <option value="">Select Letter of Credit (LC)</option>
+                  {lcs.map((lc) => (
+                    <option key={lc.id} value={lc.id}>
+                      {lc.lcNumber} (Buyer: {lc.buyer?.name || 'N/A'})
                     </option>
                   ))}
                 </select>
               </div>
+
+              {/* 2. Select PO */}
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-slate-700">
+                  2. Purchase Order Contract <span className="text-red-500">*</span>
+                </label>
+                <select
+                  required
+                  disabled={!selectedLcId || availablePos.length === 0}
+                  value={selectedPoId}
+                  onChange={(e) => {
+                    setSelectedPoId(e.target.value);
+                    setSelectedProductId('');
+                    setSelectedColorId('');
+                    setSelectedGender('');
+                    setSelectedItemQuantities({});
+                  }}
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs text-slate-900 focus:border-blue-500 focus:outline-hidden disabled:bg-slate-100 disabled:text-slate-400"
+                >
+                  <option value="">
+                    {!selectedLcId
+                      ? '⚠️ First select an LC'
+                      : availablePos.length === 0
+                      ? 'No POs attached to this LC'
+                      : 'Select Purchase Order (PO)'}
+                  </option>
+                  {availablePos.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.poNumber} ({p.totalQuantity} pairs total)
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Auto-populated Buyer & Contract Card */}
+            {selectedLc?.buyer && (
+              <div className="rounded-xl border border-blue-100 bg-blue-50/60 p-3 text-xs flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-blue-900">
+                    🏢 Buyer: {selectedLc.buyer.name}
+                  </span>
+                  <span className="font-mono text-[10px] bg-blue-100 px-1.5 py-0.5 rounded text-blue-700">
+                    {selectedLc.buyer.code}
+                  </span>
+                </div>
+                <div className="text-[11px] text-blue-700/80 flex items-center gap-3">
+                  <span>Country: {selectedLc.buyer.country || 'N/A'}</span>
+                  <span>•</span>
+                  <span>
+                    LC Expiry:{' '}
+                    {selectedLc.expiryDate
+                      ? new Date(selectedLc.expiryDate).toLocaleDateString()
+                      : 'N/A'}
+                  </span>
+                </div>
+              </div>
             )}
+
+            {/* Step 3, 4, 5: Master Product -> Color -> Gender Cascading Filters */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* 3. Master Product */}
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-slate-700">
+                  3. Master Product Style <span className="text-red-500">*</span>
+                </label>
+                <select
+                  disabled={!selectedPoId}
+                  value={selectedProductId}
+                  onChange={(e) => {
+                    setSelectedProductId(e.target.value);
+                    setSelectedColorId('');
+                    setSelectedGender('');
+                    setSelectedItemQuantities({});
+                  }}
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 focus:border-blue-500 focus:outline-hidden disabled:bg-slate-100 disabled:text-slate-400"
+                >
+                  <option value="">
+                    {!selectedPoId ? '⚠️ Select a PO first' : 'Select Master Product'}
+                  </option>
+                  {products.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} ({p.sku})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* 4. Color Variation */}
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-slate-700">
+                  4. Color Variation <span className="text-red-500">*</span>
+                </label>
+                <select
+                  disabled={!selectedProductId || loadingProductDetails}
+                  value={selectedColorId}
+                  onChange={(e) => {
+                    setSelectedColorId(e.target.value);
+                    setSelectedGender('');
+                    setSelectedItemQuantities({});
+                  }}
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 focus:border-blue-500 focus:outline-hidden disabled:bg-slate-100 disabled:text-slate-400"
+                >
+                  <option value="">
+                    {!selectedProductId
+                      ? '⚠️ Select Product first'
+                      : loadingProductDetails
+                      ? 'Loading colors...'
+                      : availableColors.length === 0
+                      ? 'No colors configured'
+                      : 'Select Color'}
+                  </option>
+                  {availableColors.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} {c.code ? `(${c.code})` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* 5. Gender Line */}
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-slate-700">
+                  5. Gender Line <span className="text-red-500">*</span>
+                </label>
+                <select
+                  disabled={!selectedColorId || availableGenders.length === 0}
+                  value={selectedGender}
+                  onChange={(e) => {
+                    setSelectedGender(e.target.value);
+                    setSelectedItemQuantities({});
+                  }}
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 focus:border-blue-500 focus:outline-hidden disabled:bg-slate-100 disabled:text-slate-400"
+                >
+                  <option value="">
+                    {!selectedColorId
+                      ? '⚠️ Select Color first'
+                      : availableGenders.length === 0
+                      ? 'No gender lines'
+                      : 'Select Gender Line'}
+                  </option>
+                  {availableGenders.map((g) => (
+                    <option key={g} value={g}>
+                      {g}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
 
             {/* AVAILABLE BATCHES ACCORDION PICKER */}
             <div className="space-y-3">
@@ -686,27 +938,46 @@ export default function StockOutPage() {
                 <div className="flex items-center gap-2">
                   <Boxes className="h-4 w-4 text-blue-600" />
                   <h4 className="text-sm font-bold text-slate-900">
-                    Available Warehouse Batches & Sizes ({availableBatches.length} batches in stock)
+                    Matching Warehouse Batches & Storage Locations ({availableBatches.length} batches available)
                   </h4>
                 </div>
                 <span className="text-xs text-slate-400">
-                  Expand each batch dropdown to pick sizes & quantities
+                  Select physical batch items and specify dispatch quantities
                 </span>
               </div>
 
-              {loadingBatches ? (
+              {!isHierarchyComplete ? (
+                <div className="flex flex-col items-center justify-center p-8 rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 text-center space-y-2">
+                  <div className="h-10 w-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
+                    <Boxes className="h-5 w-5" />
+                  </div>
+                  <h5 className="text-xs font-bold text-slate-800">
+                    Awaiting Master Product, Color & Gender Selection
+                  </h5>
+                  <p className="text-[11px] text-slate-500 max-w-sm">
+                    Please select the Letter of Credit, Purchase Order, Master Product Style, Color, and Gender above to reveal available warehouse inventory batches.
+                  </p>
+                </div>
+              ) : loadingBatches ? (
                 <div className="flex items-center justify-center py-10 rounded-xl border border-slate-100 bg-slate-50/50">
                   <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
                 </div>
               ) : availableBatches.length === 0 ? (
                 <div className="text-center py-10 rounded-xl border border-dashed border-slate-200 bg-slate-50/50 text-slate-400 text-xs">
-                  No active stock batches found. Please receive goods via Stock-In first.
+                  No active stock batches found matching the selected Style, Color, and Gender.
                 </div>
               ) : (
                 <div className="space-y-3">
                   {availableBatches.map((batch) => {
                     const isExpanded = expandedBatchIds[batch.id] !== false; // default expanded
-                    const items: any[] = batch.batchItems || [];
+                    const items: any[] = (batch.batchItems || []).filter((i: any) => {
+                      const p = i.product;
+                      const matchProd = p?.masterProductId === selectedProductId || p?.masterProduct?.id === selectedProductId;
+                      const matchColor = p?.colorId === selectedColorId || p?.color?.id === selectedColorId;
+                      const matchGender = (p?.gender || p?.masterProduct?.gender) === selectedGender;
+                      const hasQty = (i.availableQty ?? i.receivedQty ?? 0) > 0;
+                      return matchProd && matchColor && matchGender && hasQty;
+                    });
                     const totalAvailable = items.reduce((sum, i) => sum + (i.availableQty ?? i.receivedQty ?? 0), 0);
                     const allSelectedInBatch = items.length > 0 && items.every((i) => (selectedItemQuantities[i.id] || 0) > 0);
 
@@ -805,8 +1076,8 @@ export default function StockOutPage() {
                                 <tr>
                                   <th className="pb-2 w-8"></th>
                                   <th className="pb-2">Size / SKU</th>
-                                  <th className="pb-2">Storage Bin Address</th>
-                                  <th className="pb-2 text-right">Available in Bin</th>
+                                  <th className="pb-2">Storage Location</th>
+                                  <th className="pb-2 text-right">Available Stock</th>
                                   <th className="pb-2 text-right w-36">Dispatch Quantity</th>
                                 </tr>
                               </thead>
@@ -843,12 +1114,12 @@ export default function StockOutPage() {
                                       </td>
                                       <td className="py-2.5">
                                         {item.location ? (
-                                          <div className="flex items-center gap-1 font-mono text-[11px] text-indigo-700 font-semibold bg-indigo-50/60 border border-indigo-100 rounded px-1.5 py-0.5 w-fit">
-                                            <MapPin className="h-3 w-3 text-indigo-500 shrink-0" />
-                                            <span>{item.location.code || item.location.name}</span>
+                                          <div className="flex items-center gap-1.5 text-[11px] text-slate-800 font-semibold bg-slate-100 border border-slate-200 rounded-md px-2 py-0.5 w-fit">
+                                            <MapPin className="h-3 w-3 text-blue-600 shrink-0" />
+                                            <span>{formatLocationName(item.location)}</span>
                                           </div>
                                         ) : (
-                                          <span className="text-slate-400 italic text-[11px]">Unassigned</span>
+                                          <span className="text-slate-400 italic text-[11px]">Unassigned Location</span>
                                         )}
                                       </td>
                                       <td className="py-2.5 text-right font-bold text-emerald-700">

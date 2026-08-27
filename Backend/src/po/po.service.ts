@@ -14,19 +14,17 @@ export class POService {
   async create(dto: CreatePODTO) {
     const cleanPoNumber = dto.poNumber.trim().toUpperCase();
 
-    const buyer = await this.prisma.buyer.findFirst({
-      where: { id: dto.buyerId, status: { not: 'DELETED' } },
-    });
-
-    if (!buyer) {
-      throw new NotFoundException('Buyer not found');
+    if (!dto.lcId) {
+      throw new BadRequestException('Purchase Order must be linked to an active Letter of Credit (LC)');
     }
 
-    if (dto.lcId) {
-      const lc = await this.prisma.lC.findFirst({
-        where: { id: dto.lcId, status: { notIn: ['EXPIRED', 'CANCELLED'] } },
-      });
-      if (!lc) throw new NotFoundException('Valid Letter of Credit (LC) not found');
+    const lc = await this.prisma.lC.findFirst({
+      where: { id: dto.lcId, status: { notIn: ['EXPIRED', 'CANCELLED'] } },
+      include: { buyer: true },
+    });
+
+    if (!lc) {
+      throw new NotFoundException('Valid active Letter of Credit (LC) not found');
     }
 
     const isExist = await this.prisma.pO.findUnique({
@@ -56,8 +54,8 @@ export class POService {
       const po = await tx.pO.create({
         data: {
           poNumber: cleanPoNumber,
-          buyerId: dto.buyerId,
-          lcId: dto.lcId || null,
+          buyerId: lc.buyerId,
+          lcId: lc.id,
           orderDate: dto.orderDate ? new Date(dto.orderDate) : new Date(),
           deliveryDate: dto.deliveryDate ? new Date(dto.deliveryDate) : null,
           totalQuantity,

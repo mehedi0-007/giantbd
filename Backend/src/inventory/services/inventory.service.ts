@@ -88,6 +88,7 @@ export class InventoryService {
                   name: true,
                   warehouse: { select: { id: true, name: true, code: true } },
                   zone: { select: { id: true, name: true, code: true } },
+                  subZone: { select: { id: true, name: true, code: true } },
                   rack: { select: { id: true, name: true, code: true } },
                 },
               },

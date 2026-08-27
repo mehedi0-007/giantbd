@@ -141,7 +141,7 @@ export default function MovementsPage() {
             <option value="">All Movement Types</option>
             <option value="RECEIVED">RECEIVED (+ Inward)</option>
             <option value="SALE">SALE (- Dispatched)</option>
-            <option value="TRANSFER">TRANSFER (Inter-bin)</option>
+            <option value="TRANSFER">TRANSFER (Inter-location)</option>
             <option value="RETURN">RETURN (+ Customer Return)</option>
             <option value="DAMAGE">DAMAGE (- Scrap)</option>
             <option value="ADJUSTMENT">ADJUSTMENT (Audit)</option>

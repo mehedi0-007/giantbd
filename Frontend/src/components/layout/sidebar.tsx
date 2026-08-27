@@ -90,7 +90,7 @@ const navSections: NavSection[] = [
     title: 'Warehouse',
     items: [
       {
-        label: 'Warehouses & Bins',
+        label: 'Warehouses & Locations',
         href: '/warehouse',
         icon: Warehouse,
         permission: 'warehouse:read',
