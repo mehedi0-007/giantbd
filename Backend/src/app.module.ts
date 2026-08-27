@@ -15,6 +15,7 @@ import { InventoryModule } from './inventory/inventory.module';
 import { BuyerModule } from './buyers/buyers.module';
 import { LCModule } from './lc/lc.module';
 import { POModule } from './po/po.module';
+import { MailModule } from './mail/mail.module';
 import { JwtAuthGuard } from './common/guards/jwt.guard';
 
 @Module({
@@ -28,6 +29,7 @@ import { JwtAuthGuard } from './common/guards/jwt.guard';
       },
     ]),
     PrismaModule,
+    MailModule,
     AuthModule,
     UserModule,
     RolesModule,

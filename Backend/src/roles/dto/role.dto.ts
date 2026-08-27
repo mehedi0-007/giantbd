@@ -1,6 +1,7 @@
 import { Status } from '@prisma/client';
 import {
   IsArray,
+  IsBoolean,
   IsEnum,
   IsNotEmpty,
   IsOptional,
@@ -17,6 +18,10 @@ export class CreateRoleDTO {
   description?: string;
 
   @IsOptional()
+  @IsBoolean()
+  isTwoFactorRequired?: boolean;
+
+  @IsOptional()
   @IsArray()
   @IsString({ each: true })
   permissionIds?: string[];
@@ -30,6 +35,10 @@ export class UpdateRoleDTO {
   @IsOptional()
   @IsString()
   description?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isTwoFactorRequired?: boolean;
 
   @IsOptional()
   @IsEnum(Status)

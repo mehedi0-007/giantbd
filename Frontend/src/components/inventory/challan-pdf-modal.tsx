@@ -1,8 +1,10 @@
 'use client';
 
+import { useQuery } from '@tanstack/react-query';
+import api from '@/lib/api';
 import { StockOut } from '@/types/inventory';
 import { formatDate, formatNumber } from '@/lib/utils';
-import { X, Printer, Boxes, CheckCircle2 } from 'lucide-react';
+import { X, Printer, Boxes, CheckCircle2, Loader2, MapPin, ShieldCheck, DollarSign } from 'lucide-react';
 
 interface ChallanPdfModalProps {
   isOpen: boolean;
@@ -15,220 +17,285 @@ export function ChallanPdfModal({
   onClose,
   challan,
 }: ChallanPdfModalProps) {
+  const challanId = challan?.id;
+
+  // Fetch full details if items array is missing/empty
+  const { data: fullChallanData, isLoading } = useQuery({
+    queryKey: ['challan-pdf-detail', challanId],
+    queryFn: async () => {
+      if (!challanId) return null;
+      const res = await api.get(`/inventory/stock-out/${challanId}`);
+      return res.data?.data;
+    },
+    enabled: isOpen && !!challanId && (!challan?.items || challan.items.length === 0),
+  });
+
   if (!isOpen || !challan) return null;
+
+  const activeChallan: any = fullChallanData || challan;
+  const items: any[] = activeChallan.items || [];
 
   const handlePrint = () => {
     window.print();
   };
 
   const totalPairs =
-    challan.items?.reduce((sum, i) => sum + (i.quantity || 0), 0) ||
-    challan.totalQuantity ||
+    items.reduce((sum, i) => sum + (i.quantity || 0), 0) ||
+    activeChallan.totalQuantity ||
     0;
 
+  const isDelivered = activeChallan.status === 'DELIVERED' || activeChallan.status === 'PAYMENT_RECEIVED';
+  const isPaid = activeChallan.status === 'PAYMENT_RECEIVED';
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs no-print"
+        className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs no-print"
         onClick={onClose}
       />
 
-      <div className="relative w-full max-w-3xl rounded-2xl border border-slate-200 bg-white p-8 shadow-2xl my-8">
-        {/* Top Modal Controls (No-print) */}
-        <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-6 no-print">
-          <div className="flex items-center gap-2">
-            <h3 className="text-base font-bold text-slate-900">
-              Official Delivery Challan Document
+      <div className="relative w-full max-w-4xl rounded-2xl border border-slate-200 bg-white shadow-2xl my-6 flex flex-col max-h-[92vh]">
+        {/* Top Controls Bar (No-Print) */}
+        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-3.5 bg-slate-50/80 rounded-t-2xl shrink-0 no-print">
+          <div className="flex items-center gap-2.5">
+            <h3 className="text-sm font-bold text-slate-900">
+              Delivery Challan & Dispatch Document
             </h3>
-            <span className="rounded-md bg-blue-50 px-2 py-0.5 text-xs font-bold text-blue-700">
-              {challan.challanNumber}
+            <span className="font-mono text-xs font-semibold px-2 py-0.5 rounded bg-blue-100 text-blue-800">
+              {activeChallan.challanNumber}
             </span>
+            {isPaid ? (
+              <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
+                <CheckCircle2 className="h-3 w-3" /> Paid & Settled
+              </span>
+            ) : isDelivered ? (
+              <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 border border-purple-300">
+                <CheckCircle2 className="h-3 w-3" /> Delivered
+              </span>
+            ) : (
+              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                Issued / In Transit
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={handlePrint}
-              className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-blue-700 transition cursor-pointer"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-blue-700 transition cursor-pointer"
             >
-              <Printer className="h-4 w-4" />
-              <span>Print Official Challan</span>
+              <Printer className="h-3.5 w-3.5" />
+              <span>Print A4 Document</span>
             </button>
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 transition cursor-pointer"
+              className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 transition cursor-pointer"
             >
-              <X className="h-5 w-5" />
+              <X className="h-4 w-4" />
             </button>
           </div>
         </div>
 
-        {/* PRINTABLE OFFICIAL CHALLAN DOCUMENT */}
-        <div className="printable-area border border-slate-300 rounded-xl p-8 bg-white text-slate-900 space-y-6">
-          {/* Header Banner */}
-          <div className="flex items-start justify-between border-b-2 border-slate-900 pb-4">
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-600 text-white font-bold">
-                  <Boxes className="h-4 w-4" />
-                </div>
-                <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">
-                  GIANT BD
-                </h1>
-              </div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                Commercial & Warehouse Management Division
-              </p>
-              <p className="text-[11px] text-slate-400 mt-0.5">
-                Industrial Zone, Gazipur, Bangladesh • Phone: +880 1700-000000
-              </p>
+        {/* Scrollable Printable Document Container */}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-8 bg-slate-100/50">
+          {isLoading ? (
+            <div className="flex flex-col items-center justify-center py-20 bg-white rounded-xl shadow-xs">
+              <Loader2 className="h-7 w-7 animate-spin text-blue-600 mb-2" />
+              <p className="text-xs font-medium text-slate-500">Loading complete document line items...</p>
             </div>
-
-            <div className="text-right">
-              <div className="inline-block rounded-md bg-slate-100 px-3 py-1 text-xs font-black tracking-wider uppercase text-slate-900 border border-slate-300">
-                DELIVERY CHALLAN
-              </div>
-              <div className="font-mono text-sm font-bold text-slate-900 mt-2">
-                {challan.challanNumber}
-              </div>
-              <div className="text-xs text-slate-500 mt-0.5">
-                Date: {formatDate(challan.dispatchDate)}
-              </div>
-            </div>
-          </div>
-
-          {/* Customer & Shipment Details Grid */}
-          <div className="grid grid-cols-2 gap-6 text-xs bg-slate-50 p-4 rounded-xl border border-slate-200">
-            <div>
-              <span className="font-bold uppercase tracking-wider text-slate-400 text-[10px]">
-                Consignee / Buyer:
-              </span>
-              <p className="text-sm font-bold text-slate-900 mt-1">
-                {challan.buyer?.name || challan.po?.buyer?.name || 'Direct Customer'}
-              </p>
-              {(challan.buyer?.address || challan.destination) && (
-                <p className="text-slate-600 mt-0.5">
-                  {challan.destination || challan.buyer?.address}
-                </p>
-              )}
-              {challan.buyer?.phone && (
-                <p className="text-slate-500 mt-0.5">Contact: {challan.buyer.phone}</p>
-              )}
-            </div>
-
-            <div className="space-y-1">
-              <div>
-                <span className="font-bold text-slate-500">Dispatch Type: </span>
-                <span className="font-bold text-slate-900 uppercase">
-                  {challan.type.replace(/_/g, ' ')}
-                </span>
-              </div>
-              {challan.po && (
+          ) : (
+            /* A4 FORMATTED ENTERPRISE DOCUMENT */
+            <div className="printable-area mx-auto max-w-3xl bg-white p-8 sm:p-10 shadow-xs border border-slate-200 text-slate-800 text-[11px] leading-relaxed rounded-lg">
+              {/* Header */}
+              <div className="flex items-start justify-between border-b border-slate-800 pb-4 mb-4">
                 <div>
-                  <span className="font-bold text-slate-500">Purchase Order: </span>
-                  <span className="font-mono font-bold text-blue-700">
-                    {challan.po.poNumber}
-                  </span>
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <div className="flex h-6 w-6 items-center justify-center rounded bg-slate-900 text-white font-bold text-xs">
+                      G
+                    </div>
+                    <h1 className="text-xl font-extrabold tracking-tight text-slate-900 uppercase">
+                      GIANT BD ENTERPRISE
+                    </h1>
+                  </div>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                    Commercial & Footwear Manufacturing Division
+                  </p>
+                  <p className="text-[10px] text-slate-400">
+                    Plot 104-108, Industrial Area, Gazipur, Bangladesh • info@giantbd.com
+                  </p>
+                </div>
+
+                <div className="text-right">
+                  <div className="inline-block border border-slate-800 bg-slate-50 px-2.5 py-0.5 text-[11px] font-black tracking-wider uppercase text-slate-900 rounded">
+                    DELIVERY CHALLAN
+                  </div>
+                  <div className="font-mono text-xs font-bold text-slate-900 mt-1">
+                    No: {activeChallan.challanNumber}
+                  </div>
+                  <div className="text-[10px] text-slate-500">
+                    Date: {formatDate(activeChallan.dispatchDate)}
+                  </div>
+                </div>
+              </div>
+
+              {/* Metadata Grid */}
+              <div className="grid grid-cols-2 gap-4 bg-slate-50/80 p-3 rounded border border-slate-200 text-[11px] mb-4">
+                <div className="space-y-0.5">
+                  <div>
+                    <span className="text-slate-500 font-medium">Consignee / Buyer: </span>
+                    <strong className="text-slate-900">
+                      {activeChallan.buyer?.name || activeChallan.po?.buyer?.name || 'Factory Dispatch'}
+                    </strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 font-medium">Destination: </span>
+                    <span className="text-slate-800">{activeChallan.destination || 'Chittagong Port / Central Warehouse'}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 font-medium">Dispatch Mode: </span>
+                    <span className="font-mono font-semibold text-slate-700">{activeChallan.type}</span>
+                  </div>
+                </div>
+
+                <div className="space-y-0.5 text-right">
+                  {activeChallan.po && (
+                    <div>
+                      <span className="text-slate-500 font-medium">PO Reference: </span>
+                      <span className="font-mono font-bold text-blue-700">
+                        {activeChallan.po.poNumber}
+                      </span>
+                    </div>
+                  )}
+                  {activeChallan.po?.lc && (
+                    <div>
+                      <span className="text-slate-500 font-medium">Letter of Credit: </span>
+                      <span className="font-mono font-semibold text-slate-800">
+                        {activeChallan.po.lc.lcNumber}
+                      </span>
+                    </div>
+                  )}
+                  <div>
+                    <span className="text-slate-500 font-medium">Fulfillment Status: </span>
+                    <strong className="uppercase text-slate-900">{activeChallan.status}</strong>
+                  </div>
+                </div>
+              </div>
+
+              {/* Items Table */}
+              <div className="border border-slate-300 rounded overflow-hidden mb-4">
+                <table className="w-full text-left text-[11px]">
+                  <thead className="bg-slate-100 text-slate-700 font-bold uppercase text-[9px] tracking-wider border-b border-slate-300">
+                    <tr>
+                      <th className="px-3 py-1.5 w-8 text-center">#</th>
+                      <th className="px-3 py-1.5">SKU & Item Description</th>
+                      <th className="px-3 py-1.5">Color</th>
+                      <th className="px-3 py-1.5">Gender</th>
+                      <th className="px-3 py-1.5">Size</th>
+                      <th className="px-3 py-1.5">Batch / Bin Location</th>
+                      <th className="px-3 py-1.5 text-right">Quantity (Pairs)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200">
+                    {items.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="py-4 text-center text-slate-400 italic">
+                          No line items recorded.
+                        </td>
+                      </tr>
+                    ) : (
+                      items.map((item, idx) => {
+                        const vp = item.variantProduct || item.product;
+                        const bi = item.batchItem;
+                        const batchCode = bi?.batch?.batch_id || bi?.batch?.batch_number || '';
+                        const locCode = bi?.location?.code || '';
+
+                        return (
+                          <tr key={idx} className="hover:bg-slate-50/50">
+                            <td className="px-3 py-1.5 text-center text-slate-400 font-medium">
+                              {idx + 1}
+                            </td>
+                            <td className="px-3 py-1.5">
+                              <span className="font-mono font-bold text-slate-900">{vp?.sku || 'SKU-000'}</span>
+                              <span className="block text-[10px] text-slate-500">
+                                {vp?.masterProduct?.name || vp?.name || 'Footwear Style'}
+                              </span>
+                            </td>
+                            <td className="px-3 py-1.5 text-slate-600">
+                              {vp?.color?.name || '—'}
+                            </td>
+                            <td className="px-3 py-1.5 uppercase text-[10px] text-slate-600 font-semibold">
+                              {vp?.gender || '—'}
+                            </td>
+                            <td className="px-3 py-1.5 font-bold text-slate-900">
+                              Size {vp?.size || '—'}
+                            </td>
+                            <td className="px-3 py-1.5 font-mono text-[9px] text-slate-600">
+                              {batchCode && <div>{batchCode}</div>}
+                              {locCode && <div className="text-slate-400">Bin: {locCode}</div>}
+                            </td>
+                            <td className="px-3 py-1.5 text-right font-bold text-slate-900">
+                              {formatNumber(item.quantity)} prs
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                  <tfoot className="border-t border-slate-800 bg-slate-50 font-bold text-[11px]">
+                    <tr>
+                      <td colSpan={6} className="px-3 py-2 text-right uppercase tracking-wider text-slate-700">
+                        Total Dispatched Quantity:
+                      </td>
+                      <td className="px-3 py-2 text-right font-black text-slate-900 text-xs">
+                        {formatNumber(totalPairs)} pairs
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+
+              {/* Special Instructions / Remarks */}
+              {activeChallan.note && (
+                <div className="bg-slate-50 p-2.5 rounded border border-slate-200 text-[10px] mb-6">
+                  <span className="font-bold text-slate-700">Special Instructions / Remarks: </span>
+                  <span className="text-slate-600 italic">{activeChallan.note}</span>
                 </div>
               )}
-              <div>
-                <span className="font-bold text-slate-500">Status: </span>
-                <span className="font-bold text-emerald-700 uppercase">
-                  {challan.status}
-                </span>
+
+              {/* 3-Part Official Signatures Matrix */}
+              <div className="grid grid-cols-3 gap-6 pt-8 text-center text-[10px]">
+                <div className="border-t border-slate-400 pt-1.5">
+                  <div className="font-bold text-slate-900">
+                    {activeChallan.issuer?.name || 'Store In-Charge'}
+                  </div>
+                  <div className="text-slate-400 uppercase tracking-wider">
+                    Prepared & Dispatched By
+                  </div>
+                </div>
+
+                <div className="border-t border-slate-400 pt-1.5">
+                  <div className="font-bold text-slate-900">Security Gate Officer</div>
+                  <div className="text-slate-400 uppercase tracking-wider">
+                    Vehicle Checked & Out-Passed
+                  </div>
+                </div>
+
+                <div className="border-t border-slate-400 pt-1.5">
+                  <div className="font-bold text-slate-900">Consignee / Receiver</div>
+                  <div className="text-slate-400 uppercase tracking-wider">
+                    Received in Good Order & Condition
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
 
-          {/* Items Table */}
-          <div className="border border-slate-200 rounded-lg overflow-hidden">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-100 font-bold uppercase tracking-wider text-slate-600 text-[10px] border-b border-slate-200">
-                <tr>
-                  <th className="px-4 py-2.5 w-12 text-center">#</th>
-                  <th className="px-4 py-2.5">SKU & Item Description</th>
-                  <th className="px-4 py-2.5">Color</th>
-                  <th className="px-4 py-2.5">Size</th>
-                  <th className="px-4 py-2.5">Gender</th>
-                  <th className="px-4 py-2.5 text-right">Dispatched Qty</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 font-medium text-slate-800">
-                {challan.items?.map((item, idx) => (
-                  <tr key={idx}>
-                    <td className="px-4 py-2 text-center text-slate-400 font-bold">
-                      {idx + 1}
-                    </td>
-                    <td className="px-4 py-2 font-bold">
-                      <span className="font-mono">{item.variantProduct?.sku}</span>
-                      <span className="block text-[11px] font-normal text-slate-500">
-                        {item.variantProduct?.masterProduct?.name || item.variantProduct?.name}
-                      </span>
-                    </td>
-                    <td className="px-4 py-2 text-slate-600">
-                      {item.variantProduct?.color?.name || '—'}
-                    </td>
-                    <td className="px-4 py-2 font-bold">
-                      Size {item.variantProduct?.size}
-                    </td>
-                    <td className="px-4 py-2 uppercase text-[10px] text-slate-500">
-                      {item.variantProduct?.gender}
-                    </td>
-                    <td className="px-4 py-2 text-right font-bold text-sm text-slate-900">
-                      {formatNumber(item.quantity)} pairs
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot className="border-t-2 border-slate-900 bg-slate-50 font-bold text-xs">
-                <tr>
-                  <td colSpan={5} className="px-4 py-3 text-right uppercase tracking-wider">
-                    Total Dispatched Volume:
-                  </td>
-                  <td className="px-4 py-3 text-right text-sm font-extrabold text-blue-700">
-                    {formatNumber(totalPairs)} pairs
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-
-          {/* Remarks */}
-          {challan.note && (
-            <div className="text-xs text-slate-600 bg-slate-50 p-3 rounded-lg border border-slate-100">
-              <strong className="font-semibold text-slate-800">Instructions:</strong> {challan.note}
+              {/* Footer Notice */}
+              <div className="border-t border-slate-200 mt-6 pt-2 text-center text-[8px] text-slate-400 font-mono">
+                ORIGINAL COPY: BUYER / CONSIGNEE • DUPLICATE: SECURITY GATE PASS • TRIPLICATE: ACCOUNTS & AUDIT
+              </div>
             </div>
           )}
-
-          {/* Signatures & Acknowledgment Block */}
-          <div className="pt-8 grid grid-cols-2 gap-12 text-xs">
-            {/* Issuer Signature */}
-            <div className="text-center space-y-2 border-t border-slate-300 pt-3">
-              {challan.issuer?.signature ? (
-                <img
-                  src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api'}/${challan.issuer.signature}`}
-                  alt="Issuer Signature"
-                  className="h-10 mx-auto object-contain mb-1"
-                />
-              ) : (
-                <div className="h-10 flex items-center justify-center font-serif italic text-slate-400">
-                  {challan.issuer?.name || 'Giant BD Warehouse Staff'}
-                </div>
-              )}
-              <p className="font-bold text-slate-900">{challan.issuer?.name || 'Authorized Officer'}</p>
-              <p className="text-[10px] text-slate-400">Prepared & Issued By (Giant BD)</p>
-            </div>
-
-            {/* Receiver Acknowledgment */}
-            <div className="text-center space-y-2 border-t border-slate-300 pt-3">
-              <div className="h-10 flex items-center justify-center text-slate-300 text-[10px]">
-                [ Receiver Signature & Seal ]
-              </div>
-              <p className="font-bold text-slate-900">Received in Good Order & Condition</p>
-              <p className="text-[10px] text-slate-400">Customer Representative Signature & Date</p>
-            </div>
-          </div>
         </div>
       </div>
     </div>

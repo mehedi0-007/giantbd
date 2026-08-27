@@ -24,4 +24,20 @@ export class ChangePasswordDTO {
   @IsNotEmpty()
   newPassword!: string;
 }
+
+export class VerifyOtpDTO {
+  @IsString()
+  @IsNotEmpty()
+  tempToken!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  otp!: string;
+}
+
+export class ResendOtpDTO {
+  @IsString()
+  @IsNotEmpty()
+  tempToken!: string;
+}
 

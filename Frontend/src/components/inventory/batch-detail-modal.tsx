@@ -1,6 +1,6 @@
 'use client';
 
-import { formatDate, formatNumber } from '@/lib/utils';
+import { formatDate, formatNumber, calculateBatchAge } from '@/lib/utils';
 import { X, Boxes, Calendar, FileText, MapPin, Tag, ArrowRight, ShieldCheck, Printer } from 'lucide-react';
 
 interface BatchDetailModalProps {
@@ -22,6 +22,7 @@ export function BatchDetailModal({
   const totalReceived = items.reduce((sum, i) => sum + (i.receivedQty || 0), 0);
   const totalAvailable = items.reduce((sum, i) => sum + (i.availableQty || 0), 0);
   const totalPackets = items.reduce((sum, i) => sum + (i.packetCount || 0), 0);
+  const age = calculateBatchAge(batch.productionDate);
 
   const productName = items[0]?.product?.name || batch.masterProduct?.name || 'Footwear Style';
   const colorName = items[0]?.product?.color?.name || batch.color?.name || 'N/A';
@@ -45,6 +46,10 @@ export function BatchDetailModal({
                 </h3>
                 <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-200">
                   {batch.status || 'ACTIVE'}
+                </span>
+                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${age.badgeClass}`}>
+                  <span className={`h-1.5 w-1.5 rounded-full ${age.dotClass}`} />
+                  <span>{age.label}</span>
                 </span>
               </div>
               <p className="text-xs text-slate-500">
@@ -99,9 +104,15 @@ export function BatchDetailModal({
             </div>
 
             <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3">
-              <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Production Date</span>
-              <div className="text-xs font-bold text-slate-700 mt-1">
+              <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Age & Production</span>
+              <div className="text-xs font-bold text-slate-800 mt-0.5">
                 {formatDate(batch.productionDate)}
+              </div>
+              <div className="mt-1">
+                <span className={`inline-flex items-center gap-1 px-1.5 py-0.2 text-[9px] font-bold rounded border ${age.badgeClass}`}>
+                  <span className={`h-1 w-1 rounded-full ${age.dotClass}`} />
+                  <span>{age.label}</span>
+                </span>
               </div>
             </div>
           </div>

@@ -89,14 +89,14 @@ export class StockInService {
       throw new BadRequestException('At least one item must be provided for stock-in');
     }
 
-    // 1. Filter active items with quantity > 0
+    // 1. Strictly filter active items with quantity > 0 (0-quantity sizes are never created)
     const activeItems = dto.items.filter(
-      (item) => (item.receivedQty || item.quantity || 0) > 0,
+      (item) => Number(item.receivedQty || item.quantity || 0) > 0,
     );
 
     if (activeItems.length === 0) {
       throw new BadRequestException(
-        'At least one item with quantity > 0 must be provided for stock-in',
+        'At least one item with received quantity > 0 must be provided for stock-in',
       );
     }
 

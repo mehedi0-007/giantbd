@@ -1,5 +1,6 @@
 import { Gender } from '@prisma/client';
 import {
+  IsBoolean,
   IsEmail,
   IsEnum,
   IsOptional,
@@ -33,6 +34,10 @@ export class RegistrationDTO {
   @IsOptional()
   @IsString()
   phone?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isTwoFactorEnabled?: boolean;
 }
 
 export class UpdateUserDTO {
@@ -68,4 +73,8 @@ export class UpdateUserDTO {
   @IsOptional()
   @IsString()
   phone?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isTwoFactorEnabled?: boolean;
 }

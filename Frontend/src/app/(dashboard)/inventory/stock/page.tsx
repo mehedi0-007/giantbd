@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { Warehouse } from '@/types/warehouse';
-import { formatDate, formatNumber } from '@/lib/utils';
+import { formatDate, formatNumber, calculateBatchAge } from '@/lib/utils';
 import { BatchDetailModal } from '@/components/inventory/batch-detail-modal';
 import { BatchLabelModal } from '@/components/inventory/batch-label-modal';
 import {
@@ -302,7 +302,7 @@ export default function CurrentStockPage() {
                     <th className="px-4 py-3.5">PO / Buyer Reference</th>
                     <th className="px-4 py-3.5">In-Hand / Received</th>
                     <th className="px-4 py-3.5">Cartons</th>
-                    <th className="px-4 py-3.5">Production Date</th>
+                    <th className="px-4 py-3.5">Age / Production Date</th>
                     <th className="px-4 py-3.5 text-right">Actions</th>
                   </tr>
                 </thead>
@@ -313,6 +313,7 @@ export default function CurrentStockPage() {
                     const totalReceived = items.reduce((sum, i) => sum + (i.receivedQty || 0), 0);
                     const totalAvailable = items.reduce((sum, i) => sum + (i.availableQty ?? i.receivedQty ?? 0), 0);
                     const totalPackets = items.reduce((sum, i) => sum + (i.packetCount || 0), 0);
+                    const age = calculateBatchAge(batch.productionDate);
 
                     const productName = items[0]?.product?.name || batch.masterProduct?.name || 'Footwear Style';
                     const colorName = items[0]?.product?.color?.name || batch.color?.name || 'Color N/A';
@@ -390,9 +391,15 @@ export default function CurrentStockPage() {
                             <span className="text-slate-400 text-[11px]">ctns</span>
                           </td>
 
-                          {/* Production Date */}
-                          <td className="px-4 py-3.5 text-slate-600 text-[11px]">
-                            {formatDate(batch.productionDate)}
+                          {/* Aging & Production Date */}
+                          <td className="px-4 py-3.5">
+                            <div className="text-slate-700 text-[11px] font-medium">
+                              {formatDate(batch.productionDate)}
+                            </div>
+                            <div className={`mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold border ${age.badgeClass}`}>
+                              <span className={`h-1.5 w-1.5 rounded-full ${age.dotClass}`} />
+                              <span>{age.label}</span>
+                            </div>
                           </td>
 
                           {/* Actions */}

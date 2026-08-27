@@ -233,7 +233,7 @@ export default function StockInPage() {
 
     try {
       const activeItems = sizeRows
-        .filter((r) => r.receivedQty > 0)
+        .filter((r) => Number(r.receivedQty) > 0)
         .map((r) => ({
           variantProductId: r.variantProductId || undefined,
           size: r.size,
@@ -280,6 +280,11 @@ export default function StockInPage() {
       });
 
       queryClient.invalidateQueries({ queryKey: ['dashboard-data'] });
+      queryClient.invalidateQueries({ queryKey: ['inventory-batches'] });
+      queryClient.invalidateQueries({ queryKey: ['live-stock'] });
+      queryClient.invalidateQueries({ queryKey: ['stock-outs'] });
+      queryClient.invalidateQueries({ queryKey: ['available-batches-for-dispatch'] });
+      queryClient.invalidateQueries({ queryKey: ['inventory-movements'] });
       queryClient.invalidateQueries({ queryKey: ['locations-table'] });
       queryClient.invalidateQueries({ queryKey: ['master-product-detail'] });
 

@@ -25,6 +25,7 @@ export default function RolesPage() {
   const [editingRole, setEditingRole] = useState<Role | null>(null);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [isTwoFactorRequired, setIsTwoFactorRequired] = useState(false);
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
   const [errorMsg, setErrorMsg] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -66,6 +67,7 @@ export default function RolesPage() {
     setEditingRole(null);
     setName('');
     setDescription('');
+    setIsTwoFactorRequired(false);
     setSelectedPermissions([]);
     setErrorMsg('');
     setIsModalOpen(true);
@@ -75,6 +77,7 @@ export default function RolesPage() {
     setEditingRole(role);
     setName(role.name);
     setDescription(role.description || '');
+    setIsTwoFactorRequired(Boolean(role.isTwoFactorRequired));
 
     // Extract current permission names or IDs
     const permIds =
@@ -116,6 +119,7 @@ export default function RolesPage() {
       const payload = {
         name: name.trim().toUpperCase(),
         description,
+        isTwoFactorRequired,
         permissionIds: selectedPermissions,
       };
 
@@ -156,34 +160,29 @@ export default function RolesPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-              Roles & Security Matrix
-            </h1>
-            <span className="rounded-md bg-purple-50 px-2.5 py-0.5 text-xs font-semibold text-purple-700">
-              RBAC Governance
-            </span>
-          </div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+            Roles & Security Permissions
+          </h1>
           <p className="text-xs text-slate-500 mt-1">
-            Configure role definitions and fine-grained access control permissions across all ERP modules
+            Configure system roles, enforce Two-Factor Authentication policies, and manage permissions
           </p>
         </div>
 
         <button
           type="button"
           onClick={handleOpenCreate}
-          className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white shadow-sm shadow-blue-500/20 hover:bg-blue-700 transition cursor-pointer"
+          className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white shadow-xs hover:bg-blue-700 transition cursor-pointer"
         >
           <Plus className="h-4 w-4" />
-          <span>Create Custom Role</span>
+          <span>New Security Role</span>
         </button>
       </div>
 
-      {/* Roles Grid Cards */}
+      {/* Roles Grid */}
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-20">
           <Loader2 className="h-8 w-8 animate-spin text-blue-600 mb-3" />
-          <p className="text-xs font-medium text-slate-500">Loading security roles...</p>
+          <p className="text-xs text-slate-500">Loading security roles...</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -202,11 +201,18 @@ export default function RolesPage() {
                       <ShieldCheck className="h-3.5 w-3.5" />
                       <span>{r.name}</span>
                     </span>
-                    {isSuper && (
-                      <span className="rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-[10px] font-bold text-amber-700">
-                        SYSTEM ROOT
-                      </span>
-                    )}
+                    <div className="flex items-center gap-1.5">
+                      {r.isTwoFactorRequired && (
+                        <span className="rounded-full bg-blue-50 border border-blue-200 px-2 py-0.5 text-[10px] font-bold text-blue-700 flex items-center gap-1">
+                          <Lock className="h-2.5 w-2.5" /> 2FA Enforced
+                        </span>
+                      )}
+                      {isSuper && (
+                        <span className="rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-[10px] font-bold text-amber-700">
+                          SYSTEM ROOT
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   <p className="text-xs text-slate-600 min-h-[36px] leading-relaxed">
@@ -309,6 +315,23 @@ export default function RolesPage() {
                     className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-900 focus:border-blue-500 focus:outline-hidden"
                   />
                 </div>
+              </div>
+
+              {/* 2FA Role Enforce Policy */}
+              <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50/70 p-3">
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-1.5">
+                    <Lock className="h-3.5 w-3.5 text-blue-600" />
+                    <span className="text-xs font-bold text-slate-800">Enforce Two-Factor Authentication (2FA)</span>
+                  </div>
+                  <p className="text-[11px] text-slate-500">Require an email OTP verification code for every user assigned to this role.</p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={isTwoFactorRequired}
+                  onChange={(e) => setIsTwoFactorRequired(e.target.checked)}
+                  className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                />
               </div>
 
               {/* Granular Module Matrix */}

@@ -6,7 +6,7 @@ import api from '@/lib/api';
 import { StockOut, StockOutType, StockOutStatus } from '@/types/inventory';
 import { PO } from '@/types/commercial';
 import { ChallanPdfModal } from '@/components/inventory/challan-pdf-modal';
-import { formatDate, formatNumber } from '@/lib/utils';
+import { formatDate, formatNumber, calculateBatchAge } from '@/lib/utils';
 import {
   Truck,
   Plus,
@@ -47,6 +47,12 @@ export default function StockOutPage() {
   const [deliveringChallan, setDeliveringChallan] = useState<StockOut | null>(null);
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+
+  // In-App Action Modals (Payment & Cancellation)
+  const [paymentSettlingChallan, setPaymentSettlingChallan] = useState<StockOut | null>(null);
+  const [cancellingChallan, setCancellingChallan] = useState<StockOut | null>(null);
+  const [paymentNote, setPaymentNote] = useState('');
+  const [cancelNote, setCancelNote] = useState('');
 
   // Form States for Create Challan
   const [dispatchMode, setDispatchMode] = useState<'PO_SHIPMENT' | 'DIRECT_SALE' | 'SAMPLE_DISPATCH' | 'DAMAGE_SCRAP'>('PO_SHIPMENT');
@@ -487,21 +493,40 @@ export default function StockOutPage() {
                                 <button
                                   type="button"
                                   onClick={() => setDeliveringChallan(c)}
-                                  className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 border border-emerald-200 px-2 py-1 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-100 transition cursor-pointer"
+                                  className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 border border-emerald-200 px-2.5 py-1 text-[11px] font-bold text-emerald-700 hover:bg-emerald-100 transition cursor-pointer shadow-2xs"
                                   title="Mark as Delivered"
                                 >
                                   <CheckCircle2 className="h-3.5 w-3.5" />
-                                  <span>Delivered</span>
+                                  <span>Mark Delivered</span>
                                 </button>
                                 <button
                                   type="button"
-                                  onClick={() => handleCancelChallan(c.id, c.challanNumber)}
-                                  className="rounded-lg p-1 text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition cursor-pointer"
-                                  title="Cancel Challan"
+                                  onClick={() => {
+                                    setCancellingChallan(c);
+                                    setCancelNote('');
+                                  }}
+                                  className="inline-flex items-center gap-1 rounded-lg bg-rose-50 border border-rose-200 px-2 py-1 text-[11px] font-semibold text-rose-700 hover:bg-rose-100 transition cursor-pointer"
+                                  title="Cancel Challan & Restore Stock"
                                 >
                                   <Ban className="h-3.5 w-3.5" />
+                                  <span>Cancel</span>
                                 </button>
                               </>
+                            )}
+
+                            {c.status === 'DELIVERED' && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setPaymentSettlingChallan(c);
+                                  setPaymentNote('');
+                                }}
+                                className="inline-flex items-center gap-1 rounded-lg bg-purple-50 border border-purple-200 px-2.5 py-1 text-[11px] font-bold text-purple-700 hover:bg-purple-100 transition cursor-pointer shadow-2xs"
+                                title="Confirm Commercial Settlement"
+                              >
+                                <CheckCircle2 className="h-3.5 w-3.5" />
+                                <span>Payment Received</span>
+                              </button>
                             )}
                           </div>
                         </td>
@@ -669,6 +694,15 @@ export default function StockOutPage() {
                                 <span className="text-[11px] font-semibold text-slate-700">
                                   {productName} • <span className="text-blue-600">{colorName}</span>
                                 </span>
+                                {(() => {
+                                  const age = calculateBatchAge(batch.productionDate);
+                                  return (
+                                    <span className={`inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[9px] font-bold border ${age.badgeClass}`}>
+                                      <span className={`h-1 w-1 rounded-full ${age.dotClass}`} />
+                                      <span>{age.label}</span>
+                                    </span>
+                                  );
+                                })()}
                               </div>
                               <div className="flex items-center gap-2 text-[10px] text-slate-400 mt-0.5">
                                 <span>Produced: {formatDate(batch.productionDate)}</span>
@@ -942,6 +976,167 @@ export default function StockOutPage() {
                 ) : (
                   <span>Confirm Delivery</span>
                 )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Payment Received Modal (In-App) */}
+      {paymentSettlingChallan && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs"
+            onClick={() => setPaymentSettlingChallan(null)}
+          />
+          <div className="relative w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-50 text-purple-600">
+                  <CheckCircle2 className="h-4 w-4" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">Confirm Payment Settlement</h3>
+                  <p className="text-xs text-slate-500 font-mono">{paymentSettlingChallan.challanNumber}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPaymentSettlingChallan(null)}
+                className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 cursor-pointer"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="rounded-xl border border-slate-200/80 bg-slate-50/50 p-3 text-xs space-y-1 text-slate-600">
+              <div>
+                <span className="text-slate-400">Buyer: </span>
+                <strong className="text-slate-800">{paymentSettlingChallan.buyer?.name || paymentSettlingChallan.po?.buyer?.name || 'Factory Dispatch'}</strong>
+              </div>
+              {paymentSettlingChallan.po && (
+                <div>
+                  <span className="text-slate-400">PO Number: </span>
+                  <span className="font-mono font-semibold text-blue-600">{paymentSettlingChallan.po.poNumber}</span>
+                </div>
+              )}
+              <div>
+                <span className="text-slate-400">Dispatch Date: </span>
+                <span>{formatDate(paymentSettlingChallan.dispatchDate)}</span>
+              </div>
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-slate-700">
+                Payment Reference / Bank TT Notes (Optional)
+              </label>
+              <input
+                type="text"
+                value={paymentNote}
+                onChange={(e) => setPaymentNote(e.target.value)}
+                placeholder="e.g. Bank Wire Ref #TX-8821 / Fully Cleared"
+                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-900 focus:border-blue-500 focus:outline-hidden"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setPaymentSettlingChallan(null)}
+                className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isUpdatingStatus}
+                onClick={async () => {
+                  await handleUpdateStatus(paymentSettlingChallan.id, 'PAYMENT_RECEIVED');
+                  setPaymentSettlingChallan(null);
+                }}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-purple-600 px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-purple-700 disabled:opacity-50 cursor-pointer"
+              >
+                {isUpdatingStatus ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    <span>Processing...</span>
+                  </>
+                ) : (
+                  <span>Confirm Settlement</span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cancel Challan Confirmation Modal (In-App) */}
+      {cancellingChallan && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs"
+            onClick={() => setCancellingChallan(null)}
+          />
+          <div className="relative w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-rose-50 text-rose-600">
+                  <Ban className="h-4 w-4" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">Cancel Delivery Challan</h3>
+                  <p className="text-xs text-slate-500 font-mono">{cancellingChallan.challanNumber}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCancellingChallan(null)}
+                className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 cursor-pointer"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800 space-y-1">
+              <div className="font-bold flex items-center gap-1.5 text-amber-900">
+                <AlertCircle className="h-4 w-4 text-amber-600" />
+                <span>Automatic Stock Restoration</span>
+              </div>
+              <p>
+                Cancelling this challan will immediately restore all dispatched pairs back to active warehouse batch inventory balances.
+              </p>
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-slate-700">
+                Cancellation Reason (Optional)
+              </label>
+              <input
+                type="text"
+                value={cancelNote}
+                onChange={(e) => setCancelNote(e.target.value)}
+                placeholder="e.g. Order cancelled by buyer / incorrect quantity"
+                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-900 focus:border-blue-500 focus:outline-hidden"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setCancellingChallan(null)}
+                className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer"
+              >
+                Keep Active
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  await handleCancelChallan(cancellingChallan.id, cancellingChallan.challanNumber);
+                  setCancellingChallan(null);
+                }}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-rose-600 px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-rose-700 cursor-pointer"
+              >
+                <span>Confirm Cancel Challan</span>
               </button>
             </div>
           </div>

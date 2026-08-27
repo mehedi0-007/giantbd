@@ -217,6 +217,11 @@ export class UserService {
   }
 
   private responseUser = (user: any) => {
+    const permissions =
+      user.role?.rolePermissions?.map(
+        (rp: any) => rp.permission?.name ?? rp.permissionName,
+      ) ?? user.permissions ?? [];
+
     return {
       id: user.id,
       name: user.name,
@@ -226,13 +231,16 @@ export class UserService {
       status: user.status,
       image: user.image,
       signature: user.signature,
+      isTwoFactorEnabled: Boolean(user.isTwoFactorEnabled),
       role: user.role
         ? {
             id: user.role.id,
             name: user.role.name,
             status: user.role.status,
+            isTwoFactorRequired: Boolean(user.role.isTwoFactorRequired),
           }
         : null,
+      permissions,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };

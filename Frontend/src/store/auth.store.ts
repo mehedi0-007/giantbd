@@ -33,7 +33,12 @@ export const useAuthStore = create<AuthState>()(
       },
 
       setUser: (user) => {
-        set({ user });
+        const current = get().user;
+        const permissions =
+          (user.permissions && user.permissions.length > 0)
+            ? user.permissions
+            : (current?.permissions || []);
+        set({ user: { ...current, ...user, permissions } });
       },
 
       setAccessToken: (accessToken) => {

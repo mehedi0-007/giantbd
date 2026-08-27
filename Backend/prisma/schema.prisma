@@ -91,6 +91,11 @@ model User {
 
   refreshHash String?
 
+  isTwoFactorEnabled Boolean   @default(false)
+  otpHash            String?
+  otpExpiresAt       DateTime?
+  otpAttempts        Int       @default(0)
+
   roleId String
   role   Role   @relation(fields: [roleId], references: [id])
 
@@ -110,6 +115,8 @@ model Role {
   description String?
 
   status Status @default(ACTIVE)
+
+  isTwoFactorRequired Boolean @default(false)
 
   users           User[]
   rolePermissions RolePermission[]

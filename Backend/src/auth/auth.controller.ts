@@ -12,7 +12,7 @@ import { Throttle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { Public, CurrentUser } from '../common';
-import { ChangePasswordDTO, LogInDTO, RefreshTokenDTO } from './dto/auth.dto';
+import { ChangePasswordDTO, LogInDTO, RefreshTokenDTO, VerifyOtpDTO, ResendOtpDTO } from './dto/auth.dto';
 import { REFRESH_COOKIE_OPTIONS } from './utils/auth.utils';
 
 @Controller('auth')
@@ -21,7 +21,7 @@ export class AuthController {
 
   @Post('login')
   @Public()
-  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @HttpCode(HttpStatus.OK)
   async logIn(
     @Body() dto: LogInDTO,
@@ -29,10 +29,41 @@ export class AuthController {
   ) {
     const result = await this.authService.logIn(dto);
 
+    if ('require2FA' in result && result.require2FA) {
+      return result;
+    }
+
+    if ('refreshToken' in result && result.refreshToken) {
+      res.cookie('refreshToken', result.refreshToken, REFRESH_COOKIE_OPTIONS);
+      const { refreshToken, ...response } = result;
+      return response;
+    }
+
+    return result;
+  }
+
+  @Post('verify-otp')
+  @Public()
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  @HttpCode(HttpStatus.OK)
+  async verifyOtp(
+    @Body() dto: VerifyOtpDTO,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.authService.verifyOtp(dto);
+
     res.cookie('refreshToken', result.refreshToken, REFRESH_COOKIE_OPTIONS);
     const { refreshToken, ...response } = result;
 
     return response;
+  }
+
+  @Post('resend-otp')
+  @Public()
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @HttpCode(HttpStatus.OK)
+  async resendOtp(@Body() dto: ResendOtpDTO) {
+    return this.authService.resendOtp(dto);
   }
 
   @Post('refresh')

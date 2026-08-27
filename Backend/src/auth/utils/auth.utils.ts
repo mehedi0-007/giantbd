@@ -4,18 +4,23 @@ export function AuthenticatedUser(user: any) {
     name: user.name,
     email: user.email,
     phone: user.phone,
+    gender: user.gender,
+    image: user.image,
+    signature: user.signature,
     status: user.status,
+    isTwoFactorEnabled: Boolean(user.isTwoFactorEnabled),
     role: user.role
       ? {
           id: user.role.id,
           name: user.role.name,
           status: user.role.status,
+          isTwoFactorRequired: Boolean(user.role.isTwoFactorRequired),
         }
       : null,
     permissions:
       user.role?.rolePermissions?.map(
         (rp: any) => rp.permission?.name ?? rp.permissionName,
-      ) ?? [],
+      ) ?? user.permissions ?? [],
   };
 }
 

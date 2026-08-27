@@ -359,6 +359,7 @@ export class StockOutService {
           buyerId: stockOut.buyerId,
           destination: stockOut.destination,
           note: stockOut.note,
+          items: createdStockOutItems,
         },
         summary: {
           totalDispatchedQty,

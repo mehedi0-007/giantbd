@@ -27,6 +27,7 @@ export class RolesService {
         data: {
           name: normalizedName,
           description: dto.description ?? null,
+          isTwoFactorRequired: dto.isTwoFactorRequired ?? false,
         },
       });
 
@@ -101,7 +102,7 @@ export class RolesService {
             },
           },
         },
-        orderBy: { name: 'asc' },
+        orderBy: { createdAt: 'asc' },
       }),
     ]);
 
@@ -110,6 +111,7 @@ export class RolesService {
       name: role.name,
       description: role.description,
       status: role.status,
+      isTwoFactorRequired: Boolean(role.isTwoFactorRequired),
       userCount: role._count.users,
       permissionCount: role._count.rolePermissions,
       permissions: role.rolePermissions.map((rp) => rp.permission),
@@ -151,6 +153,7 @@ export class RolesService {
         name: role.name,
         description: role.description,
         status: role.status,
+        isTwoFactorRequired: Boolean(role.isTwoFactorRequired),
         userCount: role._count.users,
         permissions: role.rolePermissions.map((rp: any) => rp.permission),
         createdAt: role.createdAt,
@@ -178,10 +181,13 @@ export class RolesService {
         dataToUpdate.name = dto.name.trim().toUpperCase();
       }
       if (dto.description !== undefined) {
-        dataToUpdate.description = dto.description;
+        dataToUpdate.description = dto.description ?? null;
       }
-      if (dto.status !== undefined) {
+      if (dto.status) {
         dataToUpdate.status = dto.status;
+      }
+      if (dto.isTwoFactorRequired !== undefined) {
+        dataToUpdate.isTwoFactorRequired = Boolean(dto.isTwoFactorRequired);
       }
 
       if (Object.keys(dataToUpdate).length > 0) {

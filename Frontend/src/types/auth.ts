@@ -13,6 +13,7 @@ export interface Role {
   name: string;
   description?: string;
   status: Status;
+  isTwoFactorRequired?: boolean;
   permissions?: string[];
   rolePermissions?: {
     permissionId?: string;
@@ -32,6 +33,7 @@ export interface User {
   avatar?: string | null;
   image?: string | null;
   signature?: string | null;
+  isTwoFactorEnabled?: boolean;
   status: Status;
   roleId: string;
   role?: Role;
