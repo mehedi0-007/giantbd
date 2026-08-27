@@ -162,7 +162,7 @@ export default function PoDetailPage() {
               </span>
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
-              Buyer: <strong className="text-slate-700">{po.buyer?.name}</strong> • Ordered on {formatDate(po.orderDate)}
+              Buyer: <strong className="text-slate-700">{po.buyer?.name}</strong>
             </p>
           </div>
         </div>
@@ -223,9 +223,9 @@ export default function PoDetailPage() {
       {/* Commercial Details Header Card */}
       <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs">
         <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-4">
-          Contract Details & Dates
+          Contract Details
         </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-xs">
           <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
             <span className="text-slate-400 font-medium">Buyer Code:</span>
             <p className="font-bold text-slate-800 text-sm mt-0.5">{po.buyer?.code || 'N/A'}</p>
@@ -243,11 +243,6 @@ export default function PoDetailPage() {
                 <span className="text-slate-400">None (Direct Order)</span>
               )}
             </p>
-          </div>
-
-          <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
-            <span className="text-slate-400 font-medium">Target Delivery:</span>
-            <p className="font-bold text-slate-800 text-sm mt-0.5">{formatDate(po.deliveryDate)}</p>
           </div>
 
           <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">

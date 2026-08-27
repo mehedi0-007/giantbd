@@ -57,7 +57,6 @@ export default function StockOutPage() {
   const [cancelNote, setCancelNote] = useState('');
 
   // Form States for Create Challan (Strict Hierarchical Flow: LC -> PO -> Product -> Color -> Gender)
-  const [dispatchMode, setDispatchMode] = useState<'PO_SHIPMENT' | 'DIRECT_SALE' | 'SAMPLE_DISPATCH' | 'DAMAGE_SCRAP'>('PO_SHIPMENT');
   const [selectedLcId, setSelectedLcId] = useState('');
   const [selectedPoId, setSelectedPoId] = useState('');
   const [selectedProductId, setSelectedProductId] = useState('');
@@ -328,8 +327,12 @@ export default function StockOutPage() {
   // Create Challan Submit
   const handleCreateChallan = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (dispatchMode === 'PO_SHIPMENT' && !selectedPoId) {
-      setFormError('Please select a Purchase Order.');
+    if (!selectedLcId) {
+      setFormError('Please select a Letter of Credit (LC).');
+      return;
+    }
+    if (!selectedPoId) {
+      setFormError('Please select a Purchase Order (PO).');
       return;
     }
 
@@ -350,8 +353,8 @@ export default function StockOutPage() {
 
     try {
       const payload = {
-        type: dispatchMode,
-        poId: dispatchMode === 'PO_SHIPMENT' ? selectedPoId : undefined,
+        type: 'PO_SHIPMENT',
+        poId: selectedPoId,
         destination: destination.trim() || undefined,
         dispatchDate: new Date(dispatchDate).toISOString(),
         note: note.trim() || undefined,
@@ -725,34 +728,6 @@ export default function StockOutPage() {
                 <span>{formError}</span>
               </div>
             )}
-
-            {/* Dispatch Mode Selector */}
-            <div>
-              <label className="mb-2 block text-xs font-semibold text-slate-700">
-                Dispatch Purpose / Mode <span className="text-red-500">*</span>
-              </label>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {[
-                  { id: 'PO_SHIPMENT', label: 'PO Export Shipment' },
-                  { id: 'DIRECT_SALE', label: 'Direct Local Sale' },
-                  { id: 'SAMPLE_DISPATCH', label: 'Sample Dispatch' },
-                  { id: 'DAMAGE_SCRAP', label: 'Damage / Scrap' },
-                ].map((mode) => (
-                  <button
-                    key={mode.id}
-                    type="button"
-                    onClick={() => setDispatchMode(mode.id as any)}
-                    className={`rounded-xl border p-3 text-center text-xs font-bold transition cursor-pointer ${
-                      dispatchMode === mode.id
-                        ? 'border-blue-600 bg-blue-50/70 text-blue-700 shadow-2xs'
-                        : 'border-slate-200 bg-slate-50/50 text-slate-600 hover:bg-slate-50'
-                    }`}
-                  >
-                    {mode.label}
-                  </button>
-                ))}
-              </div>
-            </div>
 
             {/* Cascading Hierarchical Chain: LC -> PO -> Master Product -> Color -> Gender */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

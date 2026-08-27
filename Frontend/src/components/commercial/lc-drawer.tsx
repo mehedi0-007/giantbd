@@ -22,9 +22,6 @@ export function LcDrawer({
   const [formData, setFormData] = useState<CreateLCDTO>({
     lcNumber: '',
     buyerId: '',
-    issueDate: '',
-    expiryDate: '',
-    shipmentDate: '',
     status: 'OPEN',
     remarks: '',
   });
@@ -53,15 +50,6 @@ export function LcDrawer({
       setFormData({
         lcNumber: lcToEdit.lcNumber,
         buyerId: lcToEdit.buyerId,
-        issueDate: lcToEdit.issueDate
-          ? new Date(lcToEdit.issueDate).toISOString().slice(0, 10)
-          : '',
-        expiryDate: lcToEdit.expiryDate
-          ? new Date(lcToEdit.expiryDate).toISOString().slice(0, 10)
-          : '',
-        shipmentDate: lcToEdit.shipmentDate
-          ? new Date(lcToEdit.shipmentDate).toISOString().slice(0, 10)
-          : '',
         status: lcToEdit.status,
         remarks: lcToEdit.remarks || '',
       });
@@ -69,9 +57,6 @@ export function LcDrawer({
       setFormData({
         lcNumber: '',
         buyerId: buyers[0]?.id || '',
-        issueDate: new Date().toISOString().slice(0, 10),
-        expiryDate: '',
-        shipmentDate: '',
         status: 'OPEN',
         remarks: '',
       });
@@ -188,62 +173,21 @@ export function LcDrawer({
               </select>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-700">
-                  Issue Date
-                </label>
-                <input
-                  type="date"
-                  value={formData.issueDate || ''}
-                  onChange={(e) => setFormData({ ...formData, issueDate: e.target.value })}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20"
-                />
-              </div>
-
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-700">
-                  Status
-                </label>
-                <select
-                  value={formData.status}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value as LCStatus })}
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20"
-                >
-                  <option value="OPEN">OPEN</option>
-                  <option value="IN_PROGRESS">IN PROGRESS</option>
-                  <option value="FULFILLED">FULFILLED</option>
-                  <option value="EXPIRED">EXPIRED</option>
-                  <option value="CANCELLED">CANCELLED</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-700">
-                  Latest Shipment Date
-                </label>
-                <input
-                  type="date"
-                  value={formData.shipmentDate || ''}
-                  onChange={(e) => setFormData({ ...formData, shipmentDate: e.target.value })}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20"
-                />
-              </div>
-
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-700">
-                  Expiry Date <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="date"
-                  required
-                  value={formData.expiryDate || ''}
-                  onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20"
-                />
-              </div>
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-slate-700">
+                Status
+              </label>
+              <select
+                value={formData.status}
+                onChange={(e) => setFormData({ ...formData, status: e.target.value as LCStatus })}
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20"
+              >
+                <option value="OPEN">OPEN</option>
+                <option value="IN_PROGRESS">IN PROGRESS</option>
+                <option value="FULFILLED">FULFILLED</option>
+                <option value="EXPIRED">EXPIRED</option>
+                <option value="CANCELLED">CANCELLED</option>
+              </select>
             </div>
 
             <div>

@@ -156,7 +156,7 @@ export default function LcPage() {
             </span>
           </div>
           <p className="text-xs text-slate-500 mt-1">
-            Monitor commercial bank instruments, shipment deadlines, and expiry countdowns
+            Manage commercial Letter of Credit contracts and linked purchase orders
           </p>
         </div>
 
@@ -245,9 +245,7 @@ export default function LcPage() {
                 <tr>
                   <th className="px-5 py-3.5">LC Number</th>
                   <th className="px-5 py-3.5">Buyer</th>
-                  <th className="px-5 py-3.5">Issue Date</th>
-                  <th className="px-5 py-3.5">Shipment Date</th>
-                  <th className="px-5 py-3.5">Expiry & Countdown</th>
+                  <th className="px-5 py-3.5">Remarks / Details</th>
                   <th className="px-5 py-3.5">Linked POs</th>
                   <th className="px-5 py-3.5">Status</th>
                   <th className="px-5 py-3.5 text-right">Actions</th>
@@ -282,24 +280,9 @@ export default function LcPage() {
                         )}
                       </td>
 
-                      {/* Issue Date */}
-                      <td className="px-5 py-4 text-slate-600">
-                        {formatDate(lc.issueDate)}
-                      </td>
-
-                      {/* Latest Shipment Date */}
-                      <td className="px-5 py-4 text-slate-600">
-                        {formatDate(lc.shipmentDate)}
-                      </td>
-
-                      {/* Expiry & Live Countdown */}
-                      <td className="px-5 py-4">
-                        <div className="space-y-1">
-                          <div className="font-semibold text-slate-900">
-                            {formatDate(lc.expiryDate)}
-                          </div>
-                          <div>{getExpiryCountdown(lc.expiryDate, lc.status)}</div>
-                        </div>
+                      {/* Remarks */}
+                      <td className="px-5 py-4 text-slate-600 max-w-xs truncate">
+                        {lc.remarks || <span className="text-slate-400 italic">No notes</span>}
                       </td>
 
                       {/* Linked POs */}

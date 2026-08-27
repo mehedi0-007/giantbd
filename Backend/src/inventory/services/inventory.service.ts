@@ -78,7 +78,14 @@ export class InventoryService {
                   size: true,
                   gender: true,
                   color: { select: { id: true, name: true, code: true } },
-                  masterProduct: { select: { id: true, name: true, sku: true } },
+                  masterProduct: {
+                    select: {
+                      id: true,
+                      name: true,
+                      sku: true,
+                      material: { select: { id: true, name: true } },
+                    },
+                  },
                 },
               },
               location: {
@@ -157,7 +164,11 @@ export class InventoryService {
             product: {
               include: {
                 color: true,
-                masterProduct: true,
+                masterProduct: {
+                  include: {
+                    material: true,
+                  },
+                },
               },
             },
             location: {

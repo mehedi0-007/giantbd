@@ -23,8 +23,6 @@ export function PoDrawer({
     poNumber: '',
     buyerId: '',
     lcId: '',
-    orderDate: '',
-    deliveryDate: '',
     status: 'DRAFT',
     remarks: '',
   });
@@ -64,23 +62,12 @@ export function PoDrawer({
     ? lcsData
     : [];
 
-  // Filter LCs by selected buyer if selected
-  const availableLcs = formData.buyerId
-    ? lcs.filter((lc) => lc.buyerId === formData.buyerId)
-    : lcs;
-
   useEffect(() => {
     if (poToEdit) {
       setFormData({
         poNumber: poToEdit.poNumber,
         buyerId: poToEdit.buyerId,
         lcId: poToEdit.lcId || '',
-        orderDate: poToEdit.orderDate
-          ? new Date(poToEdit.orderDate).toISOString().slice(0, 10)
-          : '',
-        deliveryDate: poToEdit.deliveryDate
-          ? new Date(poToEdit.deliveryDate).toISOString().slice(0, 10)
-          : '',
         status: poToEdit.status,
         remarks: poToEdit.remarks || '',
       });
@@ -89,8 +76,6 @@ export function PoDrawer({
         poNumber: '',
         buyerId: buyers[0]?.id || '',
         lcId: '',
-        orderDate: new Date().toISOString().slice(0, 10),
-        deliveryDate: '',
         status: 'DRAFT',
         remarks: '',
       });
@@ -109,7 +94,6 @@ export function PoDrawer({
       const payload = {
         ...formData,
         lcId: formData.lcId || undefined,
-        deliveryDate: formData.deliveryDate || undefined,
       };
 
       if (poToEdit) {
@@ -224,13 +208,6 @@ export function PoDrawer({
                   </div>
                   <div className="text-[11px] text-blue-700/80 mt-1 flex items-center gap-3">
                     <span>Country: {matchedLc.buyer.country || 'N/A'}</span>
-                    <span>•</span>
-                    <span>
-                      LC Expiry:{' '}
-                      {matchedLc.expiryDate
-                        ? new Date(matchedLc.expiryDate).toLocaleDateString()
-                        : 'N/A'}
-                    </span>
                   </div>
                 </div>
               );
@@ -253,50 +230,23 @@ export function PoDrawer({
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-700">
-                  Order Date <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="date"
-                  required
-                  value={formData.orderDate}
-                  onChange={(e) => setFormData({ ...formData, orderDate: e.target.value })}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20"
-                />
-              </div>
-
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-700">
-                  Status
-                </label>
-                <select
-                  value={formData.status}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value as POStatus })}
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20"
-                >
-                  <option value="DRAFT">DRAFT</option>
-                  <option value="CONFIRMED">CONFIRMED</option>
-                  <option value="IN_PRODUCTION">IN PRODUCTION</option>
-                  <option value="READY_FOR_SHIPMENT">READY FOR SHIPMENT</option>
-                  <option value="PARTIALLY_SHIPPED">PARTIALLY SHIPPED</option>
-                  <option value="COMPLETED">COMPLETED</option>
-                  <option value="CANCELLED">CANCELLED</option>
-                </select>
-              </div>
-            </div>
-
             <div>
               <label className="mb-1 block text-xs font-semibold text-slate-700">
-                Target Delivery Date
+                Status
               </label>
-              <input
-                type="date"
-                value={formData.deliveryDate || ''}
-                onChange={(e) => setFormData({ ...formData, deliveryDate: e.target.value })}
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20"
-              />
+              <select
+                value={formData.status}
+                onChange={(e) => setFormData({ ...formData, status: e.target.value as POStatus })}
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20"
+              >
+                <option value="DRAFT">DRAFT</option>
+                <option value="CONFIRMED">CONFIRMED</option>
+                <option value="IN_PRODUCTION">IN PRODUCTION</option>
+                <option value="READY_FOR_SHIPMENT">READY FOR SHIPMENT</option>
+                <option value="PARTIALLY_SHIPPED">PARTIALLY SHIPPED</option>
+                <option value="COMPLETED">COMPLETED</option>
+                <option value="CANCELLED">CANCELLED</option>
+              </select>
             </div>
 
             <div>

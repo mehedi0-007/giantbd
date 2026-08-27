@@ -297,8 +297,7 @@ export default function PoPage() {
                 <tr>
                   <th className="px-5 py-3.5">PO Number</th>
                   <th className="px-5 py-3.5">Buyer & LC</th>
-                  <th className="px-5 py-3.5">Dates</th>
-                  <th className="px-5 py-3.5">Shipment Progress</th>
+                  <th className="px-5 py-3.5">Remarks</th>
                   <th className="px-5 py-3.5">Status</th>
                   <th className="px-5 py-3.5 text-right">Actions</th>
                 </tr>
@@ -306,20 +305,6 @@ export default function PoPage() {
               <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
                 {pos.map((po) => {
                   const isCancelled = po.status === 'CANCELLED';
-
-                  // Calculate total ordered and shipped from items
-                  let ordered = 0;
-                  let shipped = 0;
-                  if (po.items && po.items.length > 0) {
-                    po.items.forEach((i) => {
-                      ordered += i.quantity || 0;
-                      shipped += i.shippedQuantity || 0;
-                    });
-                  } else {
-                    ordered = po.totalQuantity || 0;
-                  }
-
-                  const pct = ordered > 0 ? Math.min(100, Math.round((shipped / ordered) * 100)) : 0;
 
                   return (
                     <tr
@@ -354,43 +339,9 @@ export default function PoPage() {
                         )}
                       </td>
 
-                      {/* Dates */}
-                      <td className="px-5 py-4">
-                        <div className="space-y-0.5">
-                          <div className="text-slate-600">
-                            Ordered: {formatDate(po.orderDate)}
-                          </div>
-                          {po.deliveryDate && (
-                            <div className="text-[11px] text-slate-400">
-                              Delivery: {formatDate(po.deliveryDate)}
-                            </div>
-                          )}
-                        </div>
-                      </td>
-
-                      {/* Progress Bar */}
-                      <td className="px-5 py-4 min-w-[200px]">
-                        <div className="space-y-1.5">
-                          <div className="flex items-center justify-between text-[11px]">
-                            <span className="font-bold text-slate-800">
-                              {formatNumber(shipped)} / {formatNumber(ordered)} pairs
-                            </span>
-                            <span className="font-bold text-blue-600">{pct}%</span>
-                          </div>
-                          {/* Progress Track */}
-                          <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100 border border-slate-200/60">
-                            <div
-                              className={`h-full transition-all duration-300 rounded-full ${
-                                pct === 100
-                                  ? 'bg-emerald-500'
-                                  : pct > 0
-                                  ? 'bg-blue-600'
-                                  : 'bg-slate-300'
-                              }`}
-                              style={{ width: `${pct}%` }}
-                            />
-                          </div>
-                        </div>
+                      {/* Remarks */}
+                      <td className="px-5 py-4 text-slate-600 max-w-xs truncate">
+                        {po.remarks || <span className="text-slate-400 italic">No remarks</span>}
                       </td>
 
                       {/* Status */}

@@ -7,6 +7,7 @@ import { Warehouse } from '@/types/warehouse';
 import { formatDate, formatNumber, calculateBatchAge } from '@/lib/utils';
 import { BatchDetailModal } from '@/components/inventory/batch-detail-modal';
 import { BatchLabelModal } from '@/components/inventory/batch-label-modal';
+import { AdjustBatchModal } from '@/components/inventory/adjust-batch-modal';
 import {
   Boxes,
   Search,
@@ -20,6 +21,7 @@ import {
   ChevronRight,
   Printer,
   Eye,
+  Sliders,
   MapPin,
   Calendar,
   FileText,
@@ -52,6 +54,7 @@ export default function CurrentStockPage() {
   // Modals state
   const [selectedBatchForDetail, setSelectedBatchForDetail] = useState<any | null>(null);
   const [selectedBatchForSticker, setSelectedBatchForSticker] = useState<any | null>(null);
+  const [selectedBatchForAdjust, setSelectedBatchForAdjust] = useState<any | null>(null);
 
   // 1. Fetch Warehouses for filter dropdown
   const { data: whData } = useQuery({
@@ -463,8 +466,8 @@ export default function CurrentStockPage() {
                   <tr>
                     <th className="px-4 py-3.5 w-10"></th>
                     <th className="px-4 py-3.5">Batch Identifier</th>
-                    <th className="px-4 py-3.5">Product Style & Color</th>
-                    <th className="px-4 py-3.5">PO / Buyer Reference</th>
+                    <th className="px-4 py-3.5">Color & Gender</th>
+                    <th className="px-4 py-3.5">Material</th>
                     <th className="px-4 py-3.5">In-Hand / Received</th>
                     <th className="px-4 py-3.5">Cartons</th>
                     <th className="px-4 py-3.5">Age / Production Date</th>
@@ -480,8 +483,11 @@ export default function CurrentStockPage() {
                     const totalPackets = items.reduce((sum, i) => sum + (i.packetCount || 0), 0);
                     const age = calculateBatchAge(batch.productionDate);
 
-                    const productName = items[0]?.product?.name || batch.masterProduct?.name || 'Footwear Style';
-                    const colorName = items[0]?.product?.color?.name || batch.color?.name || 'Color N/A';
+                    const firstProduct = items[0]?.product;
+                    const colorName = firstProduct?.color?.name || batch.color?.name || 'Color N/A';
+                    const colorCode = firstProduct?.color?.code || batch.color?.code;
+                    const gender = firstProduct?.gender || batch.gender || 'MALE';
+                    const materialName = firstProduct?.masterProduct?.material?.name || 'Standard Material';
 
                     return (
                       <React.Fragment key={batch.id}>
@@ -513,33 +519,32 @@ export default function CurrentStockPage() {
                             )}
                           </td>
 
-                          {/* Product & Color */}
+                          {/* Color & Gender */}
                           <td className="px-4 py-3.5">
-                            <div className="font-bold text-slate-900">{productName}</div>
-                            <div className="flex items-center gap-1.5 text-[11px] text-slate-500 mt-0.5">
-                              <span className="inline-block h-2 w-2 rounded-full bg-blue-500" />
-                              <span>{colorName}</span>
-                              <span className="text-slate-300">•</span>
-                              <span className="text-[10px] font-semibold text-slate-400">
-                                {items.length} size variants
+                            <div className="flex items-center gap-2">
+                              {colorCode && (
+                                <span
+                                  className="h-3.5 w-3.5 rounded-full border border-slate-300 shadow-2xs shrink-0"
+                                  style={{ backgroundColor: colorCode }}
+                                />
+                              )}
+                              <span className="font-bold text-slate-900 text-xs">
+                                {colorName}
                               </span>
+                              <span className="inline-flex items-center rounded bg-slate-100 px-1.5 py-0.5 font-bold uppercase text-[10px] text-slate-700">
+                                {gender}
+                              </span>
+                            </div>
+                            <div className="text-[10px] text-slate-400 mt-0.5">
+                              {items.length} size variants
                             </div>
                           </td>
 
-                          {/* PO / Buyer */}
+                          {/* Material */}
                           <td className="px-4 py-3.5">
-                            {batch.po ? (
-                              <div>
-                                <div className="font-mono font-semibold text-blue-600 text-xs">
-                                  {batch.po.poNumber}
-                                </div>
-                                <div className="text-[10px] text-slate-400">
-                                  {batch.po.buyer?.name || 'Factory Order'}
-                                </div>
-                              </div>
-                            ) : (
-                              <span className="text-slate-400 italic text-[11px]">General Stock</span>
-                            )}
+                            <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200/60">
+                              {materialName}
+                            </span>
                           </td>
 
                           {/* Quantities */}
@@ -572,6 +577,15 @@ export default function CurrentStockPage() {
                             <div className="flex items-center justify-end gap-1.5">
                               <button
                                 type="button"
+                                onClick={() => setSelectedBatchForAdjust(batch)}
+                                className="inline-flex items-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-800 hover:bg-amber-100 transition cursor-pointer"
+                                title="Adjust Batch Items & Locations"
+                              >
+                                <Sliders className="h-3.5 w-3.5 text-amber-600" />
+                                <span>Adjust</span>
+                              </button>
+                              <button
+                                type="button"
                                 onClick={() => setSelectedBatchForDetail(batch)}
                                 className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
                                 title="Inspect Full Details"
@@ -585,9 +599,9 @@ export default function CurrentStockPage() {
                                   setSelectedBatchForSticker({
                                     batchId: batch.batch_id || batch.batch_number,
                                     batchNumber: batch.batch_number,
-                                    productName,
+                                    productName: colorName,
                                     colorName,
-                                    gender: batch.gender || 'MALE',
+                                    gender,
                                     productionDate: batch.productionDate,
                                     expirationDate: batch.expirationDate,
                                     totalPairs: totalReceived,
@@ -645,15 +659,12 @@ export default function CurrentStockPage() {
                                         </td>
                                         <td className="px-4 py-2">
                                           {it.location ? (
-                                            <div className="flex items-center gap-1 text-[11px] text-slate-800 font-semibold bg-slate-100/90 border border-slate-200/80 rounded px-2 py-0.5 w-fit">
-                                              <MapPin className="h-3 w-3 text-blue-600 shrink-0" />
-                                              <span>
-                                                {it.location.warehouse?.name ? `${it.location.warehouse.name} • ` : ''}
-                                                {it.location.name || it.location.code}
-                                              </span>
+                                            <div className="flex items-center gap-1.5 text-xs text-slate-800 font-semibold bg-slate-100/90 border border-slate-200/80 rounded-md px-2.5 py-1 w-fit">
+                                              <MapPin className="h-3.5 w-3.5 text-blue-600 shrink-0" />
+                                              <span>{formatLocationName(it.location)}</span>
                                             </div>
                                           ) : (
-                                            <span className="text-slate-400 italic text-[11px]">Unassigned</span>
+                                            <span className="text-slate-400 italic text-xs">Unassigned</span>
                                           )}
                                         </td>
                                         <td className="px-4 py-2 text-right">
@@ -759,10 +770,7 @@ export default function CurrentStockPage() {
                           {loc ? (
                             <div className="flex items-center gap-1.5 text-xs text-slate-800 font-semibold bg-slate-100/90 border border-slate-200/80 px-2.5 py-1 rounded-lg w-fit">
                               <MapPin className="h-3.5 w-3.5 text-blue-600 shrink-0" />
-                              <span>
-                                {loc.warehouse?.name ? `${loc.warehouse.name} • ` : ''}
-                                {loc.name || loc.code}
-                              </span>
+                              <span>{formatLocationName(loc)}</span>
                             </div>
                           ) : (
                             <span className="text-slate-400 italic text-xs">Unassigned</span>
@@ -823,6 +831,13 @@ export default function CurrentStockPage() {
         isOpen={!!selectedBatchForSticker}
         onClose={() => setSelectedBatchForSticker(null)}
         batchData={selectedBatchForSticker}
+      />
+
+      {/* Batch Adjustments Modal */}
+      <AdjustBatchModal
+        isOpen={!!selectedBatchForAdjust}
+        onClose={() => setSelectedBatchForAdjust(null)}
+        batch={selectedBatchForAdjust}
       />
     </div>
   );

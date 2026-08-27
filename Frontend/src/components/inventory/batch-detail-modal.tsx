@@ -35,9 +35,11 @@ export function BatchDetailModal({
   const totalAvailable = items.reduce((sum, i) => sum + (i.availableQty || 0), 0);
   const totalPackets = items.reduce((sum, i) => sum + (i.packetCount || 0), 0);
   const age = calculateBatchAge(batch.productionDate);
-
-  const productName = items[0]?.product?.name || batch.masterProduct?.name || 'Footwear Style';
-  const colorName = items[0]?.product?.color?.name || batch.color?.name || 'N/A';
+  const firstProduct = items[0]?.product;
+  const colorName = firstProduct?.color?.name || batch.color?.name || 'Color N/A';
+  const colorCode = firstProduct?.color?.code || batch.color?.code;
+  const gender = firstProduct?.gender || batch.gender || 'MALE';
+  const materialName = firstProduct?.masterProduct?.material?.name || 'Standard Material';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -56,17 +58,29 @@ export function BatchDetailModal({
                 <h3 className="text-base font-bold text-slate-900 font-mono">
                   {batch.batch_id || batch.batch_number || 'Batch Details'}
                 </h3>
-                <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-200">
-                  {batch.status || 'ACTIVE'}
+                <span className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-700 uppercase">
+                  {gender}
                 </span>
                 <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${age.badgeClass}`}>
                   <span className={`h-1.5 w-1.5 rounded-full ${age.dotClass}`} />
                   <span>{age.label}</span>
                 </span>
               </div>
-              <p className="text-xs text-slate-500">
-                {productName} • <span className="font-semibold text-slate-700">{colorName}</span>
-              </p>
+              <div className="flex items-center gap-2 text-xs text-slate-600 mt-0.5">
+                <div className="flex items-center gap-1">
+                  {colorCode && (
+                    <span
+                      className="h-2.5 w-2.5 rounded-full border border-slate-300 shadow-2xs shrink-0"
+                      style={{ backgroundColor: colorCode }}
+                    />
+                  )}
+                  <span className="font-semibold text-slate-800">{colorName}</span>
+                </div>
+                <span className="text-slate-300">•</span>
+                <span className="font-medium text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200/60 text-[11px]">
+                  {materialName}
+                </span>
+              </div>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -130,19 +144,18 @@ export function BatchDetailModal({
           </div>
 
           {/* Reference Details */}
-          {(batch.po || batch.expirationDate || batch.note) && (
+          {(materialName || batch.expirationDate || batch.note) && (
             <div className="rounded-xl border border-slate-200/80 bg-white p-4 space-y-2 text-xs">
-              <div className="font-bold text-slate-900 mb-2">Commercial & Storage References</div>
+              <div className="font-bold text-slate-900 mb-2">Material & Storage Specifications</div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-slate-600">
-                {batch.po && (
-                  <div>
-                    <span className="text-slate-400">Purchase Order:</span>{' '}
-                    <span className="font-mono font-semibold text-blue-600">{batch.po.poNumber}</span>
-                    {batch.po.buyer && (
-                      <span className="text-slate-500"> ({batch.po.buyer.name})</span>
-                    )}
-                  </div>
-                )}
+                <div>
+                  <span className="text-slate-400">Upper / Sole Material:</span>{' '}
+                  <span className="font-semibold text-slate-800">{materialName}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400">Gender Line:</span>{' '}
+                  <span className="font-semibold text-slate-800 uppercase">{gender}</span>
+                </div>
                 {batch.expirationDate && (
                   <div>
                     <span className="text-slate-400">Expiration / Warranty Date:</span>{' '}
