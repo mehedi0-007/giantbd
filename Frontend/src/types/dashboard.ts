@@ -3,8 +3,8 @@ export interface KpiMetrics {
   lowStockCount: number;
   activePoCount: number;
   poFulfillmentRate: number;
-  expiringLcsCount: number;
-  urgentLcsCount: number;
+  activeLcCount: number;
+  totalBuyersCount: number;
   todayStockInBatches: number;
   todayStockOutChallans: number;
 }
@@ -21,12 +21,13 @@ export interface PoStatusDistribution {
   color: string;
 }
 
-export interface ExpiringLc {
+export interface ActiveLcItem {
   id: string;
   lcNumber: string;
   buyerName: string;
-  expiryDate: string;
-  daysRemaining: number;
+  currency?: string;
+  amount?: number;
+  posCount: number;
   status: string;
 }
 
@@ -40,10 +41,27 @@ export interface PendingChallan {
   status: string;
 }
 
+export interface RecentStockBatch {
+  id: string;
+  batchId: string;
+  batchNumber?: string;
+  productName: string;
+  material?: string;
+  colorName?: string;
+  gender?: string;
+  availableQty: number;
+  totalQty: number;
+  packetCount: number;
+  locationName: string;
+  poNumber?: string;
+  createdAt: string;
+}
+
 export interface DashboardData {
   kpi: KpiMetrics;
   movementTrends: MovementTrendItem[];
   poDistribution: PoStatusDistribution[];
-  expiringLcs: ExpiringLc[];
+  activeLcs: ActiveLcItem[];
   pendingChallans: PendingChallan[];
+  recentStocks: RecentStockBatch[];
 }

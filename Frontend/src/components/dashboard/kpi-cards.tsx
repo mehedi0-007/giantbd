@@ -71,20 +71,14 @@ export function KpiCards({ kpi, isLoading }: KpiCardsProps) {
       link: '/commercial/po',
     },
     {
-      title: 'Expiring Letters of Credit',
-      value: `${kpi.expiringLcsCount} LCs`,
-      subtitle:
-        kpi.urgentLcsCount > 0 ? (
-          <span className="inline-flex items-center gap-1 font-semibold text-rose-700">
-            <Flame className="h-3.5 w-3.5 animate-bounce" />
-            {kpi.urgentLcsCount} expiring in &le; 15 days
-          </span>
-        ) : kpi.expiringLcsCount > 0 ? (
-          <span className="text-amber-700 font-medium">Expiring within 30 days</span>
-        ) : (
-          <span className="text-slate-500">No LCs expiring soon</span>
-        ),
-      badgeBg: kpi.urgentLcsCount > 0 ? 'bg-rose-50 border-rose-200' : 'bg-slate-50 border-slate-200',
+      title: 'Active Letters of Credit',
+      value: `${kpi.activeLcCount} LCs`,
+      subtitle: (
+        <span className="text-slate-600">
+          Across <strong className="font-semibold text-amber-800">{kpi.totalBuyersCount}</strong> {kpi.totalBuyersCount === 1 ? 'buyer' : 'buyers'}
+        </span>
+      ),
+      badgeBg: 'bg-amber-50 border-amber-200',
       icon: FileText,
       iconColor: 'bg-amber-600 shadow-amber-500/20 text-white',
       link: '/commercial/lc',

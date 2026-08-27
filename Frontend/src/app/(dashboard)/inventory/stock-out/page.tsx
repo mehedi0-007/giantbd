@@ -823,13 +823,14 @@ export default function StockOutPage() {
                 </div>
                 <div className="text-[11px] text-blue-700/80 flex items-center gap-3">
                   <span>Country: {selectedLc.buyer.country || 'N/A'}</span>
-                  <span>•</span>
-                  <span>
-                    LC Expiry:{' '}
-                    {selectedLc.expiryDate
-                      ? new Date(selectedLc.expiryDate).toLocaleDateString()
-                      : 'N/A'}
-                  </span>
+                  {selectedLc.amount && (
+                    <>
+                      <span>•</span>
+                      <span>
+                        Value: {selectedLc.currency || 'USD'} {formatNumber(selectedLc.amount)}
+                      </span>
+                    </>
+                  )}
                 </div>
               </div>
             )}

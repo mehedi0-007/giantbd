@@ -10,14 +10,15 @@ export function useDashboardData() {
   return useQuery<DashboardData>({
     queryKey: ['dashboard-data'],
     queryFn: async () => {
-      // Execute all 5 data queries in parallel for high performance
-      const [stockRes, poRes, lcRes, stockOutRes, movementsRes] =
+      // Execute all 6 data queries in parallel for high performance
+      const [stockRes, poRes, lcRes, stockOutRes, movementsRes, batchesRes] =
         await Promise.allSettled([
           api.get('/inventory/stock', { params: { per_page: 500 } }),
           api.get('/po', { params: { per_page: 200 } }),
           api.get('/lc', { params: { per_page: 200 } }),
           api.get('/inventory/stock-out', { params: { per_page: 100 } }),
           api.get('/inventory/movements', { params: { per_page: 500 } }),
+          api.get('/inventory/batches', { params: { per_page: 6 } }),
         ]);
 
       // 1. Stock Metrics
@@ -85,42 +86,31 @@ export function useDashboardData() {
         { name: 'Completed', count: poStatusCounts.COMPLETED, color: '#10b981' },
       ].filter((item) => item.count > 0);
 
-      // 3. Letters of Credit (LC) Expiry
+      // 3. Letters of Credit (LC) Registry Overview
       const lcData =
         lcRes.status === 'fulfilled'
           ? lcRes.value.data?.data?.data || lcRes.value.data?.data || []
           : [];
 
-      const now = Date.now();
-      const expiringLcs: any[] = [];
-      let expiringLcsCount = 0;
-      let urgentLcsCount = 0;
+      const activeLcs: any[] = [];
+      const buyersSet = new Set<string>();
 
       lcData.forEach((lc: any) => {
-        if (lc.status === 'CANCELLED' || lc.status === 'FULFILLED') return;
-        if (!lc.expiryDate) return;
-
-        const expiryTime = new Date(lc.expiryDate).getTime();
-        const diffDays = Math.ceil((expiryTime - now) / (1000 * 60 * 60 * 24));
-
-        if (diffDays <= 30) {
-          expiringLcsCount++;
-          if (diffDays <= 15) {
-            urgentLcsCount++;
-          }
-          expiringLcs.push({
+        if (lc.buyer?.name) {
+          buyersSet.add(lc.buyer.name);
+        }
+        if (lc.status !== 'CANCELLED') {
+          activeLcs.push({
             id: lc.id,
             lcNumber: lc.lcNumber,
             buyerName: lc.buyer?.name || 'Unknown Buyer',
-            expiryDate: lc.expiryDate,
-            daysRemaining: diffDays,
+            currency: lc.currency || 'USD',
+            amount: lc.amount || 0,
+            posCount: lc._count?.pos || lc.pos?.length || 0,
             status: lc.status,
           });
         }
       });
-
-      // Sort by urgency (least days remaining first)
-      expiringLcs.sort((a, b) => a.daysRemaining - b.daysRemaining);
 
       // 4. Stock-Out Challans & Today's Activity
       const stockOutData =
@@ -195,21 +185,63 @@ export function useDashboardData() {
         }),
       );
 
+      // 6. Recent Stocks / Batches Overview
+      const batchesData =
+        batchesRes.status === 'fulfilled'
+          ? batchesRes.value.data?.data?.data || batchesRes.value.data?.data || []
+          : [];
+
+      const recentStocks = batchesData.map((b: any) => {
+        const firstItem = b.batchItems?.[0];
+        const p = firstItem?.product;
+        const mp = p?.masterProduct;
+        const loc = firstItem?.location;
+        const locationName = loc
+          ? `${loc.warehouse?.name || 'WH'} • ${loc.code || loc.name || 'Location'}`
+          : 'Unassigned';
+
+        return {
+          id: b.id,
+          batchId: b.batch_id || b.batch_number || 'Batch',
+          batchNumber: b.batch_number,
+          productName: mp?.name || p?.name || 'Master Product',
+          material: mp?.material?.name || 'Standard Material',
+          colorName: p?.color?.name || p?.color?.code || 'Assorted',
+          gender: p?.gender || 'Unisex',
+          availableQty:
+            b.summary?.totalAvailableQty ??
+            b.batchItems?.reduce((acc: number, i: any) => acc + (i.availableQty || 0), 0) ??
+            0,
+          totalQty:
+            b.summary?.totalReceivedQty ??
+            b.batchItems?.reduce((acc: number, i: any) => acc + (i.receivedQty || 0), 0) ??
+            0,
+          packetCount:
+            b.summary?.totalPackets ??
+            b.batchItems?.reduce((acc: number, i: any) => acc + (i.packetCount || 0), 0) ??
+            0,
+          locationName,
+          poNumber: b.po?.poNumber,
+          createdAt: b.createdAt,
+        };
+      });
+
       return {
         kpi: {
           totalStockPairs,
           lowStockCount,
           activePoCount: activePos.length,
           poFulfillmentRate,
-          expiringLcsCount,
-          urgentLcsCount,
+          activeLcCount: activeLcs.length,
+          totalBuyersCount: buyersSet.size,
           todayStockInBatches,
           todayStockOutChallans,
         },
         movementTrends,
         poDistribution,
-        expiringLcs: expiringLcs.slice(0, 5), // Top 5 urgent
+        activeLcs: activeLcs.slice(0, 5), // Top 5 active
         pendingChallans: pendingChallans.slice(0, 5), // Top 5 pending
+        recentStocks: recentStocks.slice(0, 5), // Top 5 recent batches
       };
     },
     refetchInterval: 1000 * 60 * 3, // Auto-refresh every 3 minutes

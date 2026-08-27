@@ -90,6 +90,24 @@ export default function WarehousePage() {
     setExpandedNodes((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
+  const handleExpandAll = () => {
+    const allExpanded: Record<string, boolean> = {};
+    warehouses.forEach((wh) => {
+      allExpanded[wh.id] = true;
+      (wh.zones || []).forEach((z: any) => {
+        allExpanded[z.id] = true;
+        (z.subZones || []).forEach((sz: any) => {
+          allExpanded[sz.id] = true;
+        });
+      });
+    });
+    setExpandedNodes(allExpanded);
+  };
+
+  const handleCollapseAll = () => {
+    setExpandedNodes({});
+  };
+
   const handleOpenAdd = (
     type: 'warehouse' | 'zone' | 'subzone' | 'rack' | 'location',
     context?: { warehouseId?: string; zoneId?: string; subZoneId?: string; rackId?: string }
@@ -189,15 +207,27 @@ export default function WarehousePage() {
               <FolderTree className="h-4 w-4 text-blue-600" />
               <h3 className="text-sm font-bold text-slate-900">Hierarchy Navigator</h3>
             </div>
-            {(selectedWarehouseId || selectedZoneId || selectedSubZoneId || selectedRackId) && (
+            <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={clearFilters}
-                className="text-[11px] font-semibold text-blue-600 hover:underline"
+                onClick={Object.keys(expandedNodes).some((k) => expandedNodes[k]) ? handleCollapseAll : handleExpandAll}
+                className="text-[11px] font-medium text-slate-500 hover:text-slate-800 transition cursor-pointer"
               >
-                Clear Selection
+                {Object.keys(expandedNodes).some((k) => expandedNodes[k]) ? 'Collapse All' : 'Expand All'}
               </button>
-            )}
+              {(selectedWarehouseId || selectedZoneId || selectedSubZoneId || selectedRackId) && (
+                <>
+                  <span className="text-slate-300">•</span>
+                  <button
+                    type="button"
+                    onClick={clearFilters}
+                    className="text-[11px] font-semibold text-blue-600 hover:underline cursor-pointer"
+                  >
+                    Clear Selection
+                  </button>
+                </>
+              )}
+            </div>
           </div>
 
           {loadingWh ? (
@@ -212,7 +242,7 @@ export default function WarehousePage() {
             <div className="space-y-2 text-xs">
               {warehouses.map((wh) => {
                 const isSelected = selectedWarehouseId === wh.id && !selectedZoneId;
-                const isExpanded = expandedNodes[wh.id] !== false; // default expanded
+                const isExpanded = Boolean(expandedNodes[wh.id]); // default minimized/collapsed
                 const whZones: any[] = wh.zones || [];
 
                 return (
@@ -251,7 +281,7 @@ export default function WarehousePage() {
                             e.stopPropagation();
                             handleOpenAdd('zone', { warehouseId: wh.id });
                           }}
-                          className="p-1 rounded-md text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition"
+                          className="p-1 rounded-md text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition cursor-pointer"
                         >
                           <Plus className="h-3 w-3" />
                         </button>
@@ -263,7 +293,7 @@ export default function WarehousePage() {
                       <div className="pl-4 pr-2 py-1 space-y-1.5 border-t border-slate-100 bg-white">
                         {whZones.map((z) => {
                           const isZSelected = selectedZoneId === z.id && !selectedSubZoneId;
-                          const isZExpanded = expandedNodes[z.id] !== false;
+                          const isZExpanded = Boolean(expandedNodes[z.id]); // default minimized
                           const zSubZones: any[] = z.subZones || [];
 
                           return (
@@ -306,7 +336,7 @@ export default function WarehousePage() {
                                       e.stopPropagation();
                                       handleOpenAdd('subzone', { warehouseId: wh.id, zoneId: z.id });
                                     }}
-                                    className="p-0.5 rounded text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition"
+                                    className="p-0.5 rounded text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition cursor-pointer"
                                   >
                                     <Plus className="h-3 w-3" />
                                   </button>
@@ -318,7 +348,7 @@ export default function WarehousePage() {
                                 <div className="pl-4 pr-1 py-1 space-y-1 bg-white border-t border-slate-100">
                                   {zSubZones.map((sz) => {
                                     const isSZSelected = selectedSubZoneId === sz.id && !selectedRackId;
-                                    const isSZExpanded = expandedNodes[sz.id] !== false;
+                                    const isSZExpanded = Boolean(expandedNodes[sz.id]); // default minimized
                                     const szRacks: any[] = sz.racks || [];
 
                                     return (

@@ -14,8 +14,6 @@ import {
   Edit2,
   Trash2,
   RotateCcw,
-  Flame,
-  AlertTriangle,
   Loader2,
   ShoppingBag,
 } from 'lucide-react';
@@ -95,53 +93,11 @@ export default function LcPage() {
         return 'bg-amber-50 text-amber-700 border-amber-200';
       case 'FULFILLED':
         return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-      case 'EXPIRED':
-        return 'bg-rose-50 text-rose-700 border-rose-200';
       case 'CANCELLED':
         return 'bg-slate-100 text-slate-600 border-slate-200';
       default:
         return 'bg-slate-50 text-slate-700 border-slate-200';
     }
-  };
-
-  // Helper for Countdown Badge
-  const getExpiryCountdown = (expiryDate?: string | null, status?: string) => {
-    if (status === 'FULFILLED' || status === 'CANCELLED') return null;
-    if (!expiryDate) return <span className="text-slate-400">—</span>;
-
-    const diffDays = Math.ceil(
-      (new Date(expiryDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24),
-    );
-
-    if (diffDays <= 0) {
-      return (
-        <span className="inline-flex items-center gap-1 rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-bold text-rose-800 border border-rose-200">
-          <Flame className="h-3 w-3 text-rose-600" />
-          EXPIRED
-        </span>
-      );
-    }
-    if (diffDays <= 15) {
-      return (
-        <span className="inline-flex items-center gap-1 rounded-full bg-rose-600 px-2 py-0.5 text-[10px] font-bold text-white shadow-xs animate-pulse">
-          <Flame className="h-3 w-3" />
-          {diffDays} days left
-        </span>
-      );
-    }
-    if (diffDays <= 30) {
-      return (
-        <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800 border border-amber-200">
-          <AlertTriangle className="h-3 w-3 text-amber-600" />
-          {diffDays} days left
-        </span>
-      );
-    }
-    return (
-      <span className="text-slate-600 font-medium text-xs">
-        {diffDays} days left
-      </span>
-    );
   };
 
   return (

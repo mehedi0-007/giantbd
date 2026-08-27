@@ -7,6 +7,7 @@ import { MovementChart } from '@/components/dashboard/movement-chart';
 import { PoStatusChart } from '@/components/dashboard/po-status-chart';
 import { ExpiringLcsFeed } from '@/components/dashboard/expiring-lcs-feed';
 import { PendingChallansFeed } from '@/components/dashboard/pending-challans-feed';
+import { RecentStocksFeed } from '@/components/dashboard/recent-stocks-feed';
 import { RotateCw } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -67,9 +68,12 @@ export default function DashboardPage() {
 
       {/* 3. Action Feeds Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ExpiringLcsFeed lcs={data?.expiringLcs} isLoading={isLoading} />
+        <ExpiringLcsFeed lcs={data?.activeLcs} isLoading={isLoading} />
         <PendingChallansFeed challans={data?.pendingChallans} isLoading={isLoading} />
       </div>
+
+      {/* 4. Recent Stocks Feed */}
+      <RecentStocksFeed stocks={data?.recentStocks} isLoading={isLoading} />
     </div>
   );
 }

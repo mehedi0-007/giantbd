@@ -216,7 +216,7 @@ export function LcDrawer({
             <button
               type="button"
               onClick={handleSubmit}
-              disabled={isLoading || !formData.lcNumber || !formData.buyerId || !formData.expiryDate}
+              disabled={isLoading || !formData.lcNumber || !formData.buyerId}
               className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-blue-700 disabled:opacity-50 transition cursor-pointer"
             >
               {isLoading ? (
