@@ -7,6 +7,7 @@ import api from '@/lib/api';
 import { MasterProduct, VariantProduct } from '@/types/catalog';
 import { BulkVariantModal } from '@/components/catalog/bulk-variant-modal';
 import { EditVariantModal } from '@/components/catalog/edit-variant-modal';
+import { DataPagination } from '@/components/common/data-pagination';
 import { formatNumber } from '@/lib/utils';
 import NextLink from 'next/link';
 import {
@@ -35,6 +36,8 @@ export default function ProductDetailPage() {
 
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [selectedVariantForEdit, setSelectedVariantForEdit] = useState<VariantProduct | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   // Fetch Master Product with Variants
   const { data: productData, isLoading } = useQuery({
@@ -87,6 +90,9 @@ export default function ProductDetailPage() {
   }
 
   const variants: VariantProduct[] = product.variantProducts || [];
+  const totalVariants = variants.length;
+  const totalPages = Math.ceil(totalVariants / pageSize) || 1;
+  const paginatedVariants = variants.slice((page - 1) * pageSize, page * pageSize);
 
   // Compute Total Inventory & Low Stock Items
   let totalShippable = 0;
@@ -212,150 +218,175 @@ export default function ProductDetailPage() {
             </button>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                <tr>
-                  <th className="px-5 py-3.5">Image</th>
-                  <th className="px-5 py-3.5">SKU & Barcode</th>
-                  <th className="px-5 py-3.5">Color</th>
-                  <th className="px-5 py-3.5">Size & Gender</th>
-                  <th className="px-5 py-3.5 text-right">In-Hand Stock</th>
-                  <th className="px-5 py-3.5 text-right">Pricing (MRP)</th>
-                  <th className="px-5 py-3.5 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
-                {variants.map((v) => {
-                  const isLow = (v.shippableQuantity || 0) < 30;
-                  return (
-                    <tr key={v.id} className="hover:bg-slate-50/70 transition-colors">
-                      {/* Image Thumbnail */}
-                      <td className="px-5 py-3.5">
-                        {v.picture ? (
-                          <img
-                            src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api'}/${v.picture}`}
-                            alt={v.name}
-                            className="h-9 w-9 rounded-lg object-cover border border-slate-200 cursor-pointer"
-                            onClick={() => setSelectedVariantForEdit(v)}
-                          />
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => setSelectedVariantForEdit(v)}
-                            className="flex h-9 w-9 items-center justify-center rounded-lg border border-dashed border-slate-300 text-slate-400 hover:border-blue-400 hover:text-blue-600 transition cursor-pointer"
-                            title="Edit variant & picture"
-                          >
-                            <ImageIcon className="h-4 w-4" />
-                          </button>
-                        )}
-                      </td>
-
-                      {/* SKU & Barcode */}
-                      <td className="px-5 py-3.5">
-                        <div className="font-mono font-bold text-slate-900 text-xs">
-                          {v.sku}
-                        </div>
-                        {v.barcode && (
-                          <div className="flex items-center gap-1 font-mono text-[10px] text-slate-500 mt-0.5">
-                            <Barcode className="h-3 w-3 text-slate-400" />
-                            <span>{v.barcode}</span>
-                          </div>
-                        )}
-                      </td>
-
-                      {/* Color */}
-                      <td className="px-5 py-3.5">
-                        <div className="flex items-center gap-2">
-                          {v.color?.code && (
-                            <span
-                              className="h-3 w-3 rounded-full border border-slate-300 shadow-2xs shrink-0"
-                              style={{ backgroundColor: v.color.code }}
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                  <tr>
+                    <th className="px-5 py-3.5">Image</th>
+                    <th className="px-5 py-3.5">SKU & Barcode</th>
+                    <th className="px-5 py-3.5">Material</th>
+                    <th className="px-5 py-3.5">Color</th>
+                    <th className="px-5 py-3.5">Size & Gender</th>
+                    <th className="px-5 py-3.5">UOM</th>
+                    <th className="px-5 py-3.5 text-center">Products / Pkt</th>
+                    <th className="px-5 py-3.5 text-right">In-Hand Stock</th>
+                    <th className="px-5 py-3.5 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
+                  {paginatedVariants.map((v) => {
+                    const isLow = (v.shippableQuantity || 0) < 30;
+                    return (
+                      <tr key={v.id} className="hover:bg-slate-50/70 transition-colors">
+                        {/* Image Thumbnail */}
+                        <td className="px-5 py-3.5">
+                          {v.picture ? (
+                            <img
+                              src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api'}/${v.picture}`}
+                              alt={v.name}
+                              className="h-9 w-9 rounded-lg object-cover border border-slate-200 cursor-pointer"
+                              onClick={() => setSelectedVariantForEdit(v)}
                             />
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setSelectedVariantForEdit(v)}
+                              className="flex h-9 w-9 items-center justify-center rounded-lg border border-dashed border-slate-300 text-slate-400 hover:border-blue-400 hover:text-blue-600 transition cursor-pointer"
+                              title="Edit variant & picture"
+                            >
+                              <ImageIcon className="h-4 w-4" />
+                            </button>
                           )}
-                          <span className="font-bold text-slate-800">
-                            {v.color?.name || 'Color N/A'}
-                          </span>
-                        </div>
-                      </td>
+                        </td>
 
-                      {/* Size & Gender */}
-                      <td className="px-5 py-3.5">
-                        <div className="flex items-center gap-2">
-                          <span className="inline-flex rounded-md bg-slate-100 px-2 py-0.5 font-bold text-slate-800">
-                            Size {v.size}
-                          </span>
-                          <span className="text-slate-400">•</span>
-                          <span className="text-[11px] text-slate-600 uppercase font-semibold">
-                            {v.gender}
-                          </span>
-                        </div>
-                      </td>
-
-                      {/* In-Hand Stock */}
-                      <td className="px-5 py-3.5 text-right">
-                        <div className="inline-flex items-center gap-1.5 justify-end">
-                          <span
-                            className={`font-bold text-sm ${
-                              isLow ? 'text-amber-600' : 'text-slate-900'
-                            }`}
-                          >
-                            {formatNumber(v.shippableQuantity)}
-                          </span>
-                          <span className="text-slate-400 text-xs font-normal">prs</span>
-                          {isLow && (
-                            <span title="Low stock alert (< 30 pairs)">
-                              <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
-                            </span>
-                          )}
-                        </div>
-                      </td>
-
-                      {/* Pricing */}
-                      <td className="px-5 py-3.5 text-right">
-                        <div className="space-y-0.5">
-                          <div className="font-semibold text-slate-800">
-                            {v.sellingPrice ? `$${v.sellingPrice}` : '—'}
+                        {/* SKU & Barcode */}
+                        <td className="px-5 py-3.5">
+                          <div className="font-mono font-bold text-slate-900 text-xs">
+                            {v.sku}
                           </div>
-                          {v.mrp && (
-                            <div className="text-[10px] text-slate-400">
-                              MRP: ${v.mrp}
+                          {v.barcode && (
+                            <div className="flex items-center gap-1 font-mono text-[10px] text-slate-500 mt-0.5">
+                              <Barcode className="h-3 w-3 text-slate-400" />
+                              <span>{v.barcode}</span>
                             </div>
                           )}
-                        </div>
-                      </td>
+                        </td>
 
-                      {/* Actions */}
-                      <td className="px-5 py-3.5 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <button
-                            type="button"
-                            onClick={() => setSelectedVariantForEdit(v)}
-                            title="Edit Variant Product"
-                            className="rounded-lg p-1.5 text-slate-400 hover:bg-blue-50 hover:text-blue-600 transition cursor-pointer"
-                          >
-                            <Edit2 className="h-3.5 w-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (confirm(`Are you sure you want to delete size ${v.size}?`)) {
-                                deleteVariantMutation.mutate(v.id);
-                              }
-                            }}
-                            title="Delete Variant"
-                            className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600 transition cursor-pointer"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                        {/* Material */}
+                        <td className="px-5 py-3.5 font-medium">
+                          {product.material?.name ? (
+                            <span className="rounded-md bg-amber-50 border border-amber-200/60 px-2 py-0.5 text-xs font-semibold text-amber-800">
+                              {product.material.name}
+                            </span>
+                          ) : (
+                            <span className="text-slate-400">—</span>
+                          )}
+                        </td>
+
+                        {/* Color */}
+                        <td className="px-5 py-3.5">
+                          <div className="flex items-center gap-2">
+                            {v.color?.code && (
+                              <span
+                                className="h-3 w-3 rounded-full border border-slate-300 shadow-2xs shrink-0"
+                                style={{ backgroundColor: v.color.code }}
+                              />
+                            )}
+                            <span className="font-bold text-slate-800">
+                              {v.color?.name || 'Color N/A'}
+                            </span>
+                          </div>
+                        </td>
+
+                        {/* Size & Gender */}
+                        <td className="px-5 py-3.5">
+                          <div className="flex items-center gap-2">
+                            <span className="inline-flex rounded-md bg-slate-100 px-2 py-0.5 font-bold text-slate-800">
+                              Size {v.size}
+                            </span>
+                            <span className="text-slate-400">•</span>
+                            <span className="text-[11px] text-slate-600 uppercase font-semibold">
+                              {v.gender}
+                            </span>
+                          </div>
+                        </td>
+
+                        {/* UOM */}
+                        <td className="px-5 py-3.5">
+                          <span className="inline-flex rounded-md bg-slate-100 px-2 py-0.5 font-mono text-[11px] font-semibold text-slate-700">
+                            {v.uom || 'PAIR'}
+                          </span>
+                        </td>
+
+                        {/* Products Per Packet */}
+                        <td className="px-5 py-3.5 text-center font-semibold text-slate-800">
+                          <span>{v.itemsPerPacket || 1}</span>
+                          <span className="text-[10px] text-slate-400 ml-1">/pkt</span>
+                        </td>
+
+                        {/* In-Hand Stock */}
+                        <td className="px-5 py-3.5 text-right">
+                          <div className="inline-flex items-center gap-1.5 justify-end">
+                            <span
+                              className={`font-bold text-sm ${
+                                isLow ? 'text-amber-600' : 'text-slate-900'
+                              }`}
+                            >
+                              {formatNumber(v.shippableQuantity)}
+                            </span>
+                            <span className="text-slate-400 text-xs font-normal">prs</span>
+                            {isLow && (
+                              <span title="Low stock alert (< 30 pairs)">
+                                <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
+                              </span>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* Actions */}
+                        <td className="px-5 py-3.5 text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <button
+                              type="button"
+                              onClick={() => setSelectedVariantForEdit(v)}
+                              title="Edit Variant Product"
+                              className="rounded-lg p-1.5 text-slate-400 hover:bg-blue-50 hover:text-blue-600 transition cursor-pointer"
+                            >
+                              <Edit2 className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (confirm(`Are you sure you want to delete size ${v.size}?`)) {
+                                  deleteVariantMutation.mutate(v.id);
+                                }
+                              }}
+                              title="Delete Variant"
+                              className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600 transition cursor-pointer"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Unified Pagination Toolbar */}
+            <DataPagination
+              currentPage={page}
+              totalPages={totalPages}
+              totalCount={totalVariants}
+              pageSize={pageSize}
+              onPageChange={(p) => setPage(p)}
+              onPageSizeChange={(s) => setPageSize(s)}
+              pageSizeOptions={[10, 20, 50, 100]}
+            />
+          </>
         )}
       </div>
 

@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { PO } from '@/types/commercial';
 import { PoDrawer } from '@/components/commercial/po-drawer';
+import { DataPagination } from '@/components/common/data-pagination';
 import { formatDate, formatNumber } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import NextLink from 'next/link';
@@ -29,6 +30,7 @@ export default function PoPage() {
   const [buyerFilter, setBuyerFilter] = useState('');
   const [lcFilter, setLcFilter] = useState('');
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [selectedPo, setSelectedPo] = useState<PO | null>(null);
 
@@ -49,12 +51,12 @@ export default function PoPage() {
 
   // Fetch PO List
   const { data, isLoading, isFetching } = useQuery({
-    queryKey: ['pos', page, search, statusFilter, buyerFilter, lcFilter],
+    queryKey: ['pos', page, pageSize, search, statusFilter, buyerFilter, lcFilter],
     queryFn: async () => {
       const res = await api.get('/po', {
         params: {
           page,
-          per_page: 25,
+          per_page: pageSize,
           search: search.trim() || undefined,
           status: statusFilter || undefined,
           buyerId: buyerFilter || undefined,
@@ -410,32 +412,16 @@ export default function PoPage() {
           </div>
         )}
 
-        {/* Pagination Footer */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50 px-5 py-3 text-xs">
-            <span className="text-slate-500">
-              Page <strong>{page}</strong> of <strong>{totalPages}</strong>
-            </span>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                disabled={page <= 1}
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-1 font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40 transition cursor-pointer"
-              >
-                Previous
-              </button>
-              <button
-                type="button"
-                disabled={page >= totalPages}
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-1 font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40 transition cursor-pointer"
-              >
-                Next
-              </button>
-            </div>
-          </div>
-        )}
+        {/* Unified Pagination Toolbar */}
+        <DataPagination
+          currentPage={page}
+          totalPages={totalPages}
+          totalCount={totalCount}
+          pageSize={pageSize}
+          onPageChange={(p) => setPage(p)}
+          onPageSizeChange={(s) => setPageSize(s)}
+          pageSizeOptions={[10, 20, 50, 100]}
+        />
       </div>
 
       {/* Slide-over Create/Edit Drawer */}

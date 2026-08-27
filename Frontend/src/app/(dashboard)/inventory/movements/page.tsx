@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { InventoryMovement, InventoryMovementType } from '@/types/inventory';
+import { DataPagination } from '@/components/common/data-pagination';
 import { formatDateTime, formatNumber } from '@/lib/utils';
 import {
   ArrowDownLeft,
@@ -21,15 +22,16 @@ export default function MovementsPage() {
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   // Fetch Movements Ledger
   const { data: movementsData, isLoading, isFetching } = useQuery({
-    queryKey: ['inventory-movements', page, search, typeFilter],
+    queryKey: ['inventory-movements', page, pageSize, search, typeFilter],
     queryFn: async () => {
       const res = await api.get('/inventory/movements', {
         params: {
           page,
-          per_page: 30,
+          per_page: pageSize,
           type: typeFilter || undefined,
           search: search.trim() || undefined,
         },
@@ -171,77 +173,90 @@ export default function MovementsPage() {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                <tr>
-                  <th className="px-5 py-3.5">Timestamp</th>
-                  <th className="px-5 py-3.5">Activity Type</th>
-                  <th className="px-5 py-3.5">SKU & Item</th>
-                  <th className="px-5 py-3.5 text-right">Quantity</th>
-                  <th className="px-5 py-3.5">Storage Location</th>
-                  <th className="px-5 py-3.5">Reference / Note</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
-                {movements.map((m) => {
-                  const badge = getTypeBadge(m.type);
-                  const p = m.inventoryBatchItem?.product;
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                  <tr>
+                    <th className="px-5 py-3.5">Timestamp</th>
+                    <th className="px-5 py-3.5">Movement Type</th>
+                    <th className="px-5 py-3.5">SKU & Item</th>
+                    <th className="px-5 py-3.5 text-right">Quantity</th>
+                    <th className="px-5 py-3.5">Storage Location</th>
+                    <th className="px-5 py-3.5">Reference / Note</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
+                  {movements.map((m) => {
+                    const badge = getTypeBadge(m.type);
+                    const p = m.inventoryBatchItem?.product;
 
-                  return (
-                    <tr key={m.id} className="hover:bg-slate-50/70 transition-colors">
-                      {/* Timestamp */}
-                      <td className="px-5 py-3.5 text-slate-500 font-mono text-[11px]">
-                        {formatDateTime(m.createdAt)}
-                      </td>
+                    return (
+                      <tr key={m.id} className="hover:bg-slate-50/70 transition-colors">
+                        {/* Timestamp */}
+                        <td className="px-5 py-3.5 text-slate-500 font-mono text-[11px]">
+                          {formatDateTime(m.createdAt)}
+                        </td>
 
-                      {/* Movement Type */}
-                      <td className="px-5 py-3.5">
-                        <span
-                          className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-bold ${badge.classes}`}
-                        >
-                          {badge.icon}
-                          <span>{m.type}</span>
-                        </span>
-                      </td>
+                        {/* Movement Type */}
+                        <td className="px-5 py-3.5">
+                          <span
+                            className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-bold ${badge.classes}`}
+                          >
+                            {badge.icon}
+                            <span>{m.type}</span>
+                          </span>
+                        </td>
 
-                      {/* SKU & Item */}
-                      <td className="px-5 py-3.5">
-                        <div className="font-mono font-bold text-slate-900 text-xs">
-                          {p?.sku || 'SKU'}
-                        </div>
-                        <div className="text-[11px] text-slate-500">
-                          {p?.name || 'Variant Product'} &bull; Size {p?.size}
-                        </div>
-                      </td>
+                        {/* SKU & Item */}
+                        <td className="px-5 py-3.5">
+                          <div className="font-mono font-bold text-slate-900 text-xs">
+                            {p?.sku || 'SKU'}
+                          </div>
+                          <div className="text-[11px] text-slate-500">
+                            {p?.name || 'Variant Product'} &bull; Size {p?.size}
+                          </div>
+                        </td>
 
-                      {/* Quantity */}
-                      <td className="px-5 py-3.5 text-right">
-                        <span className={`text-sm ${badge.qtyColor}`}>
-                          {badge.prefix}
-                          {formatNumber(m.quantity)} pairs
-                        </span>
-                      </td>
+                        {/* Quantity */}
+                        <td className="px-5 py-3.5 text-right">
+                          <span className={`text-sm ${badge.qtyColor}`}>
+                            {badge.prefix}
+                            {formatNumber(m.quantity)} pairs
+                          </span>
+                        </td>
 
-                      {/* Storage Location */}
-                      <td className="px-5 py-3.5">
-                        <span className="font-mono font-semibold text-slate-800 bg-slate-100 px-2 py-0.5 rounded">
-                          {m.inventoryBatchItem?.location?.code || 'WH Location'}
-                        </span>
-                      </td>
+                        {/* Storage Location */}
+                        <td className="px-5 py-3.5">
+                          <span className="font-mono font-semibold text-slate-800 bg-slate-100 px-2 py-0.5 rounded">
+                            {m.inventoryBatchItem?.location?.code || 'WH Location'}
+                          </span>
+                        </td>
 
-                      {/* Reference / Note */}
-                      <td className="px-5 py-3.5">
-                        <div className="text-slate-700 text-xs truncate max-w-xs">
-                          {m.note || m.referenceId || 'System Auto-Allocated'}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                        {/* Reference / Note */}
+                        <td className="px-5 py-3.5">
+                          <div className="text-slate-700 text-xs truncate max-w-xs">
+                            {m.note || m.referenceId || 'System Auto-Allocated'}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Unified Pagination Toolbar */}
+            <DataPagination
+              currentPage={page}
+              totalPages={totalPages}
+              totalCount={totalCount}
+              pageSize={pageSize}
+              onPageChange={(p) => setPage(p)}
+              onPageSizeChange={(s) => setPageSize(s)}
+              pageSizeOptions={[10, 20, 50, 100]}
+            />
+          </>
         )}
       </div>
     </div>

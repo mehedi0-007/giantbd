@@ -6,6 +6,7 @@ import api from '@/lib/api';
 import { StockOut, StockOutType, StockOutStatus } from '@/types/inventory';
 import { PO } from '@/types/commercial';
 import { ChallanPdfModal } from '@/components/inventory/challan-pdf-modal';
+import { DataPagination } from '@/components/common/data-pagination';
 import { formatDate, formatNumber, calculateBatchAge } from '@/lib/utils';
 import {
   Truck,
@@ -41,6 +42,7 @@ export default function StockOutPage() {
   const [buyerFilter, setBuyerFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   // Print Challan Modal State
   const [selectedChallanForPrint, setSelectedChallanForPrint] = useState<StockOut | null>(null);
@@ -89,12 +91,12 @@ export default function StockOutPage() {
 
   // 2. Fetch Challans List
   const { data: challansData, isLoading: loadingChallans, isFetching } = useQuery({
-    queryKey: ['stock-outs', page, search, statusFilter, buyerFilter, typeFilter],
+    queryKey: ['stock-outs', page, pageSize, search, statusFilter, buyerFilter, typeFilter],
     queryFn: async () => {
       const res = await api.get('/inventory/stock-out', {
         params: {
           page,
-          per_page: 20,
+          per_page: pageSize,
           search: search.trim() || undefined,
           status: statusFilter || undefined,
           buyerId: buyerFilter || undefined,
@@ -165,6 +167,9 @@ export default function StockOutPage() {
     : Array.isArray(challansData)
     ? challansData
     : [];
+
+  const totalCount = challansData?.total || challans.length;
+  const totalPages = challansData?.total_page || 1;
 
   const lcs: any[] = Array.isArray(lcsData?.data) ? lcsData.data : Array.isArray(lcsData) ? lcsData : [];
   const pos: PO[] = Array.isArray(posData?.data) ? posData.data : Array.isArray(posData) ? posData : [];
@@ -588,122 +593,135 @@ export default function StockOutPage() {
                 </button>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                    <tr>
-                      <th className="px-5 py-3.5">Challan Number</th>
-                      <th className="px-5 py-3.5">PO / Buyer Contract</th>
-                      <th className="px-5 py-3.5">Dispatch Date</th>
-                      <th className="px-5 py-3.5">Destination Port</th>
-                      <th className="px-5 py-3.5">Status</th>
-                      <th className="px-5 py-3.5 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
-                    {challans.map((c) => (
-                      <tr key={c.id} className="hover:bg-slate-50/70 transition-colors">
-                        <td className="px-5 py-4">
-                          <div className="font-mono font-bold text-slate-900 text-xs">
-                            {c.challanNumber}
-                          </div>
-                          <div className="text-[10px] text-slate-400">
-                            Sequence #{c.partialSequence || 1} • {c.type}
-                          </div>
-                        </td>
-
-                        <td className="px-5 py-4">
-                          {c.po ? (
-                            <div>
-                              <div className="font-mono font-semibold text-blue-600">
-                                {c.po.poNumber}
-                              </div>
-                              <div className="text-[11px] text-slate-500">
-                                {c.buyer?.name || 'Buyer'}
-                              </div>
+              <>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                      <tr>
+                        <th className="px-5 py-3.5">Challan Number</th>
+                        <th className="px-5 py-3.5">PO / Buyer Contract</th>
+                        <th className="px-5 py-3.5">Dispatch Date</th>
+                        <th className="px-5 py-3.5">Destination Port</th>
+                        <th className="px-5 py-3.5">Status</th>
+                        <th className="px-5 py-3.5 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
+                      {challans.map((c) => (
+                        <tr key={c.id} className="hover:bg-slate-50/70 transition-colors">
+                          <td className="px-5 py-4">
+                            <div className="font-mono font-bold text-slate-900 text-xs">
+                              {c.challanNumber}
                             </div>
-                          ) : (
-                            <span className="text-slate-400 italic">Direct Dispatch</span>
-                          )}
-                        </td>
+                            <div className="text-[10px] text-slate-400">
+                              Sequence #{c.partialSequence || 1} • {c.type}
+                            </div>
+                          </td>
 
-                        <td className="px-5 py-4 text-slate-600">
-                          {formatDate(c.dispatchDate)}
-                        </td>
+                          <td className="px-5 py-4">
+                            {c.po ? (
+                              <div>
+                                <div className="font-mono font-semibold text-blue-600">
+                                  {c.po.poNumber}
+                                </div>
+                                <div className="text-[11px] text-slate-500">
+                                  {c.buyer?.name || 'Buyer'}
+                                </div>
+                              </div>
+                            ) : (
+                              <span className="text-slate-400 italic">Direct Dispatch</span>
+                            )}
+                          </td>
 
-                        <td className="px-5 py-4 text-slate-600">
-                          {c.destination || 'Standard Factory Delivery'}
-                        </td>
+                          <td className="px-5 py-4 text-slate-600">
+                            {formatDate(c.dispatchDate)}
+                          </td>
 
-                        <td className="px-5 py-4">
-                          <span
-                            className={`inline-flex rounded-full px-2.5 py-0.5 text-[10px] font-bold border ${getStatusBadge(
-                              c.status,
-                            )}`}
-                          >
-                            {c.status}
-                          </span>
-                        </td>
+                          <td className="px-5 py-4 text-slate-600">
+                            {c.destination || 'Standard Factory Delivery'}
+                          </td>
 
-                        <td className="px-5 py-4 text-right">
-                          <div className="flex items-center justify-end gap-1.5">
-                            <button
-                              type="button"
-                              onClick={() => setSelectedChallanForPrint(c)}
-                              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-blue-600 hover:bg-blue-50 transition cursor-pointer"
-                              title="Print Official Challan"
+                          <td className="px-5 py-4">
+                            <span
+                              className={`inline-flex rounded-full px-2.5 py-0.5 text-[10px] font-bold border ${getStatusBadge(
+                                c.status,
+                              )}`}
                             >
-                              <Printer className="h-3.5 w-3.5" />
-                              <span>Print</span>
-                            </button>
+                              {c.status}
+                            </span>
+                          </td>
 
-                            {c.status === 'ISSUED' && (
-                              <>
-                                <button
-                                  type="button"
-                                  onClick={() => setDeliveringChallan(c)}
-                                  className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 border border-emerald-200 px-2.5 py-1 text-[11px] font-bold text-emerald-700 hover:bg-emerald-100 transition cursor-pointer shadow-2xs"
-                                  title="Mark as Delivered"
-                                >
-                                  <CheckCircle2 className="h-3.5 w-3.5" />
-                                  <span>Mark Delivered</span>
-                                </button>
+                          <td className="px-5 py-4 text-right">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => setSelectedChallanForPrint(c)}
+                                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-blue-600 hover:bg-blue-50 transition cursor-pointer"
+                                title="Print Official Challan"
+                              >
+                                <Printer className="h-3.5 w-3.5" />
+                                <span>Print</span>
+                              </button>
+
+                              {c.status === 'ISSUED' && (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={() => setDeliveringChallan(c)}
+                                    className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 border border-emerald-200 px-2.5 py-1 text-[11px] font-bold text-emerald-700 hover:bg-emerald-100 transition cursor-pointer shadow-2xs"
+                                    title="Mark as Delivered"
+                                  >
+                                    <CheckCircle2 className="h-3.5 w-3.5" />
+                                    <span>Mark Delivered</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setCancellingChallan(c);
+                                      setCancelNote('');
+                                    }}
+                                    className="inline-flex items-center gap-1 rounded-lg bg-rose-50 border border-rose-200 px-2 py-1 text-[11px] font-semibold text-rose-700 hover:bg-rose-100 transition cursor-pointer"
+                                    title="Cancel Challan & Restore Stock"
+                                  >
+                                    <Ban className="h-3.5 w-3.5" />
+                                    <span>Cancel</span>
+                                  </button>
+                                </>
+                              )}
+
+                              {c.status === 'DELIVERED' && (
                                 <button
                                   type="button"
                                   onClick={() => {
-                                    setCancellingChallan(c);
-                                    setCancelNote('');
+                                    setPaymentSettlingChallan(c);
+                                    setPaymentNote('');
                                   }}
-                                  className="inline-flex items-center gap-1 rounded-lg bg-rose-50 border border-rose-200 px-2 py-1 text-[11px] font-semibold text-rose-700 hover:bg-rose-100 transition cursor-pointer"
-                                  title="Cancel Challan & Restore Stock"
+                                  className="inline-flex items-center gap-1 rounded-lg bg-purple-50 border border-purple-200 px-2.5 py-1 text-[11px] font-bold text-purple-700 hover:bg-purple-100 transition cursor-pointer shadow-2xs"
+                                  title="Confirm Commercial Settlement"
                                 >
-                                  <Ban className="h-3.5 w-3.5" />
-                                  <span>Cancel</span>
+                                  <CheckCircle2 className="h-3.5 w-3.5" />
+                                  <span>Payment Received</span>
                                 </button>
-                              </>
-                            )}
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
 
-                            {c.status === 'DELIVERED' && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setPaymentSettlingChallan(c);
-                                  setPaymentNote('');
-                                }}
-                                className="inline-flex items-center gap-1 rounded-lg bg-purple-50 border border-purple-200 px-2.5 py-1 text-[11px] font-bold text-purple-700 hover:bg-purple-100 transition cursor-pointer shadow-2xs"
-                                title="Confirm Commercial Settlement"
-                              >
-                                <CheckCircle2 className="h-3.5 w-3.5" />
-                                <span>Payment Received</span>
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                {/* Unified Pagination Toolbar */}
+                <DataPagination
+                  currentPage={page}
+                  totalPages={totalPages}
+                  totalCount={totalCount}
+                  pageSize={pageSize}
+                  onPageChange={(p) => setPage(p)}
+                  onPageSizeChange={(s) => setPageSize(s)}
+                  pageSizeOptions={[10, 20, 50, 100]}
+                />
+              </>
             )}
           </div>
         </div>

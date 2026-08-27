@@ -6,6 +6,7 @@ import api from '@/lib/api';
 import { Warehouse, Zone, SubZone, Rack, StorageLocation } from '@/types/warehouse';
 import { BarcodeModal } from '@/components/warehouse/barcode-modal';
 import { WarehouseDrawer } from '@/components/warehouse/warehouse-drawer';
+import { DataPagination } from '@/components/common/data-pagination';
 import {
   Warehouse as WarehouseIcon,
   Search,
@@ -44,6 +45,8 @@ export default function WarehousePage() {
   const [selectedSubZoneId, setSelectedSubZoneId] = useState<string>('');
   const [selectedRackId, setSelectedRackId] = useState<string>('');
   const [occupancyFilter, setOccupancyFilter] = useState<'ALL' | 'OCCUPIED' | 'EMPTY'>('ALL');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   // Fetch Warehouses Hierarchy
   const { data: whData, isLoading: loadingWh } = useQuery({
@@ -56,11 +59,12 @@ export default function WarehousePage() {
 
   // Fetch Locations Table
   const { data: locationsData, isLoading: loadingLoc, isFetching } = useQuery({
-    queryKey: ['locations-table', search, selectedWarehouseId, selectedZoneId, selectedSubZoneId, selectedRackId],
+    queryKey: ['locations-table', page, pageSize, search, selectedWarehouseId, selectedZoneId, selectedSubZoneId, selectedRackId],
     queryFn: async () => {
       const res = await api.get('/attributes/locations', {
         params: {
-          per_page: 50,
+          page,
+          per_page: pageSize,
           search: search.trim() || undefined,
           warehouseId: selectedWarehouseId || undefined,
           zoneId: selectedZoneId || undefined,
@@ -499,95 +503,108 @@ export default function WarehousePage() {
                 </button>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                    <tr>
-                      <th className="px-5 py-3.5">Location Code & Barcode</th>
-                      <th className="px-5 py-3.5">Warehouse Hierarchy Path</th>
-                      <th className="px-5 py-3.5">Status</th>
-                      <th className="px-5 py-3.5 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
-                    {locations.map((loc) => (
-                      <tr key={loc.id} className="hover:bg-slate-50/70 transition-colors">
-                        {/* Bin Code & Barcode */}
-                        <td className="px-5 py-3.5">
-                          <div className="font-mono font-bold text-slate-900 text-xs">
-                            {loc.code}
-                          </div>
-                          {loc.barcode && (
-                            <div className="flex items-center gap-1 font-mono text-[10px] text-slate-500 mt-0.5">
-                              <Barcode className="h-3 w-3 text-slate-400" />
-                              <span>{loc.barcode}</span>
-                            </div>
-                          )}
-                        </td>
-
-                        {/* Hierarchy Path */}
-                        <td className="px-5 py-3.5">
-                          <div className="flex items-center gap-1.5 text-slate-700 font-medium flex-wrap">
-                            <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px]">
-                              {loc.warehouse?.name || 'WH'}
-                            </span>
-                            <span className="text-slate-400">›</span>
-                            <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px]">
-                              {loc.zone?.name || 'Zone'}
-                            </span>
-                            {loc.subZone && (
-                              <>
-                                <span className="text-slate-400">›</span>
-                                <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px]">
-                                  {loc.subZone.name}
-                                </span>
-                              </>
-                            )}
-                            {loc.rack && (
-                              <>
-                                <span className="text-slate-400">›</span>
-                                <span className="rounded bg-amber-50 border border-amber-200/60 px-1.5 py-0.5 text-[11px] font-semibold text-amber-800">
-                                  Rack {loc.rack.code || loc.rack.name}
-                                </span>
-                              </>
-                            )}
-                          </div>
-                        </td>
-
-                        {/* Status */}
-                        <td className="px-5 py-3.5">
-                          <span className="inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-200">
-                            {loc.status}
-                          </span>
-                        </td>
-
-                        {/* Actions */}
-                        <td className="px-5 py-3.5 text-right">
-                          <div className="flex items-center justify-end gap-1.5">
-                            <button
-                              type="button"
-                              onClick={() => setSelectedLocationForBarcode(loc)}
-                              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-blue-600 hover:bg-blue-50 transition cursor-pointer"
-                              title="Print Barcode Sticker"
-                            >
-                              <Printer className="h-3.5 w-3.5" />
-                              <span>Sticker</span>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteLocation(loc.id, loc.code)}
-                              className="rounded-lg p-1 text-slate-400 hover:bg-red-50 hover:text-red-600 transition cursor-pointer"
-                              title="Delete Location"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
-                        </td>
+              <>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                      <tr>
+                        <th className="px-5 py-3.5">Location Code & Barcode</th>
+                        <th className="px-5 py-3.5">Warehouse Hierarchy Path</th>
+                        <th className="px-5 py-3.5">Status</th>
+                        <th className="px-5 py-3.5 text-right">Actions</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
+                      {locations.map((loc) => (
+                        <tr key={loc.id} className="hover:bg-slate-50/70 transition-colors">
+                          {/* Bin Code & Barcode */}
+                          <td className="px-5 py-3.5">
+                            <div className="font-mono font-bold text-slate-900 text-xs">
+                              {loc.code}
+                            </div>
+                            {loc.barcode && (
+                              <div className="flex items-center gap-1 font-mono text-[10px] text-slate-500 mt-0.5">
+                                <Barcode className="h-3 w-3 text-slate-400" />
+                                <span>{loc.barcode}</span>
+                              </div>
+                            )}
+                          </td>
+
+                          {/* Hierarchy Path */}
+                          <td className="px-5 py-3.5">
+                            <div className="flex items-center gap-1.5 text-slate-700 font-medium flex-wrap">
+                              <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px]">
+                                {loc.warehouse?.name || 'WH'}
+                              </span>
+                              <span className="text-slate-400">›</span>
+                              <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px]">
+                                {loc.zone?.name || 'Zone'}
+                              </span>
+                              {loc.subZone && (
+                                <>
+                                  <span className="text-slate-400">›</span>
+                                  <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px]">
+                                    {loc.subZone.name}
+                                  </span>
+                                </>
+                              )}
+                              {loc.rack && (
+                                <>
+                                  <span className="text-slate-400">›</span>
+                                  <span className="rounded bg-amber-50 border border-amber-200/60 px-1.5 py-0.5 text-[11px] font-semibold text-amber-800">
+                                    Rack {loc.rack.code || loc.rack.name}
+                                  </span>
+                                </>
+                              )}
+                            </div>
+                          </td>
+
+                          {/* Status */}
+                          <td className="px-5 py-3.5">
+                            <span className="inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-200">
+                              {loc.status}
+                            </span>
+                          </td>
+
+                          {/* Actions */}
+                          <td className="px-5 py-3.5 text-right">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => setSelectedLocationForBarcode(loc)}
+                                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-blue-600 hover:bg-blue-50 transition cursor-pointer"
+                                title="Print Barcode Sticker"
+                              >
+                                <Printer className="h-3.5 w-3.5" />
+                                <span>Sticker</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteLocation(loc.id, loc.code)}
+                                className="rounded-lg p-1 text-slate-400 hover:bg-red-50 hover:text-red-600 transition cursor-pointer"
+                                title="Delete Location"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Unified Pagination Toolbar */}
+                <DataPagination
+                  currentPage={page}
+                  totalPages={locationsData?.total_page || 1}
+                  totalCount={locationsData?.total || rawLocations.length}
+                  pageSize={pageSize}
+                  onPageChange={(p) => setPage(p)}
+                  onPageSizeChange={(s) => setPageSize(s)}
+                  pageSizeOptions={[10, 20, 50, 100]}
+                />
+              </>
             )}
           </div>
         </div>
