@@ -8,7 +8,7 @@ import { formatDate, formatNumber, calculateBatchAge } from '@/lib/utils';
 import { BatchDetailModal } from '@/components/inventory/batch-detail-modal';
 import { BatchLabelModal } from '@/components/inventory/batch-label-modal';
 import { AdjustBatchModal } from '@/components/inventory/adjust-batch-modal';
-import { DataPagination } from '@/components/common/data-pagination';
+import { DataPagination, TableSkeleton, EmptyState } from '@/components/common';
 import {
   Boxes,
   Search,
@@ -449,23 +449,37 @@ export default function CurrentStockPage() {
       {viewMode === 'batches' ? (
         <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs">
           {loadingBatches ? (
-            <div className="flex flex-col items-center justify-center py-20">
-              <Loader2 className="h-8 w-8 animate-spin text-blue-600 mb-3" />
-              <p className="text-xs font-medium text-slate-500">Loading production batches...</p>
-            </div>
+            <TableSkeleton
+              rows={6}
+              columns={['4%', '22%', '18%', '16%', '14%', '10%', '10%', '6%']}
+            />
           ) : batches.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center">
-              <Boxes className="h-10 w-10 text-slate-300 mb-2" />
-              <h4 className="text-sm font-bold text-slate-800">No inventory batches found</h4>
-              <p className="text-xs text-slate-500 mt-1 max-w-sm">
-                Perform Goods Receipt (Stock-In) to receive incoming production lots.
-              </p>
-            </div>
+            <EmptyState
+              icon={<Boxes className="h-7 w-7 text-blue-600" />}
+              title={search || colorFilter || genderFilter || warehouseFilter ? 'No matching batches found' : 'No inventory batches yet'}
+              description={
+                search || colorFilter || genderFilter || warehouseFilter
+                  ? 'No production lots match your filter criteria. Try clearing some filters or searching with a different term.'
+                  : 'Perform Goods Receipt (Stock-In) to receive incoming production batches into warehouse storage locations.'
+              }
+              action={
+                search || colorFilter || genderFilter || warehouseFilter
+                  ? {
+                      label: 'Reset Filters',
+                      onClick: handleResetFilters,
+                      variant: 'secondary',
+                    }
+                  : {
+                      label: 'Go to Stock-In',
+                      href: '/inventory/stock-in',
+                    }
+              }
+            />
           ) : (
             <>
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                <table className="w-full text-left text-xs min-w-[800px]">
+                  <thead className="sticky top-0 z-10 border-b border-slate-100 bg-slate-50/95 backdrop-blur-xs text-[11px] font-bold uppercase tracking-wider text-slate-500">
                     <tr>
                       <th className="px-4 py-3.5 w-10"></th>
                       <th className="px-4 py-3.5">Batch Identifier</th>
@@ -707,25 +721,36 @@ export default function CurrentStockPage() {
         /* Flat Items View */
         <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs">
           {loadingStock ? (
-            <div className="flex flex-col items-center justify-center py-20">
-              <Loader2 className="h-8 w-8 animate-spin text-blue-600 mb-3" />
-              <p className="text-xs font-medium text-slate-500">Calculating real-time stock levels...</p>
-            </div>
+            <TableSkeleton
+              rows={6}
+              columns={['20%', '22%', '18%', '16%', '8%', '8%', '8%']}
+            />
           ) : stockItems.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center">
-              <Package className="h-10 w-10 text-slate-300 mb-2" />
-              <h4 className="text-sm font-bold text-slate-800">No stock records found</h4>
-              <p className="text-xs text-slate-500 mt-1 max-w-sm">
-                {lowStockOnly
-                  ? 'No items are currently below the 30 pairs low stock threshold.'
-                  : 'No inventory batches match your active search and filter criteria.'}
-              </p>
-            </div>
+            <EmptyState
+              icon={<Package className="h-7 w-7 text-indigo-600" />}
+              title={lowStockOnly ? 'No low stock alerts' : search || colorFilter || genderFilter || warehouseFilter ? 'No matching stock found' : 'No stock records yet'}
+              description={
+                lowStockOnly
+                  ? 'Great! No shoe sizes or variants are currently below the low stock threshold.'
+                  : search || colorFilter || genderFilter || warehouseFilter
+                  ? 'No variant inventory matches your active filter criteria.'
+                  : 'Receive incoming goods batches to build up real-time stock balances.'
+              }
+              action={
+                lowStockOnly || search || colorFilter || genderFilter || warehouseFilter
+                  ? {
+                      label: 'Reset Filters',
+                      onClick: handleResetFilters,
+                      variant: 'secondary',
+                    }
+                  : undefined
+              }
+            />
           ) : (
             <>
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                <table className="w-full text-left text-xs min-w-[750px]">
+                  <thead className="sticky top-0 z-10 border-b border-slate-100 bg-slate-50/95 backdrop-blur-xs text-[11px] font-bold uppercase tracking-wider text-slate-500">
                     <tr>
                       <th className="px-5 py-3.5">SKU & Barcode</th>
                       <th className="px-5 py-3.5">Product Style</th>

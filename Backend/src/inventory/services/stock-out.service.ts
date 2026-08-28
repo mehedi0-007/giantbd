@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -263,25 +264,47 @@ export class StockOutService {
         },
       });
 
-      // 7. Decrement BatchItem.availableQty
-      await Promise.all(
-        activeItems.map((item) =>
-          tx.batchItem.update({
-            where: { id: item.batchItemId },
-            data: { availableQty: { decrement: item.issueQty } },
-          }),
-        ),
+      // 7. Atomically decrement BatchItem.availableQty in deterministic ID order (prevents deadlocks)
+      const sortedActiveItems = [...activeItems].sort((a, b) =>
+        a.batchItemId.localeCompare(b.batchItemId),
       );
 
-      // 8. Decrement VariantProduct.shippableQuantity
-      await Promise.all(
-        Array.from(variantQtyMap.entries()).map(([variantId, qty]) =>
-          tx.variantProduct.update({
-            where: { id: variantId },
-            data: { shippableQuantity: { decrement: qty } },
-          }),
-        ),
+      for (const item of sortedActiveItems) {
+        const updateResult = await tx.batchItem.updateMany({
+          where: {
+            id: item.batchItemId,
+            availableQty: { gte: item.issueQty },
+          },
+          data: { availableQty: { decrement: item.issueQty } },
+        });
+
+        if (updateResult.count === 0) {
+          throw new ConflictException(
+            `Insufficient stock for batch item '${item.batchItemId}' due to concurrent dispatch. Please refresh stock and retry.`,
+          );
+        }
+      }
+
+      // 8. Atomically decrement VariantProduct.shippableQuantity in deterministic ID order
+      const sortedVariantEntries = Array.from(variantQtyMap.entries()).sort(
+        ([a], [b]) => a.localeCompare(b),
       );
+
+      for (const [variantId, qty] of sortedVariantEntries) {
+        const variantUpdateResult = await tx.variantProduct.updateMany({
+          where: {
+            id: variantId,
+            shippableQuantity: { gte: qty },
+          },
+          data: { shippableQuantity: { decrement: qty } },
+        });
+
+        if (variantUpdateResult.count === 0) {
+          throw new ConflictException(
+            `Insufficient shippable catalog stock for variant '${variantId}' due to concurrent dispatch.`,
+          );
+        }
+      }
 
       // 9. Bulk Insert InventoryMovement Audit Logs
       const movementType =

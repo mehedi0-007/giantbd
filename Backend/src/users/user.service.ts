@@ -18,6 +18,14 @@ export class UserService {
       signature?: Express.Multer.File[];
     },
   ) {
+    const role = await this.prismaService.role.findFirst({
+      where: { id: dto.roleId, status: { not: 'DELETED' } },
+    });
+
+    if (!role) {
+      throw new NotFoundException(`Role with ID '${dto.roleId}' not found or is inactive`);
+    }
+
     const isEmailExist = await this.prismaService.user.findFirst({
       where: { email: dto.email, status: { not: 'DELETED' } },
     });
@@ -52,7 +60,7 @@ export class UserService {
         email: dto.email,
         phone: dto.phone || null,
         password: hashPass,
-        roleId: dto.roleId,
+        roleId: role.id,
         gender: dto.gender,
         image: imagePath,
         signature: signaturePath,

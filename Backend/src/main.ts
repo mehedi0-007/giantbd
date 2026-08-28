@@ -5,6 +5,7 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
 import {
   GlobalExceptionFilter,
+  IdempotencyInterceptor,
   LoggingInterceptor,
   TransformResponseInterceptor,
 } from './common';
@@ -36,18 +37,19 @@ async function bootstrap() {
 
   app.use(cookieParser());
 
+  const isProd = process.env.NODE_ENV === 'production';
   const allowedOrigins = process.env.FRONTEND_URL
-    ? process.env.FRONTEND_URL.split(',')
-    : process.env.NODE_ENV === 'production'
+    ? process.env.FRONTEND_URL.split(',').map((u) => u.trim())
+    : isProd
     ? []
-    : ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:4200'];
+    : true; // Allow any local dev origin in non-production
 
-  if (process.env.NODE_ENV === 'production' && !process.env.FRONTEND_URL) {
+  if (isProd && !process.env.FRONTEND_URL) {
     console.warn('\x1b[33m%s\x1b[0m', '⚠️  WARNING: FRONTEND_URL is not set. CORS will deny all cross-origin requests in production.');
   }
 
   app.enableCors({
-    origin: allowedOrigins.length > 0 ? allowedOrigins : false,
+    origin: allowedOrigins,
     credentials: true,
   });
 
@@ -66,6 +68,7 @@ async function bootstrap() {
 
   app.useGlobalInterceptors(
     new LoggingInterceptor(),
+    new IdempotencyInterceptor(),
     new TransformResponseInterceptor(),
   );
   app.useGlobalFilters(new GlobalExceptionFilter());

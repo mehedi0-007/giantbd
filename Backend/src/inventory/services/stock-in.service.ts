@@ -345,43 +345,43 @@ export class StockInService {
         })),
       });
 
-      // Step F: Increment shippable stock on variants
-      await Promise.all(
-        Array.from(variantQtyMap.entries()).map(([variantId, qty]) =>
-          tx.variantProduct.update({
-            where: { id: variantId },
-            data: { shippableQuantity: { increment: qty } },
-          }),
-        ),
+      // Step F: Increment shippable stock on variants in deterministic ID order
+      const sortedVariantEntries = Array.from(variantQtyMap.entries()).sort(
+        ([a], [b]) => a.localeCompare(b),
       );
 
-      // Step G: Auto advance PO progress if poId is attached
+      for (const [variantId, qty] of sortedVariantEntries) {
+        await tx.variantProduct.update({
+          where: { id: variantId },
+          data: { shippableQuantity: { increment: qty } },
+        });
+      }
+
+      // Step G: Auto advance PO production progress if poId is attached
       if (dto.poId) {
-        await Promise.all(
-          Array.from(variantQtyMap.entries()).map(([variantId, qty]) =>
-            tx.pOItem.updateMany({
-              where: {
-                poId: dto.poId,
-                variantProductId: variantId,
-              },
-              data: {
-                shippedQuantity: { increment: qty },
-              },
-            }),
-          ),
-        );
+        for (const [variantId, qty] of sortedVariantEntries) {
+          await tx.pOItem.updateMany({
+            where: {
+              poId: dto.poId,
+              variantProductId: variantId,
+            },
+            data: {
+              producedQuantity: { increment: qty },
+            },
+          });
+        }
 
         const poItems = await tx.pOItem.findMany({ where: { poId: dto.poId } });
         if (poItems.length > 0) {
-          const isAllFulfilled = poItems.every((i) => i.shippedQuantity >= i.quantity);
-          const hasAnyStock = poItems.some((i) => i.shippedQuantity > 0);
+          const isAllProduced = poItems.every((i) => (i.producedQuantity ?? 0) >= i.quantity);
+          const hasAnyProduced = poItems.some((i) => (i.producedQuantity ?? 0) > 0);
 
           await tx.pO.update({
             where: { id: dto.poId },
             data: {
-              status: isAllFulfilled
+              status: isAllProduced
                 ? 'READY_FOR_SHIPMENT'
-                : hasAnyStock
+                : hasAnyProduced
                   ? 'IN_PRODUCTION'
                   : undefined,
             },

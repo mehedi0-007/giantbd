@@ -107,6 +107,7 @@ model User {
   updatedAt DateTime @updatedAt
 
   @@index([roleId])
+  @@index([status])
 }
 
 model Role {
@@ -298,6 +299,7 @@ model VariantProduct {
   @@index([categoryId])
   @@index([subCategoryId])
   @@index([status])
+  @@index([masterProductId, colorId, status])
 }
 
 model Batch {
@@ -370,6 +372,7 @@ model BatchItem {
   @@index([productId])
   @@index([batchId])
   @@index([locationId])
+  @@index([productId, availableQty])
 }
 
 model InventoryMovement {
@@ -390,6 +393,8 @@ model InventoryMovement {
   @@index([inventoryBatchItemId])
   @@index([type])
   @@index([createdAt])
+  @@index([type, createdAt])
+  @@index([inventoryBatchItemId, createdAt])
 }
 
 model Warehouse {
@@ -575,6 +580,7 @@ model PO {
   @@index([status])
   @@index([orderDate])
   @@index([deliveryDate])
+  @@index([status, orderDate])
 }
 
 model POItem {
@@ -584,6 +590,7 @@ model POItem {
   variantProductId String
   variantProduct   VariantProduct @relation(fields: [variantProductId], references: [id])
   quantity         Int
+  producedQuantity Int            @default(0)
   shippedQuantity  Int            @default(0)
 
   createdAt DateTime @default(now())

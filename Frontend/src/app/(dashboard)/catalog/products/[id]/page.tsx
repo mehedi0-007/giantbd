@@ -8,6 +8,8 @@ import { MasterProduct, VariantProduct } from '@/types/catalog';
 import { BulkVariantModal } from '@/components/catalog/bulk-variant-modal';
 import { EditVariantModal } from '@/components/catalog/edit-variant-modal';
 import { DataPagination } from '@/components/common/data-pagination';
+import { ConfirmDialog } from '@/components/common/confirm-dialog';
+import { toast } from 'sonner';
 import { formatNumber } from '@/lib/utils';
 import NextLink from 'next/link';
 import {
@@ -36,6 +38,7 @@ export default function ProductDetailPage() {
 
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [selectedVariantForEdit, setSelectedVariantForEdit] = useState<VariantProduct | null>(null);
+  const [variantToDelete, setVariantToDelete] = useState<VariantProduct | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
@@ -55,8 +58,13 @@ export default function ProductDetailPage() {
       await api.delete(`/variants/${variantId}`);
     },
     onSuccess: () => {
+      toast.success('Variant deactivated successfully');
       queryClient.invalidateQueries({ queryKey: ['master-product-detail', id] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-data'] });
+      setVariantToDelete(null);
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message || 'Failed to deactivate variant');
     },
   });
 
@@ -220,8 +228,8 @@ export default function ProductDetailPage() {
         ) : (
           <>
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+              <table className="w-full text-left text-xs min-w-[850px]">
+                <thead className="sticky top-0 z-10 border-b border-slate-100 bg-slate-50/95 backdrop-blur-xs text-[11px] font-bold uppercase tracking-wider text-slate-500">
                   <tr>
                     <th className="px-5 py-3.5">Image</th>
                     <th className="px-5 py-3.5">SKU & Barcode</th>
@@ -346,26 +354,24 @@ export default function ProductDetailPage() {
 
                         {/* Actions */}
                         <td className="px-5 py-3.5 text-right">
-                          <div className="flex items-center justify-end gap-1">
+                          <div className="flex items-center justify-end gap-1.5">
                             <button
                               type="button"
                               onClick={() => setSelectedVariantForEdit(v)}
                               title="Edit Variant Product"
-                              className="rounded-lg p-1.5 text-slate-400 hover:bg-blue-50 hover:text-blue-600 transition cursor-pointer"
+                              aria-label={`Edit variant size ${v.size}`}
+                              className="rounded-lg p-2 text-slate-400 hover:bg-blue-50 hover:text-blue-600 transition cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center"
                             >
-                              <Edit2 className="h-3.5 w-3.5" />
+                              <Edit2 className="h-4 w-4" />
                             </button>
                             <button
                               type="button"
-                              onClick={() => {
-                                if (confirm(`Are you sure you want to delete size ${v.size}?`)) {
-                                  deleteVariantMutation.mutate(v.id);
-                                }
-                              }}
-                              title="Delete Variant"
-                              className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600 transition cursor-pointer"
+                              onClick={() => setVariantToDelete(v)}
+                              title="Deactivate Variant"
+                              aria-label={`Deactivate variant size ${v.size}`}
+                              className="rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-600 transition cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center"
                             >
-                              <Trash2 className="h-3.5 w-3.5" />
+                              <Trash2 className="h-4 w-4" />
                             </button>
                           </div>
                         </td>
@@ -394,7 +400,10 @@ export default function ProductDetailPage() {
       <BulkVariantModal
         isOpen={isBulkModalOpen}
         onClose={() => setIsBulkModalOpen(false)}
-        onSuccess={() => queryClient.invalidateQueries({ queryKey: ['master-product-detail', id] })}
+        onSuccess={() => {
+          toast.success('Variants generated successfully');
+          queryClient.invalidateQueries({ queryKey: ['master-product-detail', id] });
+        }}
         masterProductId={product.id}
         masterSku={product.sku}
       />
@@ -404,7 +413,30 @@ export default function ProductDetailPage() {
         isOpen={!!selectedVariantForEdit}
         onClose={() => setSelectedVariantForEdit(null)}
         variant={selectedVariantForEdit}
-        onSuccess={() => queryClient.invalidateQueries({ queryKey: ['master-product-detail', id] })}
+        onSuccess={() => {
+          toast.success('Variant updated successfully');
+          queryClient.invalidateQueries({ queryKey: ['master-product-detail', id] });
+        }}
+      />
+
+      {/* Accessible Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={Boolean(variantToDelete)}
+        onClose={() => setVariantToDelete(null)}
+        onConfirm={async () => {
+          if (variantToDelete) {
+            await deleteVariantMutation.mutateAsync(variantToDelete.id);
+          }
+        }}
+        title="Deactivate Variant Product"
+        description={
+          <>
+            Are you sure you want to deactivate variant SKU <strong className="text-slate-900 font-mono">{variantToDelete?.sku}</strong> (Size EU {variantToDelete?.size})?
+          </>
+        }
+        confirmText="Deactivate Variant"
+        variant="danger"
+        isLoading={deleteVariantMutation.isPending}
       />
     </div>
   );

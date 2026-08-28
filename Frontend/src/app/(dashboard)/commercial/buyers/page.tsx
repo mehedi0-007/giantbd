@@ -5,6 +5,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { Buyer } from '@/types/commercial';
 import { BuyerDrawer } from '@/components/commercial/buyer-drawer';
+import { ConfirmDialog, TableSkeleton, EmptyState } from '@/components/common';
+import { toast } from 'sonner';
 import {
   Users,
   Search,
@@ -26,6 +28,7 @@ export default function BuyersPage() {
   const [page, setPage] = useState(1);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [selectedBuyer, setSelectedBuyer] = useState<Buyer | null>(null);
+  const [buyerToDelete, setBuyerToDelete] = useState<Buyer | null>(null);
 
   // Fetch Buyers List
   const { data, isLoading, isFetching } = useQuery({
@@ -44,7 +47,12 @@ export default function BuyersPage() {
       await api.delete(`/buyers/${id}`);
     },
     onSuccess: () => {
+      toast.success('Buyer deactivated successfully');
       queryClient.invalidateQueries({ queryKey: ['buyers'] });
+      setBuyerToDelete(null);
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message || 'Failed to deactivate buyer');
     },
   });
 
@@ -54,7 +62,11 @@ export default function BuyersPage() {
       await api.post(`/buyers/${id}/restore`);
     },
     onSuccess: () => {
+      toast.success('Buyer restored successfully');
       queryClient.invalidateQueries({ queryKey: ['buyers'] });
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message || 'Failed to restore buyer');
     },
   });
 
@@ -132,34 +144,37 @@ export default function BuyersPage() {
       {/* Buyers Data Table */}
       <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs">
         {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-20">
-            <Loader2 className="h-8 w-8 animate-spin text-blue-600 mb-3" />
-            <p className="text-xs font-medium text-slate-500">Loading buyers directory...</p>
-          </div>
+          <TableSkeleton
+            rows={6}
+            columns={['26%', '22%', '16%', '16%', '10%', '10%']}
+          />
         ) : buyers.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 mb-3">
-              <Users className="h-6 w-6" />
-            </div>
-            <h3 className="text-sm font-bold text-slate-900">No buyers found</h3>
-            <p className="text-xs text-slate-500 mt-1 max-w-sm">
-              {search ? 'No results matched your search criteria.' : 'Start by adding your first international or domestic commercial buyer.'}
-            </p>
-            {!search && (
-              <button
-                type="button"
-                onClick={handleOpenCreate}
-                className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-blue-700 transition cursor-pointer"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                <span>Add Buyer</span>
-              </button>
-            )}
-          </div>
+          <EmptyState
+            icon={<Users className="h-7 w-7" />}
+            title={search ? 'No matching buyers found' : 'No buyers registered yet'}
+            description={
+              search
+                ? `No buyers found matching "${search}". Try searching with a different term.`
+                : 'Start by adding your first international or domestic commercial buyer.'
+            }
+            action={
+              search
+                ? {
+                    label: 'Clear Search',
+                    onClick: () => setSearch(''),
+                    variant: 'secondary',
+                  }
+                : {
+                    label: 'Add Buyer',
+                    onClick: handleOpenCreate,
+                    icon: <Plus className="h-3.5 w-3.5" />,
+                  }
+            }
+          />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+            <table className="w-full text-left text-xs min-w-[750px]">
+              <thead className="sticky top-0 z-10 border-b border-slate-100 bg-slate-50/95 backdrop-blur-xs text-[11px] font-bold uppercase tracking-wider text-slate-500">
                 <tr>
                   <th className="px-5 py-3.5">Buyer Code & Name</th>
                   <th className="px-5 py-3.5">Contact Details</th>
@@ -266,21 +281,19 @@ export default function BuyersPage() {
                                 type="button"
                                 onClick={() => handleOpenEdit(b)}
                                 title="Edit Buyer"
-                                className="rounded-lg p-1.5 text-slate-400 hover:bg-blue-50 hover:text-blue-600 transition cursor-pointer"
+                                aria-label={`Edit buyer ${b.name}`}
+                                className="rounded-lg p-2 text-slate-400 hover:bg-blue-50 hover:text-blue-600 transition cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center"
                               >
-                                <Edit2 className="h-3.5 w-3.5" />
+                                <Edit2 className="h-4 w-4" />
                               </button>
                               <button
                                 type="button"
-                                onClick={() => {
-                                  if (confirm(`Are you sure you want to deactivate ${b.name}?`)) {
-                                    deleteMutation.mutate(b.id);
-                                  }
-                                }}
+                                onClick={() => setBuyerToDelete(b)}
                                 title="Deactivate Buyer"
-                                className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600 transition cursor-pointer"
+                                aria-label={`Deactivate buyer ${b.name}`}
+                                className="rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-600 transition cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center"
                               >
-                                <Trash2 className="h-3.5 w-3.5" />
+                                <Trash2 className="h-4 w-4" />
                               </button>
                             </>
                           ) : (
@@ -288,9 +301,9 @@ export default function BuyersPage() {
                               type="button"
                               onClick={() => restoreMutation.mutate(b.id)}
                               title="Restore Buyer"
-                              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-emerald-600 hover:bg-emerald-50 transition cursor-pointer"
+                              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-emerald-600 hover:bg-emerald-50 transition cursor-pointer min-h-[36px]"
                             >
-                              <RotateCcw className="h-3 w-3" />
+                              <RotateCcw className="h-3.5 w-3.5" />
                               <span>Restore</span>
                             </button>
                           )}
@@ -315,7 +328,7 @@ export default function BuyersPage() {
                 type="button"
                 disabled={page <= 1}
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-1 font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40 transition cursor-pointer"
+                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40 transition cursor-pointer min-h-[36px]"
               >
                 Previous
               </button>
@@ -323,7 +336,7 @@ export default function BuyersPage() {
                 type="button"
                 disabled={page >= totalPages}
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-1 font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40 transition cursor-pointer"
+                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40 transition cursor-pointer min-h-[36px]"
               >
                 Next
               </button>
@@ -336,8 +349,32 @@ export default function BuyersPage() {
       <BuyerDrawer
         isOpen={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
-        onSuccess={() => queryClient.invalidateQueries({ queryKey: ['buyers'] })}
+        onSuccess={() => {
+          toast.success(selectedBuyer ? 'Buyer updated successfully' : 'Buyer created successfully');
+          queryClient.invalidateQueries({ queryKey: ['buyers'] });
+        }}
         buyerToEdit={selectedBuyer}
+      />
+
+      {/* Accessible Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={Boolean(buyerToDelete)}
+        onClose={() => setBuyerToDelete(null)}
+        onConfirm={async () => {
+          if (buyerToDelete) {
+            await deleteMutation.mutateAsync(buyerToDelete.id);
+          }
+        }}
+        title="Deactivate Buyer"
+        description={
+          <>
+            Are you sure you want to deactivate <strong className="text-slate-900">{buyerToDelete?.name}</strong> ({buyerToDelete?.code})?
+            This will mark their profile as inactive in commercial orders.
+          </>
+        }
+        confirmText="Deactivate Buyer"
+        variant="danger"
+        isLoading={deleteMutation.isPending}
       />
     </div>
   );

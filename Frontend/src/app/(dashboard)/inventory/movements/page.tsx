@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { InventoryMovement, InventoryMovementType } from '@/types/inventory';
-import { DataPagination } from '@/components/common/data-pagination';
+import { DataPagination, TableSkeleton, EmptyState } from '@/components/common';
 import { formatDateTime, formatNumber } from '@/lib/utils';
 import {
   ArrowDownLeft,
@@ -160,23 +160,38 @@ export default function MovementsPage() {
       {/* Movements Table */}
       <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs">
         {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-20">
-            <Loader2 className="h-8 w-8 animate-spin text-blue-600 mb-3" />
-            <p className="text-xs font-medium text-slate-500">Loading immutable movement ledger...</p>
-          </div>
+          <TableSkeleton
+            rows={6}
+            columns={['18%', '16%', '22%', '14%', '15%', '15%']}
+          />
         ) : movements.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <FileSpreadsheet className="h-10 w-10 text-slate-300 mb-2" />
-            <h4 className="text-sm font-bold text-slate-800">No stock movements recorded</h4>
-            <p className="text-xs text-slate-500 mt-1 max-w-sm">
-              All inward goods receipts and stock-out dispatches will automatically produce audit entries here.
-            </p>
-          </div>
+          <EmptyState
+            icon={<FileSpreadsheet className="h-7 w-7 text-blue-600" />}
+            title={search || typeFilter ? 'No matching movements found' : 'No stock movements recorded yet'}
+            description={
+              search || typeFilter
+                ? 'No ledger audit records match your active search or movement type filter.'
+                : 'All inward goods receipts and stock-out dispatches will automatically produce immutable audit entries here.'
+            }
+            action={
+              search || typeFilter
+                ? {
+                    label: 'Reset Filters',
+                    onClick: () => {
+                      setSearch('');
+                      setTypeFilter('');
+                      setPage(1);
+                    },
+                    variant: 'secondary',
+                  }
+                : undefined
+            }
+          />
         ) : (
           <>
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+              <table className="w-full text-left text-xs min-w-[750px]">
+                <thead className="sticky top-0 z-10 border-b border-slate-100 bg-slate-50/95 backdrop-blur-xs text-[11px] font-bold uppercase tracking-wider text-slate-500">
                   <tr>
                     <th className="px-5 py-3.5">Timestamp</th>
                     <th className="px-5 py-3.5">Movement Type</th>

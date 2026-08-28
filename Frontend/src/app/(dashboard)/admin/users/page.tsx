@@ -5,6 +5,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { User, Role } from '@/types/auth';
 import { UserDrawer } from '@/components/admin/user-drawer';
+import { ConfirmDialog, TableSkeleton, EmptyState } from '@/components/common';
+import { toast } from 'sonner';
 import {
   Users,
   Search,
@@ -26,6 +28,7 @@ export default function UsersPage() {
   const [page, setPage] = useState(1);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
 
   // 1. Fetch Roles
   const { data: rolesData } = useQuery({
@@ -58,7 +61,12 @@ export default function UsersPage() {
       await api.delete(`/users/${id}`);
     },
     onSuccess: () => {
+      toast.success('User deleted successfully');
       queryClient.invalidateQueries({ queryKey: ['users-list'] });
+      setUserToDelete(null);
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message || 'Failed to delete user');
     },
   });
 
@@ -68,7 +76,11 @@ export default function UsersPage() {
       await api.post(`/users/${id}/restore`);
     },
     onSuccess: () => {
+      toast.success('User restored successfully');
       queryClient.invalidateQueries({ queryKey: ['users-list'] });
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message || 'Failed to restore user');
     },
   });
 
@@ -112,11 +124,6 @@ export default function UsersPage() {
       default:
         return 'bg-slate-50 text-slate-700 border-slate-200';
     }
-  };
-
-  const handleDeleteUser = async (id: string, name: string) => {
-    if (!confirm(`Are you sure you want to delete user ${name}?`)) return;
-    deleteMutation.mutate(id);
   };
 
   const handleRestoreUser = async (id: string) => {
@@ -214,22 +221,40 @@ export default function UsersPage() {
       {/* Users Table */}
       <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs">
         {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-20">
-            <Loader2 className="h-8 w-8 animate-spin text-blue-600 mb-3" />
-            <p className="text-xs font-medium text-slate-500">Loading user accounts...</p>
-          </div>
+          <TableSkeleton
+            rows={6}
+            columns={['26%', '20%', '20%', '14%', '10%', '10%']}
+          />
         ) : users.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <Users className="h-10 w-10 text-slate-300 mb-2" />
-            <h4 className="text-sm font-bold text-slate-800">No user accounts found</h4>
-            <p className="text-xs text-slate-500 mt-1 max-w-sm">
-              Create your first user account to grant access to warehouse and commercial staff.
-            </p>
-          </div>
+          <EmptyState
+            icon={<Users className="h-7 w-7" />}
+            title={hasActiveFilters ? 'No matching users found' : 'No user accounts yet'}
+            description={
+              hasActiveFilters
+                ? 'Try adjusting your search keywords, role filters, or 2FA criteria.'
+                : 'Create your first user account to grant access to warehouse and commercial staff.'
+            }
+            action={
+              hasActiveFilters
+                ? {
+                    label: 'Reset Filters',
+                    onClick: handleResetFilters,
+                    variant: 'secondary',
+                  }
+                : {
+                    label: 'Add New User',
+                    onClick: () => {
+                      setSelectedUser(null);
+                      setIsDrawerOpen(true);
+                    },
+                    icon: <Plus className="h-3.5 w-3.5" />,
+                  }
+            }
+          />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+            <table className="w-full text-left text-xs min-w-[750px]">
+              <thead className="sticky top-0 z-10 border-b border-slate-100 bg-slate-50/95 backdrop-blur-xs text-[11px] font-bold uppercase tracking-wider text-slate-500">
                 <tr>
                   <th className="px-5 py-3.5">User</th>
                   <th className="px-5 py-3.5">Role & Access Level</th>
@@ -330,24 +355,21 @@ export default function UsersPage() {
                               </button>
                               <button
                                 type="button"
-                                onClick={() => {
-                                  if (confirm(`Are you sure you want to delete ${u.name}?`)) {
-                                    deleteMutation.mutate(u.id);
-                                  }
-                                }}
-                                className="p-1.5 text-slate-400 hover:text-red-600 transition cursor-pointer"
+                                onClick={() => setUserToDelete(u)}
+                                className="p-2 text-slate-400 hover:text-red-600 transition cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg hover:bg-red-50"
                                 title="Delete User"
+                                aria-label={`Delete user ${u.name}`}
                               >
-                                <Trash2 className="h-3.5 w-3.5" />
+                                <Trash2 className="h-4 w-4" />
                               </button>
                             </>
                           ) : (
                             <button
                               type="button"
                               onClick={() => restoreMutation.mutate(u.id)}
-                              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-emerald-600 hover:bg-emerald-50 transition cursor-pointer"
+                              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-emerald-600 hover:bg-emerald-50 transition cursor-pointer min-h-[36px]"
                             >
-                              <RotateCcw className="h-3 w-3" />
+                              <RotateCcw className="h-3.5 w-3.5" />
                               <span>Restore</span>
                             </button>
                           )}
@@ -366,8 +388,32 @@ export default function UsersPage() {
       <UserDrawer
         isOpen={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
-        onSuccess={() => queryClient.invalidateQueries({ queryKey: ['users-list'] })}
+        onSuccess={() => {
+          toast.success(selectedUser ? 'User updated successfully' : 'User created successfully');
+          queryClient.invalidateQueries({ queryKey: ['users-list'] });
+        }}
         userToEdit={selectedUser}
+      />
+
+      {/* Accessible Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={Boolean(userToDelete)}
+        onClose={() => setUserToDelete(null)}
+        onConfirm={async () => {
+          if (userToDelete) {
+            await deleteMutation.mutateAsync(userToDelete.id);
+          }
+        }}
+        title="Delete User"
+        description={
+          <>
+            Are you sure you want to delete <strong className="text-slate-900">{userToDelete?.name}</strong>?
+            This will deactivate their login and revoke active session access.
+          </>
+        }
+        confirmText="Delete User"
+        variant="danger"
+        isLoading={deleteMutation.isPending}
       />
     </div>
   );

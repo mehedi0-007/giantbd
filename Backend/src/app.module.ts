@@ -15,6 +15,7 @@ import { InventoryModule } from './inventory/inventory.module';
 import { BuyerModule } from './buyers/buyers.module';
 import { LCModule } from './lc/lc.module';
 import { POModule } from './po/po.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 import { MailModule } from './mail/mail.module';
 import { JwtAuthGuard } from './common/guards/jwt.guard';
 
@@ -40,6 +41,7 @@ import { JwtAuthGuard } from './common/guards/jwt.guard';
     BuyerModule,
     LCModule,
     POModule,
+    DashboardModule,
   ],
   controllers: [AppController],
   providers: [

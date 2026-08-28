@@ -55,18 +55,19 @@ describe('File Uploads (e2e)', () => {
 
     // Login with an admin user
     const adminEmail = `uploader_admin_${ts}@test.com`;
-    const regRes = await request(app.getHttpServer())
-      .post('/api/users/register')
-      .send({
+    const bcrypt = await import('bcrypt');
+    const hashedPassword = await bcrypt.hash('password123', 10);
+    const user = await prisma.user.create({
+      data: {
         name: 'File Upload Admin',
         email: adminEmail,
-        password: 'password123',
+        password: hashedPassword,
         gender: 'MALE',
         phone: `${ts.toString().slice(-10)}`,
         roleId: testRoleId,
-      });
-
-    testUserId = regRes.body.data.id;
+      },
+    });
+    testUserId = user.id;
 
     const loginRes = await request(app.getHttpServer())
       .post('/api/auth/login')
@@ -149,6 +150,7 @@ describe('File Uploads (e2e)', () => {
 
     // Cleanup DB
     if (testIds.stockOutId) {
+      await prisma.inventoryMovement.deleteMany({ where: { referenceId: testIds.stockOutId } });
       await prisma.stockOutItem.deleteMany({ where: { stockOutId: testIds.stockOutId } });
       await prisma.stockOut.deleteMany({ where: { id: testIds.stockOutId } });
     }
@@ -197,6 +199,7 @@ describe('File Uploads (e2e)', () => {
 
       const res = await request(app.getHttpServer())
         .post('/api/users/register')
+        .set('Authorization', `Bearer ${accessToken}`)
         .field('name', 'Uploaded Files User')
         .field('email', `user_upload_${ts}@test.com`)
         .field('password', 'password123')

@@ -6,7 +6,8 @@ import api from '@/lib/api';
 import { Warehouse, Zone, SubZone, Rack, StorageLocation } from '@/types/warehouse';
 import { BarcodeModal } from '@/components/warehouse/barcode-modal';
 import { WarehouseDrawer } from '@/components/warehouse/warehouse-drawer';
-import { DataPagination } from '@/components/common/data-pagination';
+import { DataPagination, ConfirmDialog, TableSkeleton, EmptyState } from '@/components/common';
+import { toast } from 'sonner';
 import {
   Warehouse as WarehouseIcon,
   Search,
@@ -29,6 +30,7 @@ export default function WarehousePage() {
   const [selectedWarehouseId, setSelectedWarehouseId] = useState<string>('');
   const [selectedZoneId, setSelectedZoneId] = useState<string>('');
   const [selectedLocationForBarcode, setSelectedLocationForBarcode] = useState<StorageLocation | null>(null);
+  const [locationToDelete, setLocationToDelete] = useState<StorageLocation | null>(null);
 
   // Drawer States
   const [drawerType, setDrawerType] = useState<'warehouse' | 'zone' | 'subzone' | 'rack' | 'location'>('warehouse');
@@ -126,13 +128,14 @@ export default function WarehousePage() {
     setOccupancyFilter('ALL');
   };
 
-  const handleDeleteLocation = async (id: string, code: string) => {
-    if (!confirm(`Are you sure you want to delete location ${code}?`)) return;
+  const executeDeleteLocation = async (id: string) => {
     try {
       await api.delete(`/attributes/locations/${id}`);
+      toast.success('Location deleted successfully');
       queryClient.invalidateQueries({ queryKey: ['locations-table'] });
+      setLocationToDelete(null);
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to delete location.');
+      toast.error(err.response?.data?.message || 'Failed to delete location.');
     }
   };
 
@@ -512,31 +515,38 @@ export default function WarehousePage() {
           {/* Locations Table */}
           <div className="rounded-2xl border border-slate-200/80 bg-white shadow-xs overflow-hidden">
             {loadingLoc ? (
-              <div className="flex flex-col items-center justify-center py-20">
-                <Loader2 className="h-8 w-8 animate-spin text-blue-600 mb-3" />
-                <p className="text-xs font-medium text-slate-500">Loading locations...</p>
-              </div>
+              <TableSkeleton
+                rows={6}
+                columns={['26%', '40%', '16%', '18%']}
+              />
             ) : locations.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-center">
-                <Boxes className="h-10 w-10 text-slate-300 mb-2" />
-                <h4 className="text-sm font-bold text-slate-800">No storage locations found</h4>
-                <p className="text-xs text-slate-500 mt-1 max-w-sm">
-                  Create storage locations to assign addresses for incoming stock batches.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => handleOpenAdd('location')}
-                  className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-blue-700 transition cursor-pointer"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                  <span>Create Location</span>
-                </button>
-              </div>
+              <EmptyState
+                icon={<Boxes className="h-7 w-7 text-amber-600" />}
+                title={search || selectedWarehouseId || selectedZoneId || selectedSubZoneId || selectedRackId ? 'No matching locations found' : 'No storage locations yet'}
+                description={
+                  search || selectedWarehouseId || selectedZoneId || selectedSubZoneId || selectedRackId
+                    ? 'No storage bins match your active hierarchy or occupancy filter.'
+                    : 'Create storage locations to assign addresses for incoming stock batches.'
+                }
+                action={
+                  search || selectedWarehouseId || selectedZoneId || selectedSubZoneId || selectedRackId
+                    ? {
+                        label: 'Clear Filters',
+                        onClick: clearFilters,
+                        variant: 'secondary',
+                      }
+                    : {
+                        label: 'Create Location',
+                        onClick: () => handleOpenAdd('location'),
+                        icon: <Plus className="h-3.5 w-3.5" />,
+                      }
+                }
+              />
             ) : (
               <>
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
-                    <thead className="border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                  <table className="w-full text-left text-xs min-w-[700px]">
+                    <thead className="sticky top-0 z-10 border-b border-slate-100 bg-slate-50/95 backdrop-blur-xs text-[11px] font-bold uppercase tracking-wider text-slate-500">
                       <tr>
                         <th className="px-5 py-3.5">Location Code & Barcode</th>
                         <th className="px-5 py-3.5">Warehouse Hierarchy Path</th>
@@ -602,19 +612,21 @@ export default function WarehousePage() {
                               <button
                                 type="button"
                                 onClick={() => setSelectedLocationForBarcode(loc)}
-                                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-blue-600 hover:bg-blue-50 transition cursor-pointer"
+                                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-blue-600 hover:bg-blue-50 transition cursor-pointer min-h-[36px]"
                                 title="Print Barcode Sticker"
+                                aria-label={`Print barcode for location ${loc.code}`}
                               >
                                 <Printer className="h-3.5 w-3.5" />
                                 <span>Sticker</span>
                               </button>
                               <button
                                 type="button"
-                                onClick={() => handleDeleteLocation(loc.id, loc.code)}
-                                className="rounded-lg p-1 text-slate-400 hover:bg-red-50 hover:text-red-600 transition cursor-pointer"
+                                onClick={() => setLocationToDelete(loc)}
+                                className="p-2 text-slate-400 hover:bg-red-50 hover:text-red-600 transition cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg"
                                 title="Delete Location"
+                                aria-label={`Delete location ${loc.code}`}
                               >
-                                <Trash2 className="h-3.5 w-3.5" />
+                                <Trash2 className="h-4 w-4" />
                               </button>
                             </div>
                           </td>
@@ -652,6 +664,7 @@ export default function WarehousePage() {
         isOpen={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
         onSuccess={() => {
+          toast.success('Warehouse structure updated successfully');
           queryClient.invalidateQueries({ queryKey: ['warehouses-hierarchy'] });
           queryClient.invalidateQueries({ queryKey: ['zones-dropdown'] });
           queryClient.invalidateQueries({ queryKey: ['subzones-dropdown'] });
@@ -660,6 +673,25 @@ export default function WarehousePage() {
         }}
         type={drawerType}
         parentContext={drawerParentContext}
+      />
+
+      {/* Accessible Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={Boolean(locationToDelete)}
+        onClose={() => setLocationToDelete(null)}
+        onConfirm={async () => {
+          if (locationToDelete) {
+            await executeDeleteLocation(locationToDelete.id);
+          }
+        }}
+        title="Delete Storage Location"
+        description={
+          <>
+            Are you sure you want to delete storage location <strong className="text-slate-900 font-mono">{locationToDelete?.code}</strong>?
+          </>
+        }
+        confirmText="Delete Location"
+        variant="danger"
       />
     </div>
   );

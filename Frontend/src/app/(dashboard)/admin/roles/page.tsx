@@ -1,9 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { Role, Permission } from '@/types/auth';
+import { Modal, ConfirmDialog, CardSkeleton, EmptyState } from '@/components/common';
+import { toast } from 'sonner';
 import {
   ShieldCheck,
   Plus,
@@ -23,6 +25,7 @@ export default function RolesPage() {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRole, setEditingRole] = useState<Role | null>(null);
+  const [roleToDelete, setRoleToDelete] = useState<Role | null>(null);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [isTwoFactorRequired, setIsTwoFactorRequired] = useState(false);
@@ -49,18 +52,16 @@ export default function RolesPage() {
   });
 
   const roles: Role[] = Array.isArray(rolesData?.data) ? rolesData.data : Array.isArray(rolesData) ? rolesData : [];
-  const permissions: Permission[] = Array.isArray(permissionsData?.data)
-    ? permissionsData.data
-    : Array.isArray(permissionsData)
-    ? permissionsData
-    : [];
+  const permissions: Permission[] = Array.isArray(permissionsData) ? permissionsData : [];
 
-  // Group Permissions by Module
+  // Group permissions by module prefix
   const groupedPermissions: Record<string, Permission[]> = {};
-  permissions.forEach((p) => {
-    const mod = p.module || 'GENERAL';
-    if (!groupedPermissions[mod]) groupedPermissions[mod] = [];
-    groupedPermissions[mod].push(p);
+  permissions.forEach((perm) => {
+    const mod = perm.module || perm.name.split(':')[0]?.toUpperCase() || 'GENERAL';
+    if (!groupedPermissions[mod]) {
+      groupedPermissions[mod] = [];
+    }
+    groupedPermissions[mod].push(perm);
   });
 
   const handleOpenCreate = () => {
@@ -78,19 +79,15 @@ export default function RolesPage() {
     setName(role.name);
     setDescription(role.description || '');
     setIsTwoFactorRequired(Boolean(role.isTwoFactorRequired));
-
-    // Extract current permission names or IDs
-    const permIds =
-      role.rolePermissions?.map((rp: any) => rp.permission?.id || rp.permissionId) ||
-      [];
-    setSelectedPermissions(permIds);
+    const permIds = role.permissions?.map((p: any) => p.id || p.permissionId || (typeof p === 'string' ? p : '')) || [];
+    setSelectedPermissions(permIds.filter(Boolean));
     setErrorMsg('');
     setIsModalOpen(true);
   };
 
   const togglePermission = (permId: string) => {
     if (selectedPermissions.includes(permId)) {
-      setSelectedPermissions(selectedPermissions.filter((p) => p !== permId));
+      setSelectedPermissions(selectedPermissions.filter((id) => id !== permId));
     } else {
       setSelectedPermissions([...selectedPermissions, permId]);
     }
@@ -98,17 +95,17 @@ export default function RolesPage() {
 
   const toggleModuleAll = (moduleName: string) => {
     const modPermIds = groupedPermissions[moduleName]?.map((p) => p.id) || [];
-    const allSelected = modPermIds.every((id) => selectedPermissions.includes(id));
+    const allSelected = modPermIds.length > 0 && modPermIds.every((id) => selectedPermissions.includes(id));
 
     if (allSelected) {
       setSelectedPermissions(selectedPermissions.filter((id) => !modPermIds.includes(id)));
     } else {
-      const combined = Array.from(new Set([...selectedPermissions, ...modPermIds]));
-      setSelectedPermissions(combined);
+      const merged = Array.from(new Set([...selectedPermissions, ...modPermIds]));
+      setSelectedPermissions(merged);
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSaveRole = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
 
@@ -116,44 +113,48 @@ export default function RolesPage() {
     setErrorMsg('');
 
     try {
-      const payload = {
-        name: name.trim().toUpperCase(),
-        description,
-        isTwoFactorRequired,
-        permissionIds: selectedPermissions,
-      };
-
       if (editingRole) {
-        await api.patch(`/roles/${editingRole.id}`, payload);
+        await api.patch(`/roles/${editingRole.id}`, {
+          name: name.trim().toUpperCase(),
+          description: description.trim() || undefined,
+          isTwoFactorRequired,
+          permissionIds: selectedPermissions,
+        });
+        toast.success(`Role ${name.trim().toUpperCase()} updated successfully`);
       } else {
-        await api.post('/roles', payload);
+        await api.post('/roles', {
+          name: name.trim().toUpperCase(),
+          description: description.trim() || undefined,
+          isTwoFactorRequired,
+          permissionIds: selectedPermissions,
+        });
+        toast.success(`Role ${name.trim().toUpperCase()} created successfully`);
       }
 
       queryClient.invalidateQueries({ queryKey: ['roles-management'] });
-      queryClient.invalidateQueries({ queryKey: ['roles-dropdown'] });
       setIsModalOpen(false);
     } catch (err: any) {
-      const msg = err.response?.data?.message || 'Failed to save role.';
+      const msg = err.response?.data?.message || 'Failed to save role configuration.';
       setErrorMsg(msg);
+      toast.error(msg);
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handleDeleteRole = async (id: string, roleName: string) => {
-    if (roleName === 'SUPER_ADMIN') {
-      alert('SUPER_ADMIN role cannot be deleted.');
-      return;
-    }
-    if (!confirm(`Are you sure you want to delete role ${roleName}?`)) return;
-
-    try {
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
       await api.delete(`/roles/${id}`);
+    },
+    onSuccess: () => {
+      toast.success('Role deleted successfully');
       queryClient.invalidateQueries({ queryKey: ['roles-management'] });
-    } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to delete role.');
-    }
-  };
+      setRoleToDelete(null);
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message || 'Failed to delete role.');
+    },
+  });
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-16">
@@ -171,82 +172,93 @@ export default function RolesPage() {
         <button
           type="button"
           onClick={handleOpenCreate}
-          className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white shadow-xs hover:bg-blue-700 transition cursor-pointer"
+          className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white shadow-xs hover:bg-blue-700 transition cursor-pointer min-h-[40px]"
         >
           <Plus className="h-4 w-4" />
-          <span>New Security Role</span>
+          <span>Create New Role</span>
         </button>
       </div>
 
-      {/* Roles Grid */}
+      {/* Role Cards Grid */}
       {isLoading ? (
-        <div className="flex flex-col items-center justify-center py-20">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-600 mb-3" />
-          <p className="text-xs text-slate-500">Loading security roles...</p>
+        <CardSkeleton count={3} className="grid-cols-1 md:grid-cols-2 lg:grid-cols-3" />
+      ) : roles.length === 0 ? (
+        <div className="rounded-2xl border border-slate-200/80 bg-white shadow-xs overflow-hidden">
+          <EmptyState
+            icon={<ShieldCheck className="h-7 w-7 text-blue-600" />}
+            title="No custom roles configured"
+            description="Create custom security roles to configure fine-grained permissions for warehouse and commercial staff."
+            action={{
+              label: 'Create First Role',
+              onClick: handleOpenCreate,
+              icon: <Plus className="h-3.5 w-3.5" />,
+            }}
+          />
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {roles.map((r) => {
-            const isSuper = r.name === 'SUPER_ADMIN';
-            const permCount = r.rolePermissions?.length || r.permissions?.length || 0;
+          {roles.map((role) => {
+            const isSuperAdmin = role.name === 'SUPER_ADMIN';
+            const permCount = role.permissions?.length || 0;
 
             return (
               <div
-                key={r.id}
-                className="flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs transition hover:shadow-md"
+                key={role.id}
+                className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 shadow-xs hover:shadow-md transition"
               >
                 <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="inline-flex items-center gap-1.5 rounded-lg bg-purple-50 border border-purple-200/80 px-2.5 py-1 text-xs font-bold text-purple-800">
-                      <ShieldCheck className="h-3.5 w-3.5" />
-                      <span>{r.name}</span>
-                    </span>
-                    <div className="flex items-center gap-1.5">
-                      {r.isTwoFactorRequired && (
-                        <span className="rounded-full bg-blue-50 border border-blue-200 px-2 py-0.5 text-[10px] font-bold text-blue-700 flex items-center gap-1">
-                          <Lock className="h-2.5 w-2.5" /> 2FA Enforced
-                        </span>
-                      )}
-                      {isSuper && (
-                        <span className="rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-[10px] font-bold text-amber-700">
-                          SYSTEM ROOT
-                        </span>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                        <ShieldCheck className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-slate-900 text-sm">{role.name}</h3>
+                        {role.isTwoFactorRequired ? (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.2 rounded-full mt-0.5">
+                            <Lock className="h-2.5 w-2.5" />
+                            <span>2FA Enforced</span>
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-slate-400">2FA Optional</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenEdit(role)}
+                        className="p-2 text-slate-400 hover:text-blue-600 transition cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg hover:bg-blue-50"
+                        title="Edit Permissions"
+                        aria-label={`Edit permissions for role ${role.name}`}
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </button>
+                      {!isSuperAdmin && (
+                        <button
+                          type="button"
+                          onClick={() => setRoleToDelete(role)}
+                          className="p-2 text-slate-400 hover:text-red-600 transition cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg hover:bg-red-50"
+                          title="Delete Role"
+                          aria-label={`Delete role ${role.name}`}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
                       )}
                     </div>
                   </div>
 
-                  <p className="text-xs text-slate-600 min-h-[36px] leading-relaxed">
-                    {r.description || 'Custom access tier for designated enterprise operations.'}
+                  <p className="mt-3 text-xs text-slate-500 line-clamp-2">
+                    {role.description || 'No description provided for this role.'}
                   </p>
 
-                  <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-                    <span>Assigned Permissions:</span>
-                    <span className="font-bold text-slate-900">
-                      {isSuper ? 'ALL (Unrestricted)' : `${permCount} Grants`}
+                  <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 text-xs">
+                    <span className="text-slate-500">Active Permissions:</span>
+                    <span className="font-bold font-mono text-blue-700 bg-blue-50 px-2 py-0.5 rounded text-[11px]">
+                      {isSuperAdmin ? 'ALL (*)' : `${permCount} Grants`}
                     </span>
                   </div>
-                </div>
-
-                <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-end gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => handleOpenEdit(r)}
-                    className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
-                  >
-                    <Edit2 className="h-3.5 w-3.5" />
-                    <span>Permissions</span>
-                  </button>
-
-                  {!isSuper && (
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteRole(r.id, r.name)}
-                      className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600 transition cursor-pointer"
-                      title="Delete Role"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  )}
                 </div>
               </div>
             );
@@ -254,178 +266,189 @@ export default function RolesPage() {
         </div>
       )}
 
-      {/* Permissions Matrix Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div
-            className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs"
-            onClick={() => setIsModalOpen(false)}
-          />
+      {/* Role Edit/Create Accessible Modal */}
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        icon={<ShieldCheck className="h-5 w-5" />}
+        title={editingRole ? `Edit Role: ${editingRole.name}` : 'Create Security Role'}
+        description="Configure role name, 2FA policy, and RBAC granular permission access"
+        size="2xl"
+      >
+        <form onSubmit={handleSaveRole} className="space-y-4" id="role-form">
+          {errorMsg && (
+            <div
+              role="alert"
+              className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-700"
+            >
+              <AlertCircle className="h-4 w-4 shrink-0 text-red-500" />
+              <span>{errorMsg}</span>
+            </div>
+          )}
 
-          <div className="relative w-full max-w-2xl rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl my-8 space-y-5">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="h-5 w-5 text-blue-600" />
-                <h3 className="text-base font-bold text-slate-900">
-                  {editingRole ? `Edit Role: ${editingRole.name}` : 'Create Security Role'}
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsModalOpen(false)}
-                className="p-1 text-slate-400 hover:text-slate-600"
-              >
-                <X className="h-5 w-5" />
-              </button>
+          {/* Role Name */}
+          <div>
+            <label htmlFor="role-name-input" className="mb-1 block text-xs font-semibold text-slate-700">
+              Role Name Identifier <span className="text-red-500">*</span>
+            </label>
+            <input
+              id="role-name-input"
+              type="text"
+              required
+              aria-required="true"
+              value={name}
+              disabled={editingRole?.name === 'SUPER_ADMIN'}
+              onChange={(e) => setName(e.target.value.toUpperCase())}
+              placeholder="e.g. INVENTORY_MANAGER"
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 font-mono uppercase min-h-[40px] disabled:bg-slate-100"
+            />
+          </div>
+
+          {/* Description */}
+          <div>
+            <label htmlFor="role-desc-input" className="mb-1 block text-xs font-semibold text-slate-700">
+              Role Purpose & Description
+            </label>
+            <textarea
+              id="role-desc-input"
+              rows={2}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="e.g. Responsible for warehouse receiving, dispatch, and physical cycle counts"
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20"
+            />
+          </div>
+
+          {/* 2FA Enforce Switch */}
+          <div className="flex items-center justify-between rounded-xl border border-slate-200 p-3 bg-slate-50/50">
+            <div>
+              <label htmlFor="role-2fa-toggle" className="text-xs font-bold text-slate-900 block cursor-pointer">
+                Mandatory Two-Factor Authentication (2FA)
+              </label>
+              <p className="text-[11px] text-slate-500">
+                Requires all users assigned to this role to provide TOTP authentication upon sign-in.
+              </p>
+            </div>
+            <input
+              id="role-2fa-toggle"
+              type="checkbox"
+              checked={isTwoFactorRequired}
+              onChange={(e) => setIsTwoFactorRequired(e.target.checked)}
+              className="h-4 w-4 rounded text-blue-600 focus:ring-blue-500 cursor-pointer"
+            />
+          </div>
+
+          {/* Permissions Matrix */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-xs font-semibold text-slate-700">
+                Module Permission Grants ({selectedPermissions.length} active)
+              </label>
             </div>
 
-            {errorMsg && (
-              <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">
-                <AlertCircle className="h-4 w-4 shrink-0 text-red-500" />
-                <span>{errorMsg}</span>
-              </div>
-            )}
+            <div className="max-h-72 overflow-y-auto space-y-3 rounded-xl border border-slate-200 p-3 bg-slate-50/50">
+              {Object.entries(groupedPermissions).map(([moduleName, perms]) => {
+                const modPermNames = perms.map((p) => p.name);
+                const allSelected = modPermNames.every((p) => selectedPermissions.includes(p));
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="mb-1 block text-xs font-semibold text-slate-700">
-                    Role Code Identifier *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={name}
-                    onChange={(e) => setName(e.target.value.toUpperCase())}
-                    placeholder="e.g. AUDITOR"
-                    disabled={editingRole?.name === 'SUPER_ADMIN'}
-                    className="w-full font-mono font-bold rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-900 focus:border-blue-500 focus:outline-hidden disabled:bg-slate-100"
-                  />
-                </div>
+                return (
+                  <div key={moduleName} className="rounded-xl border border-slate-200 bg-white p-3 space-y-2">
+                    <div className="flex items-center justify-between border-b border-slate-100 pb-1.5">
+                      <span className="font-bold text-xs text-slate-900 tracking-wider">
+                        {moduleName} MODULE
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => toggleModuleAll(moduleName)}
+                        className="text-[11px] font-semibold text-blue-600 hover:underline cursor-pointer"
+                      >
+                        {allSelected ? 'Deselect All' : 'Select All'}
+                      </button>
+                    </div>
 
-                <div>
-                  <label className="mb-1 block text-xs font-semibold text-slate-700">
-                    Role Description
-                  </label>
-                  <input
-                    type="text"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="e.g. View stock reports and audit movement history"
-                    className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-900 focus:border-blue-500 focus:outline-hidden"
-                  />
-                </div>
-              </div>
-
-              {/* 2FA Role Enforce Policy */}
-              <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50/70 p-3">
-                <div className="space-y-0.5">
-                  <div className="flex items-center gap-1.5">
-                    <Lock className="h-3.5 w-3.5 text-blue-600" />
-                    <span className="text-xs font-bold text-slate-800">Enforce Two-Factor Authentication (2FA)</span>
-                  </div>
-                  <p className="text-[11px] text-slate-500">Require an email OTP verification code for every user assigned to this role.</p>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={isTwoFactorRequired}
-                  onChange={(e) => setIsTwoFactorRequired(e.target.checked)}
-                  className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                />
-              </div>
-
-              {/* Granular Module Matrix */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-xs font-semibold text-slate-700">
-                    Module Permission Grants ({selectedPermissions.length} active)
-                  </label>
-                </div>
-
-                <div className="max-h-72 overflow-y-auto space-y-3 rounded-xl border border-slate-200 p-3 bg-slate-50/50">
-                  {Object.entries(groupedPermissions).map(([moduleName, perms]) => {
-                    const modPermNames = perms.map((p) => p.name);
-                    const allSelected = modPermNames.every((p) => selectedPermissions.includes(p));
-
-                    return (
-                      <div key={moduleName} className="rounded-xl border border-slate-200 bg-white p-3 space-y-2">
-                        <div className="flex items-center justify-between border-b border-slate-100 pb-1.5">
-                          <span className="font-bold text-xs text-slate-900 tracking-wider">
-                            {moduleName} MODULE
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => toggleModuleAll(moduleName)}
-                            className="text-[11px] font-semibold text-blue-600 hover:underline cursor-pointer"
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                      {perms.map((p) => {
+                        const isChecked = selectedPermissions.includes(p.id);
+                        return (
+                          <label
+                            key={p.id}
+                            className={`flex items-start gap-2 p-2 rounded-lg border cursor-pointer transition min-h-[38px] ${
+                              isChecked
+                                ? 'border-blue-500 bg-blue-50/50 font-semibold text-slate-900'
+                                : 'border-slate-100 text-slate-600 hover:bg-slate-50'
+                            }`}
                           >
-                            {allSelected ? 'Deselect All' : 'Select All'}
-                          </button>
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                          {perms.map((p) => {
-                            const isChecked = selectedPermissions.includes(p.name);
-                            return (
-                              <label
-                                key={p.id || p.name}
-                                className={`flex items-start gap-2 p-1.5 rounded-lg border cursor-pointer transition ${
-                                  isChecked
-                                    ? 'border-blue-500 bg-blue-50/50 font-semibold text-slate-900'
-                                    : 'border-slate-100 text-slate-600 hover:bg-slate-50'
-                                }`}
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={isChecked}
-                                  onChange={() => togglePermission(p.name)}
-                                  className="mt-0.5 rounded text-blue-600"
-                                />
-                                <div>
-                                  <div className="font-mono text-[11px]">{p.name}</div>
-                                  {p.description && (
-                                    <div className="text-[10px] text-slate-400 font-normal">
-                                      {p.description}
-                                    </div>
-                                  )}
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => togglePermission(p.id)}
+                              className="mt-0.5 rounded text-blue-600"
+                            />
+                            <div>
+                              <div className="font-mono text-xs">{p.name}</div>
+                              {p.description && (
+                                <div className="text-[10px] text-slate-400 font-normal">
+                                  {p.description}
                                 </div>
-                              </label>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Modal Actions */}
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSaving || !name.trim()}
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-5 py-2 text-xs font-semibold text-white shadow-xs hover:bg-blue-700 disabled:opacity-50 transition cursor-pointer"
-                >
-                  {isSaving ? (
-                    <>
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      <span>Saving Role...</span>
-                    </>
-                  ) : (
-                    <span>Save Role Permissions</span>
-                  )}
-                </button>
-              </div>
-            </form>
+                              )}
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      )}
+
+          {/* Modal Actions */}
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={() => setIsModalOpen(false)}
+              className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer min-h-[40px]"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isSaving || !name.trim()}
+              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-50 transition cursor-pointer min-h-[40px]"
+            >
+              {isSaving ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Saving Role...</span>
+                </>
+              ) : (
+                <span>Save Role Permissions</span>
+              )}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Accessible Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={Boolean(roleToDelete)}
+        onClose={() => setRoleToDelete(null)}
+        onConfirm={async () => {
+          if (roleToDelete) {
+            await deleteMutation.mutateAsync(roleToDelete.id);
+          }
+        }}
+        title="Delete Security Role"
+        description={
+          <>
+            Are you sure you want to permanently delete role <strong className="text-slate-900">{roleToDelete?.name}</strong>?
+            Users assigned to this role will lose their permission grants.
+          </>
+        }
+        confirmText="Delete Role"
+        variant="danger"
+        isLoading={deleteMutation.isPending}
+      />
     </div>
   );
 }

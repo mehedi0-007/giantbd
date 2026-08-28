@@ -44,37 +44,20 @@ describe('Commercial API (e2e)', () => {
     }
 
     // Create a test user for auth
-    const email = `commercial_${ts}@test.com`;
+    const registerEmail = `real_comm_${ts}@test.com`;
+    const bcrypt = await import('bcrypt');
+    const hashedPassword = await bcrypt.hash('password123', 10);
     const user = await prisma.user.create({
       data: {
-        name: 'Commercial Tester',
-        email,
-        password: 'password123', // In real tests, should be hashed, but login will use direct DB bypass if needed or we use register endpoint
-        phone: `+1234567${ts.toString().slice(-4)}`,
+        name: 'Real Comm Tester',
+        email: registerEmail,
+        password: hashedPassword,
+        phone: `+9876543${ts.toString().slice(-4)}`,
         gender: 'MALE',
         roleId: role.id,
       },
     });
     testUserId = user.id;
-
-    // Login via API to get token
-    // We must use the API to register them properly so password is hashed
-    const registerEmail = `real_comm_${ts}@test.com`;
-    const userRes = await request(app.getHttpServer())
-      .post('/api/users/register')
-      .send({
-        name: 'Real Comm Tester',
-        email: registerEmail,
-        password: 'password123',
-        phone: `+9876543${ts.toString().slice(-4)}`,
-        gender: 'MALE',
-        roleId: role.id,
-      });
-
-    if (userRes.status !== 201 && userRes.status !== 200) {
-      console.error('Registration Failed:', userRes.body);
-    }
-    testUserId = userRes.body.data.id;
 
     const loginRes = await request(app.getHttpServer())
       .post('/api/auth/login')
@@ -87,12 +70,17 @@ describe('Commercial API (e2e)', () => {
 
     // Create a Master Data hierarchy for PO Items
     const cat = await prisma.category.create({ data: { name: `C_${ts}` } });
+    testIds.categoryId = cat.id;
     const subCat = await prisma.subCategory.create({ data: { name: `SC_${ts}`, categoryId: cat.id } });
+    testIds.subCategoryId = subCat.id;
     const material = await prisma.material.create({ data: { name: `M_${ts}` } });
+    testIds.materialId = material.id;
     const color = await prisma.color.create({ data: { name: `Col_${ts}` } });
+    testIds.colorId = color.id;
     const mp = await prisma.masterProduct.create({
       data: { name: `MP_${ts}`, sku: `MPSKU_${ts}`, categoryId: cat.id, subCategoryId: subCat.id, materialId: material.id, creatorId: testUserId }
     });
+    testIds.masterProductId = mp.id;
     const vp = await prisma.variantProduct.create({
       data: { name: `VP_${ts}`, sku: `VPSKU_${ts}`, barcode: `VPBC_${ts}`, size: 'L', colorId: color.id, gender: 'MALE', uom: 'PAIR', itemsPerPacket: 10, masterProductId: mp.id, creatorId: testUserId, categoryId: cat.id, subCategoryId: subCat.id }
     });
@@ -111,8 +99,19 @@ describe('Commercial API (e2e)', () => {
     // Cleanup test master data
     if (testIds.variantProductId)
       await prisma.variantProduct.deleteMany({ where: { id: testIds.variantProductId } });
+    if (testIds.masterProductId)
+      await prisma.masterProduct.deleteMany({ where: { id: testIds.masterProductId } });
     if (testUserId)
       await prisma.masterProduct.deleteMany({ where: { creatorId: testUserId } });
+
+    if (testIds.subCategoryId)
+      await prisma.subCategory.deleteMany({ where: { id: testIds.subCategoryId } });
+    if (testIds.categoryId)
+      await prisma.category.deleteMany({ where: { id: testIds.categoryId } });
+    if (testIds.colorId)
+      await prisma.color.deleteMany({ where: { id: testIds.colorId } });
+    if (testIds.materialId)
+      await prisma.material.deleteMany({ where: { id: testIds.materialId } });
 
     // Cleanup test users (scoped by known email patterns from this run)
     await prisma.user.deleteMany({

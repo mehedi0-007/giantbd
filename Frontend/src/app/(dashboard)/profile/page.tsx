@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
 import { User, Gender } from '@/types/auth';
+import { toast } from 'sonner';
 import {
   User as UserIcon,
   Shield,
@@ -77,12 +78,15 @@ export default function ProfilePage() {
       const updated = res.data?.data;
       if (updated) setUser(updated);
       setProfileMsg({ type: 'success', text: 'Personal details updated successfully.' });
+      toast.success('Personal details updated successfully.');
       queryClient.invalidateQueries({ queryKey: ['auth-me'] });
     } catch (err: any) {
+      const msg = err.response?.data?.message || 'Failed to update profile.';
       setProfileMsg({
         type: 'error',
-        text: err.response?.data?.message || 'Failed to update profile.',
+        text: msg,
       });
+      toast.error(msg);
     } finally {
       setIsUpdatingProfile(false);
     }
@@ -103,8 +107,9 @@ export default function ProfilePage() {
       const updated = res.data?.data;
       if (updated) setUser(updated);
       queryClient.invalidateQueries({ queryKey: ['auth-me'] });
+      toast.success('Avatar updated successfully.');
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to upload avatar.');
+      toast.error(err.response?.data?.message || 'Failed to upload avatar.');
     } finally {
       setIsUploadingAvatar(false);
     }
@@ -125,8 +130,9 @@ export default function ProfilePage() {
       const updated = res.data?.data;
       if (updated) setUser(updated);
       queryClient.invalidateQueries({ queryKey: ['auth-me'] });
+      toast.success('Signature updated successfully.');
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to upload signature.');
+      toast.error(err.response?.data?.message || 'Failed to upload signature.');
     } finally {
       setIsUploadingSig(false);
     }
@@ -135,6 +141,10 @@ export default function ProfilePage() {
   // Handle Password Change
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!currentPassword) {
+      setPasswordMsg({ type: 'error', text: 'Current password is required.' });
+      return;
+    }
     if (newPassword !== confirmPassword) {
       setPasswordMsg({ type: 'error', text: 'New passwords do not match.' });
       return;
@@ -144,19 +154,23 @@ export default function ProfilePage() {
     setPasswordMsg(null);
 
     try {
-      await api.patch(`/users/${currentUser.id}`, {
-        password: newPassword,
+      await api.post('/auth/change-password', {
+        oldPassword: currentPassword,
+        newPassword,
       });
 
       setPasswordMsg({ type: 'success', text: 'Password changed successfully.' });
+      toast.success('Password changed successfully.');
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
     } catch (err: any) {
+      const msg = err.response?.data?.message || 'Failed to change password.';
       setPasswordMsg({
         type: 'error',
-        text: err.response?.data?.message || 'Failed to change password.',
+        text: msg,
       });
+      toast.error(msg);
     } finally {
       setIsUpdatingPassword(false);
     }

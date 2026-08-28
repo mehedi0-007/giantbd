@@ -53,13 +53,20 @@ describe('Auth & User Management (e2e)', () => {
     }
     testRoleId = role.id;
 
-    // Register via API (ensures password is hashed)
-    const regRes = await request(app.getHttpServer())
-      .post('/api/users/register')
-      .send({ ...testUser, roleId: testRoleId });
-
-    expect(regRes.status).toBe(201);
-    testUserId = regRes.body.data.id;
+    // Seed initial admin user directly via Prisma
+    const bcrypt = await import('bcrypt');
+    const hashedPassword = await bcrypt.hash(testUser.password, 10);
+    const createdUser = await prisma.user.create({
+      data: {
+        name: testUser.name,
+        email: testUser.email,
+        password: hashedPassword,
+        gender: testUser.gender as any,
+        phone: testUser.phone,
+        roleId: testRoleId,
+      },
+    });
+    testUserId = createdUser.id;
 
     // Login to get tokens
     const loginRes = await request(app.getHttpServer())
@@ -185,11 +192,45 @@ describe('Auth & User Management (e2e)', () => {
     });
   });
 
+  describe('POST /api/users/register', () => {
+    it('rejects registration without authentication (401)', async () => {
+      await request(app.getHttpServer())
+        .post('/api/users/register')
+        .send({
+          name: 'Unauth User',
+          email: `unauth_${ts}@example.com`,
+          password: 'password123',
+          gender: 'MALE',
+          roleId: testRoleId,
+        })
+        .expect(401);
+    });
+
+    it('creates a user when authenticated with admin permissions (201)', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/users/register')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({
+          name: 'Auth Created User',
+          email: `auth_created_${ts}@example.com`,
+          password: 'password123',
+          gender: 'MALE',
+          phone: `${(ts + 2).toString().slice(-10)}`,
+          roleId: testRoleId,
+        })
+        .expect(201);
+
+      expect(res.body.data).toHaveProperty('id');
+      expect(res.body.data.email).toBe(`auth_created_${ts}@example.com`);
+    });
+  });
+
   describe('DELETE & Restore /api/users/:id', () => {
     it('soft-deletes a user', async () => {
       // Create a separate user to delete so we don't break other tests
       const delUser = await request(app.getHttpServer())
         .post('/api/users/register')
+        .set('Authorization', `Bearer ${accessToken}`)
         .send({
           name: 'To Delete',
           email: `del_${ts}@example.com`,
@@ -197,7 +238,8 @@ describe('Auth & User Management (e2e)', () => {
           gender: 'MALE',
           phone: `${(ts + 1).toString().slice(-10)}`,
           roleId: testRoleId,
-        });
+        })
+        .expect(201);
       const delUserId = delUser.body.data.id;
 
       const res = await request(app.getHttpServer())

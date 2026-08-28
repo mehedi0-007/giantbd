@@ -1,7 +1,9 @@
 'use client';
 
+import React from 'react';
 import { formatDate, formatNumber, calculateBatchAge } from '@/lib/utils';
-import { X, Boxes, Calendar, FileText, MapPin, Tag, ArrowRight, ShieldCheck, Printer } from 'lucide-react';
+import { Modal } from '@/components/common/modal';
+import { Boxes, Calendar, FileText, MapPin, Tag, ShieldCheck, Printer } from 'lucide-react';
 
 interface BatchDetailModalProps {
   isOpen: boolean;
@@ -28,7 +30,7 @@ export function BatchDetailModal({
   batch,
   onPrintSticker,
 }: BatchDetailModalProps) {
-  if (!isOpen || !batch) return null;
+  if (!batch) return null;
 
   const items: any[] = batch.batchItems || [];
   const totalReceived = items.reduce((sum, i) => sum + (i.receivedQty || 0), 0);
@@ -42,212 +44,163 @@ export function BatchDetailModal({
   const materialName = firstProduct?.masterProduct?.material?.name || 'Standard Material';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
-      <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs" onClick={onClose} />
-
-      <div className="relative w-full max-w-3xl max-h-[90vh] rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl flex flex-col overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-100 pb-4 shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
-              <Boxes className="h-5 w-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-base font-bold text-slate-900 font-mono">
-                  {batch.batch_id || batch.batch_number || 'Batch Details'}
-                </h3>
-                <span className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-700 uppercase">
-                  {gender}
-                </span>
-                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${age.badgeClass}`}>
-                  <span className={`h-1.5 w-1.5 rounded-full ${age.dotClass}`} />
-                  <span>{age.label}</span>
-                </span>
-              </div>
-              <div className="flex items-center gap-2 text-xs text-slate-600 mt-0.5">
-                <div className="flex items-center gap-1">
-                  {colorCode && (
-                    <span
-                      className="h-2.5 w-2.5 rounded-full border border-slate-300 shadow-2xs shrink-0"
-                      style={{ backgroundColor: colorCode }}
-                    />
-                  )}
-                  <span className="font-semibold text-slate-800">{colorName}</span>
-                </div>
-                <span className="text-slate-300">•</span>
-                <span className="font-medium text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200/60 text-[11px]">
-                  {materialName}
-                </span>
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            {onPrintSticker && (
-              <button
-                type="button"
-                onClick={() => onPrintSticker(batch)}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 shadow-2xs transition cursor-pointer"
-              >
-                <Printer className="h-3.5 w-3.5" />
-                <span>Print Sticker</span>
-              </button>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      icon={<Boxes className="h-5 w-5" />}
+      title={
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="font-mono">{batch.batch_id || batch.batch_number || 'Batch Details'}</span>
+          <span className="rounded bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-700 uppercase">
+            {gender}
+          </span>
+          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold border ${age.badgeClass}`}>
+            <span className={`h-1.5 w-1.5 rounded-full ${age.dotClass}`} />
+            <span>{age.label}</span>
+          </span>
+        </div>
+      }
+      description={
+        <div className="flex items-center gap-2 text-xs text-slate-600 mt-0.5">
+          <div className="flex items-center gap-1">
+            {colorCode && (
+              <span
+                className="h-2.5 w-2.5 rounded-full border border-slate-300 shadow-2xs shrink-0"
+                style={{ backgroundColor: colorCode }}
+              />
             )}
+            <span className="font-semibold text-slate-800">{colorName}</span>
+          </div>
+          <span className="text-slate-300">•</span>
+          <span className="font-medium text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200/60 text-xs">
+            {materialName}
+          </span>
+        </div>
+      }
+      size="2xl"
+      footer={
+        <div className="flex items-center justify-between w-full">
+          {onPrintSticker && (
             <button
               type="button"
-              onClick={onClose}
-              className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 transition cursor-pointer"
+              onClick={() => onPrintSticker(batch)}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 shadow-2xs transition cursor-pointer min-h-[40px]"
             >
-              <X className="h-5 w-5" />
+              <Printer className="h-4 w-4" />
+              <span>Print Sticker</span>
             </button>
-          </div>
-        </div>
-
-        {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto py-5 space-y-6">
-          {/* Metadata Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3">
-              <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Available In-Hand</span>
-              <div className="text-lg font-bold text-emerald-600 mt-0.5">
-                {formatNumber(totalAvailable)} <span className="text-xs font-normal text-slate-500">pairs</span>
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3">
-              <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Total Received</span>
-              <div className="text-lg font-bold text-slate-800 mt-0.5">
-                {formatNumber(totalReceived)} <span className="text-xs font-normal text-slate-500">pairs</span>
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3">
-              <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Total Cartons</span>
-              <div className="text-lg font-bold text-slate-800 mt-0.5">
-                {formatNumber(totalPackets)} <span className="text-xs font-normal text-slate-500">ctns</span>
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3">
-              <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Age & Production</span>
-              <div className="text-xs font-bold text-slate-800 mt-0.5">
-                {formatDate(batch.productionDate)}
-              </div>
-              <div className="mt-1">
-                <span className={`inline-flex items-center gap-1 px-1.5 py-0.2 text-[9px] font-bold rounded border ${age.badgeClass}`}>
-                  <span className={`h-1 w-1 rounded-full ${age.dotClass}`} />
-                  <span>{age.label}</span>
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Reference Details */}
-          {(materialName || batch.expirationDate || batch.note) && (
-            <div className="rounded-xl border border-slate-200/80 bg-white p-4 space-y-2 text-xs">
-              <div className="font-bold text-slate-900 mb-2">Material & Storage Specifications</div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-slate-600">
-                <div>
-                  <span className="text-slate-400">Upper / Sole Material:</span>{' '}
-                  <span className="font-semibold text-slate-800">{materialName}</span>
-                </div>
-                <div>
-                  <span className="text-slate-400">Gender Line:</span>{' '}
-                  <span className="font-semibold text-slate-800 uppercase">{gender}</span>
-                </div>
-                {batch.expirationDate && (
-                  <div>
-                    <span className="text-slate-400">Expiration / Warranty Date:</span>{' '}
-                    <span className="font-medium text-slate-800">{formatDate(batch.expirationDate)}</span>
-                  </div>
-                )}
-                {batch.note && (
-                  <div className="sm:col-span-2">
-                    <span className="text-slate-400">Receiver Notes:</span>{' '}
-                    <span className="italic text-slate-700">{batch.note}</span>
-                  </div>
-                )}
-              </div>
-            </div>
           )}
-
-          {/* Items Breakdown Table */}
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                Size Breakdown & Storage Locations ({items.length} sizes)
-              </h4>
-            </div>
-
-            <div className="rounded-xl border border-slate-200 overflow-hidden">
-              <table className="w-full text-left text-xs">
-                <thead className="border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                  <tr>
-                    <th className="px-4 py-2.5">Size / SKU</th>
-                    <th className="px-4 py-2.5">In-Hand / Total</th>
-                    <th className="px-4 py-2.5">Cartons (Ctns)</th>
-                    <th className="px-4 py-2.5">Storage Location</th>
-                    <th className="px-4 py-2.5 text-right">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
-                  {items.map((item, idx) => (
-                    <tr key={item.id || idx} className="hover:bg-slate-50/60">
-                      <td className="px-4 py-2.5">
-                        <div className="font-bold text-slate-900">
-                          Size {item.product?.size || item.size || 'N/A'}
-                        </div>
-                        <div className="font-mono text-[10px] text-slate-400">
-                          {item.product?.sku || item.sku || 'SKU-000'}
-                        </div>
-                      </td>
-                      <td className="px-4 py-2.5">
-                        <span className="font-bold text-emerald-700">
-                          {item.availableQty ?? item.receivedQty ?? 0}
-                        </span>
-                        <span className="text-slate-400"> / {item.receivedQty || 0} pairs</span>
-                      </td>
-                      <td className="px-4 py-2.5">
-                        <span className="font-semibold text-slate-800">{item.packetCount || 1} ctns</span>
-                        <span className="text-[10px] text-slate-400 block">
-                          ({item.itemsPerPacket || 1} prs/ctn)
-                        </span>
-                      </td>
-                      <td className="px-4 py-2.5">
-                        {item.location ? (
-                          <div className="flex items-center gap-1.5 text-xs text-slate-800 font-semibold bg-slate-100/90 border border-slate-200/80 rounded-md px-2.5 py-1 w-fit">
-                            <MapPin className="h-3.5 w-3.5 text-blue-600 shrink-0" />
-                            <span>{formatLocationName(item.location)}</span>
-                          </div>
-                        ) : (
-                          <span className="text-slate-400 italic text-xs">Unassigned</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-2.5 text-right">
-                        <span className="inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-200">
-                          {item.status || 'AVAILABLE'}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="flex items-center justify-end border-t border-slate-100 pt-4 shrink-0">
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
+            className="rounded-lg bg-slate-900 px-5 py-2 text-xs font-semibold text-white hover:bg-slate-800 transition cursor-pointer ml-auto min-h-[40px]"
           >
-            Close
+            Close Details
           </button>
         </div>
+      }
+    >
+      <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
+        {/* KPI Summary Banner */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="rounded-xl border border-slate-200/80 bg-slate-50/50 p-3">
+            <span className="text-xs font-semibold text-slate-500 block">Initial Receipt</span>
+            <span className="text-base font-extrabold text-slate-900">{formatNumber(totalReceived)} prs</span>
+          </div>
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50/40 p-3">
+            <span className="text-xs font-semibold text-emerald-700 block">Available Stock</span>
+            <span className="text-base font-extrabold text-emerald-900">{formatNumber(totalAvailable)} prs</span>
+          </div>
+          <div className="rounded-xl border border-purple-200 bg-purple-50/40 p-3">
+            <span className="text-xs font-semibold text-purple-700 block">Total Cartons / Bags</span>
+            <span className="text-base font-extrabold text-purple-900">{formatNumber(totalPackets)} pkts</span>
+          </div>
+          <div className="rounded-xl border border-blue-200 bg-blue-50/40 p-3">
+            <span className="text-xs font-semibold text-blue-700 block">Unique Sizes</span>
+            <span className="text-base font-extrabold text-blue-900">{items.length} Sizes</span>
+          </div>
+        </div>
+
+        {/* Master Product & Lot Specs */}
+        <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-3">
+          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">
+            Manufacturing & Commercial Traceability
+          </h4>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+            <div className="flex items-start gap-2">
+              <Calendar className="h-4 w-4 text-slate-400 shrink-0 mt-0.5" />
+              <div>
+                <span className="text-slate-500 block text-xs">Production Date</span>
+                <strong className="text-slate-800">{formatDate(batch.productionDate)}</strong>
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <ShieldCheck className="h-4 w-4 text-slate-400 shrink-0 mt-0.5" />
+              <div>
+                <span className="text-slate-500 block text-xs">Expiration Date</span>
+                <strong className="text-slate-800">{batch.expirationDate ? formatDate(batch.expirationDate) : 'Indefinite (None)'}</strong>
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <Tag className="h-4 w-4 text-slate-400 shrink-0 mt-0.5" />
+              <div>
+                <span className="text-slate-500 block text-xs">Purchase Order</span>
+                <strong className="text-blue-700 font-mono">{batch.po?.poNumber || batch.poNumber || 'N/A'}</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Batch Items Size Breakdown Table */}
+        <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
+          <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/60 flex items-center justify-between">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-600">
+              Size Breakdown & Warehouse Placement ({items.length})
+            </h4>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="border-b border-slate-100 bg-slate-50/30 text-slate-500 font-semibold">
+                  <th className="py-2.5 px-3">Size</th>
+                  <th className="py-2.5 px-3">Variant SKU</th>
+                  <th className="py-2.5 px-3 text-right">Avail / Rcvd</th>
+                  <th className="py-2.5 px-3 text-right">Packets</th>
+                  <th className="py-2.5 px-3">Assigned Location</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 font-medium">
+                {items.map((item) => (
+                  <tr key={item.id} className="hover:bg-slate-50/50">
+                    <td className="py-2.5 px-3 font-extrabold text-slate-900 font-mono">
+                      EU {item.product?.size || item.size || 'N/A'}
+                    </td>
+                    <td className="py-2.5 px-3 font-mono text-slate-600">
+                      {item.product?.sku || 'SKU-N/A'}
+                    </td>
+                    <td className="py-2.5 px-3 text-right">
+                      <span className="font-bold text-emerald-700">{formatNumber(item.availableQty)}</span>
+                      <span className="text-slate-400"> / {formatNumber(item.receivedQty)} prs</span>
+                    </td>
+                    <td className="py-2.5 px-3 text-right text-slate-700">
+                      {item.packetCount || 1} pkts ({item.itemsPerPacket || 1}/pkt)
+                    </td>
+                    <td className="py-2.5 px-3 text-slate-600">
+                      <div className="flex items-center gap-1">
+                        <MapPin className="h-3.5 w-3.5 text-blue-500 shrink-0" />
+                        <span className="font-semibold text-slate-800">
+                          {formatLocationName(item.location)}
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
-    </div>
+    </Modal>
   );
 }

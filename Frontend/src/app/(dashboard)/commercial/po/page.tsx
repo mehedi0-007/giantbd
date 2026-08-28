@@ -5,7 +5,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { PO } from '@/types/commercial';
 import { PoDrawer } from '@/components/commercial/po-drawer';
-import { DataPagination } from '@/components/common/data-pagination';
+import { DataPagination, ConfirmDialog, TableSkeleton, EmptyState } from '@/components/common';
+import { toast } from 'sonner';
 import { formatDate, formatNumber } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import NextLink from 'next/link';
@@ -33,6 +34,7 @@ export default function PoPage() {
   const [pageSize, setPageSize] = useState(10);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [selectedPo, setSelectedPo] = useState<PO | null>(null);
+  const [poToDelete, setPoToDelete] = useState<PO | null>(null);
 
   // Fetch Buyers for filter dropdown
   const { data: buyersData } = useQuery({
@@ -73,8 +75,13 @@ export default function PoPage() {
       await api.delete(`/po/${id}`);
     },
     onSuccess: () => {
+      toast.success('Purchase Order cancelled successfully');
       queryClient.invalidateQueries({ queryKey: ['pos'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-data'] });
+      setPoToDelete(null);
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message || 'Failed to cancel PO');
     },
   });
 
@@ -84,8 +91,12 @@ export default function PoPage() {
       await api.post(`/po/${id}/restore`);
     },
     onSuccess: () => {
+      toast.success('Purchase Order reopened successfully');
       queryClient.invalidateQueries({ queryKey: ['pos'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-data'] });
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message || 'Failed to reopen PO');
     },
   });
 
@@ -268,34 +279,43 @@ export default function PoPage() {
       {/* PO Data Table */}
       <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs">
         {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-20">
-            <Loader2 className="h-8 w-8 animate-spin text-blue-600 mb-3" />
-            <p className="text-xs font-medium text-slate-500">Loading purchase orders...</p>
-          </div>
+          <TableSkeleton
+            rows={6}
+            columns={['20%', '25%', '25%', '15%', '15%']}
+          />
         ) : pos.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 mb-3">
-              <ShoppingBag className="h-6 w-6" />
-            </div>
-            <h3 className="text-sm font-bold text-slate-900">No Purchase Orders</h3>
-            <p className="text-xs text-slate-500 mt-1 max-w-sm">
-              {search || statusFilter ? 'No orders matched your filter.' : 'Create your first commercial purchase order.'}
-            </p>
-            {!search && !statusFilter && (
-              <button
-                type="button"
-                onClick={handleOpenCreate}
-                className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-blue-700 transition cursor-pointer"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                <span>Create PO</span>
-              </button>
-            )}
-          </div>
+          <EmptyState
+            icon={<ShoppingBag className="h-7 w-7" />}
+            title={search || statusFilter || buyerFilter || lcFilter ? 'No matching orders found' : 'No Purchase Orders yet'}
+            description={
+              search || statusFilter || buyerFilter || lcFilter
+                ? 'No purchase orders match your active filter criteria. Try resetting filters or search.'
+                : 'Create your first commercial purchase order to start production tracking.'
+            }
+            action={
+              search || statusFilter || buyerFilter || lcFilter
+                ? {
+                    label: 'Reset Filters',
+                    onClick: () => {
+                      setSearch('');
+                      setStatusFilter('');
+                      setBuyerFilter('');
+                      setLcFilter('');
+                      setPage(1);
+                    },
+                    variant: 'secondary',
+                  }
+                : {
+                    label: 'Create PO',
+                    onClick: handleOpenCreate,
+                    icon: <Plus className="h-3.5 w-3.5" />,
+                  }
+            }
+          />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+            <table className="w-full text-left text-xs min-w-[700px]">
+              <thead className="sticky top-0 z-10 border-b border-slate-100 bg-slate-50/95 backdrop-blur-xs text-[11px] font-bold uppercase tracking-wider text-slate-500">
                 <tr>
                   <th className="px-5 py-3.5">PO Number</th>
                   <th className="px-5 py-3.5">Buyer & LC</th>
@@ -374,21 +394,19 @@ export default function PoPage() {
                                 type="button"
                                 onClick={() => handleOpenEdit(po)}
                                 title="Edit PO"
-                                className="rounded-lg p-1.5 text-slate-400 hover:bg-blue-50 hover:text-blue-600 transition cursor-pointer"
+                                aria-label={`Edit PO ${po.poNumber}`}
+                                className="rounded-lg p-2 text-slate-400 hover:bg-blue-50 hover:text-blue-600 transition cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center"
                               >
-                                <Edit2 className="h-3.5 w-3.5" />
+                                <Edit2 className="h-4 w-4" />
                               </button>
                               <button
                                 type="button"
-                                onClick={() => {
-                                  if (confirm(`Are you sure you want to cancel ${po.poNumber}?`)) {
-                                    deleteMutation.mutate(po.id);
-                                  }
-                                }}
+                                onClick={() => setPoToDelete(po)}
                                 title="Cancel PO"
-                                className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600 transition cursor-pointer"
+                                aria-label={`Cancel PO ${po.poNumber}`}
+                                className="rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-600 transition cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center"
                               >
-                                <Trash2 className="h-3.5 w-3.5" />
+                                <Trash2 className="h-4 w-4" />
                               </button>
                             </>
                           ) : (
@@ -396,9 +414,9 @@ export default function PoPage() {
                               type="button"
                               onClick={() => restoreMutation.mutate(po.id)}
                               title="Restore PO"
-                              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-emerald-600 hover:bg-emerald-50 transition cursor-pointer"
+                              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-emerald-600 hover:bg-emerald-50 transition cursor-pointer min-h-[36px]"
                             >
-                              <RotateCcw className="h-3 w-3" />
+                              <RotateCcw className="h-3.5 w-3.5" />
                               <span>Restore</span>
                             </button>
                           )}
@@ -430,6 +448,27 @@ export default function PoPage() {
         onClose={() => setIsDrawerOpen(false)}
         onSuccess={handleSuccess}
         poToEdit={selectedPo}
+      />
+
+      {/* Accessible Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={Boolean(poToDelete)}
+        onClose={() => setPoToDelete(null)}
+        onConfirm={async () => {
+          if (poToDelete) {
+            await deleteMutation.mutateAsync(poToDelete.id);
+          }
+        }}
+        title="Cancel Purchase Order"
+        description={
+          <>
+            Are you sure you want to cancel PO <strong className="text-slate-900">{poToDelete?.poNumber}</strong>?
+            This will cancel production and shipment tracking for this order.
+          </>
+        }
+        confirmText="Cancel PO"
+        variant="danger"
+        isLoading={deleteMutation.isPending}
       />
     </div>
   );

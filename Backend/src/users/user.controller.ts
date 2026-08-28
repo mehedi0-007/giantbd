@@ -28,8 +28,8 @@ export class UserController {
   constructor(private readonly userService: UserService) { }
 
   @Post('register')
-  @Public()
-  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @RequirePermissions('users:create')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @UseInterceptors(UserFileUploadInterceptor())
   async register(
     @Body() dto: RegistrationDTO,

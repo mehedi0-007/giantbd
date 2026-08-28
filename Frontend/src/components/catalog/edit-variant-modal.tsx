@@ -4,16 +4,14 @@ import React, { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { VariantProduct } from '@/types/catalog';
+import { Modal } from '@/components/common/modal';
 import {
-  X,
   Edit3,
   Upload,
   Image as ImageIcon,
   Loader2,
   AlertCircle,
   CheckCircle2,
-  Save,
-  Trash2,
 } from 'lucide-react';
 
 interface EditVariantModalProps {
@@ -95,7 +93,7 @@ export function EditVariantModal({
     }
   }, [variant, isOpen]);
 
-  if (!isOpen || !variant) return null;
+  if (!variant) return null;
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -116,8 +114,7 @@ export function EditVariantModal({
     setSuccessMsg('');
 
     try {
-      // 1. Update Variant details
-      const payload: any = {
+      const payload: Record<string, any> = {
         size: formData.size.trim().toUpperCase(),
         colorId: formData.colorId,
         gender: formData.gender,
@@ -131,7 +128,6 @@ export function EditVariantModal({
 
       await api.patch(`/variants/${variant.id}`, payload);
 
-      // 2. Upload Picture if selected
       if (selectedFile) {
         const fileFormData = new FormData();
         fileFormData.append('picture', selectedFile);
@@ -140,17 +136,17 @@ export function EditVariantModal({
         });
       }
 
-      setSuccessMsg('Variant product updated successfully!');
+      queryClient.invalidateQueries({ queryKey: ['master-product-detail'] });
+      queryClient.invalidateQueries({ queryKey: ['variant-products'] });
+
       if (onSuccess) onSuccess();
-      setTimeout(() => {
-        onClose();
-      }, 700);
+      onClose();
     } catch (err: any) {
       const msg =
         err.response?.data?.message ||
         (Array.isArray(err.response?.data?.message)
           ? err.response.data.message.join(', ')
-          : 'Failed to update variant product.');
+          : 'Failed to update variant.');
       setErrorMsg(msg);
     } finally {
       setIsSaving(false);
@@ -158,270 +154,222 @@ export function EditVariantModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
-      <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs" onClick={onClose} />
-
-      <div className="relative w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl flex flex-col max-h-[92vh] overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-100 pb-4 shrink-0">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
-              <Edit3 className="h-5 w-5" />
-            </div>
-            <div>
-              <h3 className="text-base font-bold text-slate-900">
-                Edit Variant Product
-              </h3>
-              <p className="text-xs text-slate-500 font-mono">
-                SKU: <strong className="text-slate-800">{variant.sku}</strong>
-              </p>
-            </div>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      icon={<Edit3 className="h-5 w-5" />}
+      title="Edit Variant Product"
+      description={
+        <>
+          Editing SKU <strong className="font-mono text-blue-700">{variant.sku}</strong>
+        </>
+      }
+      size="lg"
+    >
+      <form onSubmit={handleSubmit} className="space-y-4" id="edit-variant-form">
+        {errorMsg && (
+          <div
+            role="alert"
+            className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-700"
+          >
+            <AlertCircle className="h-4 w-4 shrink-0 text-red-500" />
+            <span>{errorMsg}</span>
           </div>
+        )}
+
+        {/* Size & Color Grid */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label htmlFor="evm-size" className="mb-1 block text-xs font-semibold text-slate-700">
+              Size <span className="text-red-500">*</span>
+            </label>
+            <input
+              id="evm-size"
+              type="text"
+              required
+              aria-required="true"
+              value={formData.size}
+              onChange={(e) => setFormData({ ...formData, size: e.target.value.toUpperCase() })}
+              placeholder="e.g. 42"
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 min-h-[40px] font-mono font-bold uppercase"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="evm-color" className="mb-1 block text-xs font-semibold text-slate-700">
+              Color <span className="text-red-500">*</span>
+            </label>
+            <select
+              id="evm-color"
+              required
+              aria-required="true"
+              value={formData.colorId}
+              onChange={(e) => setFormData({ ...formData, colorId: e.target.value })}
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 min-h-[40px]"
+            >
+              <option value="" disabled>Select Color</option>
+              {colors.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Gender, Items Per Packet, Status Grid */}
+        <div className="grid grid-cols-3 gap-3">
+          <div>
+            <label htmlFor="evm-gender" className="mb-1 block text-xs font-semibold text-slate-700">
+              Gender
+            </label>
+            <select
+              id="evm-gender"
+              value={formData.gender}
+              onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 min-h-[40px]"
+            >
+              <option value="MALE">Male</option>
+              <option value="LADY">Lady</option>
+              <option value="KIDS">Kids</option>
+              <option value="JUNIOR">Junior</option>
+              <option value="TWIN_JUNIOR">Twin Junior</option>
+            </select>
+          </div>
+
+          <div>
+            <label htmlFor="evm-packet" className="mb-1 block text-xs font-semibold text-slate-700">
+              Pairs / Bag
+            </label>
+            <input
+              id="evm-packet"
+              type="number"
+              min={1}
+              value={formData.itemsPerPacket}
+              onChange={(e) => setFormData({ ...formData, itemsPerPacket: Number(e.target.value) || 1 })}
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 min-h-[40px]"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="evm-status" className="mb-1 block text-xs font-semibold text-slate-700">
+              Status
+            </label>
+            <select
+              id="evm-status"
+              value={formData.status}
+              onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 min-h-[40px]"
+            >
+              <option value="ACTIVE">Active</option>
+              <option value="INACTIVE">Inactive</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Pricing Grid */}
+        <div className="grid grid-cols-3 gap-3">
+          <div>
+            <label htmlFor="evm-cost" className="mb-1 block text-xs font-semibold text-slate-700">
+              Cost Price ($)
+            </label>
+            <input
+              id="evm-cost"
+              type="number"
+              step="0.01"
+              value={formData.costPrice}
+              onChange={(e) => setFormData({ ...formData, costPrice: e.target.value })}
+              placeholder="0.00"
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 min-h-[40px]"
+            />
+          </div>
+          <div>
+            <label htmlFor="evm-selling" className="mb-1 block text-xs font-semibold text-slate-700">
+              Selling Price ($)
+            </label>
+            <input
+              id="evm-selling"
+              type="number"
+              step="0.01"
+              value={formData.sellingPrice}
+              onChange={(e) => setFormData({ ...formData, sellingPrice: e.target.value })}
+              placeholder="0.00"
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 min-h-[40px]"
+            />
+          </div>
+          <div>
+            <label htmlFor="evm-mrp" className="mb-1 block text-xs font-semibold text-slate-700">
+              MRP ($)
+            </label>
+            <input
+              id="evm-mrp"
+              type="number"
+              step="0.01"
+              value={formData.mrp}
+              onChange={(e) => setFormData({ ...formData, mrp: e.target.value })}
+              placeholder="0.00"
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 min-h-[40px]"
+            />
+          </div>
+        </div>
+
+        {/* Barcode & Picture Upload */}
+        <div>
+          <label htmlFor="evm-barcode" className="mb-1 block text-xs font-semibold text-slate-700">
+            Barcode / EAN
+          </label>
+          <input
+            id="evm-barcode"
+            type="text"
+            value={formData.barcode}
+            onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
+            placeholder="e.g. 890123456789"
+            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 min-h-[40px] font-mono"
+          />
+        </div>
+
+        <div>
+          <label htmlFor="evm-picture" className="mb-1 block text-xs font-semibold text-slate-700">
+            Variant Photo
+          </label>
+          <input
+            id="evm-picture"
+            type="file"
+            accept=".jpg,.jpeg,.png,.webp"
+            onChange={handleFileChange}
+            className="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer min-h-[40px]"
+          />
+          {imagePreview && (
+            <div className="mt-2 flex items-center gap-3">
+              <img
+                src={imagePreview}
+                alt="Variant preview"
+                className="h-14 w-14 rounded-lg object-cover border border-slate-200"
+              />
+              <span className="text-xs text-slate-500">Image selected for upload</span>
+            </div>
+          )}
+        </div>
+
+        {/* Action Buttons */}
+        <div className="pt-4 flex items-center justify-end gap-3 border-t border-slate-100">
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer"
+            className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer min-h-[40px]"
           >
-            <X className="h-5 w-5" />
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={isSaving}
+            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition cursor-pointer shadow-sm shadow-blue-500/20 disabled:opacity-50 min-h-[40px]"
+          >
+            {isSaving && <Loader2 className="h-4 w-4 animate-spin" />}
+            <span>Save Variant Changes</span>
           </button>
         </div>
-
-        {/* Scrollable Form */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto py-4 space-y-4">
-          {errorMsg && (
-            <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">
-              <AlertCircle className="h-4 w-4 shrink-0 text-red-500" />
-              <span>{errorMsg}</span>
-            </div>
-          )}
-
-          {successMsg && (
-            <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-700">
-              <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
-              <span>{successMsg}</span>
-            </div>
-          )}
-
-          {/* Photo Upload & Preview Section */}
-          <div className="rounded-xl border border-slate-200/80 bg-slate-50/60 p-3.5">
-            <label className="mb-2 block text-xs font-bold text-slate-800">
-              Variant Product Picture
-            </label>
-            <div className="flex items-center gap-4">
-              <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-white flex items-center justify-center">
-                {imagePreview ? (
-                  <img
-                    src={imagePreview}
-                    alt="Variant Preview"
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <ImageIcon className="h-8 w-8 text-slate-300" />
-                )}
-              </div>
-
-              <div className="flex-1 space-y-1.5">
-                <input
-                  type="file"
-                  id="variant-pic-input"
-                  accept="image/png,image/jpeg,image/webp,image/jpg"
-                  onChange={handleFileChange}
-                  className="hidden"
-                />
-                <label
-                  htmlFor="variant-pic-input"
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 shadow-2xs transition cursor-pointer"
-                >
-                  <Upload className="h-3.5 w-3.5 text-blue-600" />
-                  <span>{imagePreview ? 'Change Picture' : 'Upload Picture'}</span>
-                </label>
-                <p className="text-[11px] text-slate-400">
-                  Supported formats: JPG, PNG, WEBP (Max 5MB)
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Color & Gender */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="mb-1 block text-xs font-semibold text-slate-700">
-                Color <span className="text-red-500">*</span>
-              </label>
-              <select
-                required
-                value={formData.colorId}
-                onChange={(e) => setFormData({ ...formData, colorId: e.target.value })}
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 focus:border-blue-500 focus:outline-hidden"
-              >
-                <option value="" disabled>Select Color</option>
-                {colors.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="mb-1 block text-xs font-semibold text-slate-700">
-                Gender Line <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={formData.gender}
-                onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 focus:border-blue-500 focus:outline-hidden"
-              >
-                <option value="MALE">MALE</option>
-                <option value="FEMALE">FEMALE</option>
-                <option value="UNISEX">UNISEX</option>
-                <option value="KIDS">KIDS</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Size & Items per Packet */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="mb-1 block text-xs font-semibold text-slate-700">
-                Shoe Size <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                required
-                value={formData.size}
-                onChange={(e) => setFormData({ ...formData, size: e.target.value })}
-                placeholder="e.g. 40, 41, 42"
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-900 focus:border-blue-500 focus:outline-hidden"
-              />
-            </div>
-
-            <div>
-              <label className="mb-1 block text-xs font-semibold text-slate-700">
-                Items Per Packet (prs/ctn)
-              </label>
-              <input
-                type="number"
-                min="1"
-                required
-                value={formData.itemsPerPacket}
-                onChange={(e) =>
-                  setFormData({ ...formData, itemsPerPacket: Number(e.target.value) || 1 })
-                }
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-900 focus:border-blue-500 focus:outline-hidden"
-              />
-            </div>
-          </div>
-
-          {/* Pricing Details */}
-          <div className="grid grid-cols-3 gap-3">
-            <div>
-              <label className="mb-1 block text-xs font-semibold text-slate-700">
-                Cost Price
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                value={formData.costPrice}
-                onChange={(e) => setFormData({ ...formData, costPrice: e.target.value })}
-                placeholder="0.00"
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-900 focus:border-blue-500 focus:outline-hidden"
-              />
-            </div>
-
-            <div>
-              <label className="mb-1 block text-xs font-semibold text-slate-700">
-                Selling Price
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                value={formData.sellingPrice}
-                onChange={(e) => setFormData({ ...formData, sellingPrice: e.target.value })}
-                placeholder="0.00"
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-900 focus:border-blue-500 focus:outline-hidden"
-              />
-            </div>
-
-            <div>
-              <label className="mb-1 block text-xs font-semibold text-slate-700">
-                MRP
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                value={formData.mrp}
-                onChange={(e) => setFormData({ ...formData, mrp: e.target.value })}
-                placeholder="0.00"
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-900 focus:border-blue-500 focus:outline-hidden"
-              />
-            </div>
-          </div>
-
-          {/* Barcode & Status */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="mb-1 block text-xs font-semibold text-slate-700">
-                Barcode
-              </label>
-              <input
-                type="text"
-                value={formData.barcode}
-                onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
-                placeholder="Auto-generated or custom"
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs font-mono text-slate-900 focus:border-blue-500 focus:outline-hidden"
-              />
-            </div>
-
-            <div>
-              <label className="mb-1 block text-xs font-semibold text-slate-700">
-                Status
-              </label>
-              <select
-                value={formData.status}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 focus:border-blue-500 focus:outline-hidden"
-              >
-                <option value="ACTIVE">ACTIVE</option>
-                <option value="INACTIVE">INACTIVE</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Footer Actions */}
-          <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-slate-100">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={isSaving}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer disabled:opacity-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSaving}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-5 py-2 text-xs font-bold text-white shadow-xs hover:bg-blue-700 transition cursor-pointer disabled:opacity-50"
-            >
-              {isSaving ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>Saving...</span>
-                </>
-              ) : (
-                <>
-                  <Save className="h-4 w-4" />
-                  <span>Save Changes</span>
-                </>
-              )}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+      </form>
+    </Modal>
   );
 }

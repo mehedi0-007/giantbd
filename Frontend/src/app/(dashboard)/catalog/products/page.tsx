@@ -5,7 +5,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { MasterProduct, Category, Material } from '@/types/catalog';
 import { MasterProductDrawer } from '@/components/catalog/master-product-drawer';
-import { DataPagination } from '@/components/common/data-pagination';
+import { DataPagination, ConfirmDialog, TableSkeleton, EmptyState } from '@/components/common';
+import { toast } from 'sonner';
 import { formatNumber } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import NextLink from 'next/link';
@@ -31,6 +32,7 @@ export default function ProductsPage() {
   const [pageSize, setPageSize] = useState(10);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<MasterProduct | null>(null);
+  const [productToDelete, setProductToDelete] = useState<MasterProduct | null>(null);
 
   // Fetch Categories for Filter
   const { data: categoriesData } = useQuery({
@@ -73,7 +75,12 @@ export default function ProductsPage() {
       await api.delete(`/master-products/${id}`);
     },
     onSuccess: () => {
+      toast.success('Master product deactivated successfully');
       queryClient.invalidateQueries({ queryKey: ['master-products'] });
+      setProductToDelete(null);
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message || 'Failed to deactivate product');
     },
   });
 
@@ -83,7 +90,11 @@ export default function ProductsPage() {
       await api.post(`/master-products/${id}/restore`);
     },
     onSuccess: () => {
+      toast.success('Master product restored successfully');
       queryClient.invalidateQueries({ queryKey: ['master-products'] });
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message || 'Failed to restore product');
     },
   });
 
@@ -212,38 +223,48 @@ export default function ProductsPage() {
 
       {/* Main Content Area: List View */}
       {isLoading ? (
-        <div className="flex flex-col items-center justify-center py-24">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-600 mb-3" />
-          <p className="text-xs font-medium text-slate-500">Loading catalog items...</p>
+        <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs">
+          <TableSkeleton
+            rows={6}
+            columns={['26%', '14%', '15%', '15%', '14%', '8%', '8%']}
+          />
         </div>
       ) : products.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center rounded-2xl border border-slate-200/80 bg-white shadow-xs">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 mb-3">
-            <Package className="h-6 w-6" />
-          </div>
-          <h3 className="text-sm font-bold text-slate-900">No products found</h3>
-          <p className="text-xs text-slate-500 mt-1 max-w-sm">
-            {search || categoryFilter || materialFilter
-              ? 'No products matched your active filters.'
-              : 'Add your first master product to create styles and size variants.'}
-          </p>
-          {!search && !categoryFilter && !materialFilter && (
-            <button
-              type="button"
-              onClick={handleOpenCreate}
-              className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-blue-700 transition cursor-pointer"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              <span>Add Master Product</span>
-            </button>
-          )}
+        <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs">
+          <EmptyState
+            icon={<Package className="h-7 w-7 text-indigo-600" />}
+            title={search || categoryFilter || materialFilter ? 'No matching products found' : 'No master products yet'}
+            description={
+              search || categoryFilter || materialFilter
+                ? 'No master products match your active filters. Try adjusting your search term, category, or material.'
+                : 'Add your first master product to create styles and size variants.'
+            }
+            action={
+              search || categoryFilter || materialFilter
+                ? {
+                    label: 'Reset Filters',
+                    onClick: () => {
+                      setSearch('');
+                      setCategoryFilter('');
+                      setMaterialFilter('');
+                      setPage(1);
+                    },
+                    variant: 'secondary',
+                  }
+                : {
+                    label: 'Add Master Product',
+                    onClick: handleOpenCreate,
+                    icon: <Plus className="h-3.5 w-3.5" />,
+                  }
+            }
+          />
         </div>
       ) : (
         /* TABLE LIST VIEW */
         <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs">
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+            <table className="w-full text-left text-xs min-w-[750px]">
+              <thead className="sticky top-0 z-10 border-b border-slate-100 bg-slate-50/95 backdrop-blur-xs text-[11px] font-bold uppercase tracking-wider text-slate-500">
                 <tr>
                   <th className="px-5 py-3.5">Master Product Name</th>
                   <th className="px-5 py-3.5">Material</th>
@@ -334,21 +355,19 @@ export default function ProductsPage() {
                                 type="button"
                                 onClick={() => handleOpenEdit(p)}
                                 title="Edit Product"
-                                className="rounded-lg p-1.5 text-slate-400 hover:bg-blue-50 hover:text-blue-600 transition cursor-pointer"
+                                aria-label={`Edit product ${p.name}`}
+                                className="rounded-lg p-2 text-slate-400 hover:bg-blue-50 hover:text-blue-600 transition cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center"
                               >
-                                <Edit2 className="h-3.5 w-3.5" />
+                                <Edit2 className="h-4 w-4" />
                               </button>
                               <button
                                 type="button"
-                                onClick={() => {
-                                  if (confirm(`Are you sure you want to delete ${p.name}?`)) {
-                                    deleteMutation.mutate(p.id);
-                                  }
-                                }}
-                                title="Delete Product"
-                                className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600 transition cursor-pointer"
+                                onClick={() => setProductToDelete(p)}
+                                title="Deactivate Product"
+                                aria-label={`Deactivate product ${p.name}`}
+                                className="rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-600 transition cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center"
                               >
-                                <Trash2 className="h-3.5 w-3.5" />
+                                <Trash2 className="h-4 w-4" />
                               </button>
                             </>
                           ) : (
@@ -356,9 +375,9 @@ export default function ProductsPage() {
                               type="button"
                               onClick={() => restoreMutation.mutate(p.id)}
                               title="Restore"
-                              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-emerald-600 hover:bg-emerald-50 transition cursor-pointer"
+                              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-emerald-600 hover:bg-emerald-50 transition cursor-pointer min-h-[36px]"
                             >
-                              <RotateCcw className="h-3 w-3" />
+                              <RotateCcw className="h-3.5 w-3.5" />
                               <span>Restore</span>
                             </button>
                           )}
@@ -390,6 +409,27 @@ export default function ProductsPage() {
         onClose={() => setIsDrawerOpen(false)}
         onSuccess={handleSuccess}
         productToEdit={selectedProduct}
+      />
+
+      {/* Accessible Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={Boolean(productToDelete)}
+        onClose={() => setProductToDelete(null)}
+        onConfirm={async () => {
+          if (productToDelete) {
+            await deleteMutation.mutateAsync(productToDelete.id);
+          }
+        }}
+        title="Deactivate Master Product"
+        description={
+          <>
+            Are you sure you want to deactivate master product <strong className="text-slate-900">{productToDelete?.name}</strong> ({productToDelete?.sku})?
+            Its variant products will be preserved in archived status.
+          </>
+        }
+        confirmText="Deactivate Product"
+        variant="danger"
+        isLoading={deleteMutation.isPending}
       />
     </div>
   );

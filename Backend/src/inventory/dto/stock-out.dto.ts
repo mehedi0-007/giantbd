@@ -19,7 +19,6 @@ export class StockOutItemInputDTO {
 
   @Type(() => Number)
   @IsInt()
-  @Min(1)
   issueQty!: number;
 }
 

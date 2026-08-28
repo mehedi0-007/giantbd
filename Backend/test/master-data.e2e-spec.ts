@@ -63,24 +63,24 @@ describe('MasterData API (e2e)', () => {
     testRoleId = role.id;
 
     // Create test user
-    const testUser = {
-      name: 'Master Data Test Admin',
-      email: `admin_${ts}@example.com`,
-      password: 'password123',
-      gender: 'MALE' as any,
-      phone: `999${ts}`,
-      roleId: testRoleId,
-    };
-
-    const userRes = await request(app.getHttpServer())
-      .post('/api/users/register')
-      .send(testUser);
-    testUserId = userRes.body.data.id;
+    const bcrypt = await import('bcrypt');
+    const hashedPassword = await bcrypt.hash('password123', 10);
+    const createdUser = await prisma.user.create({
+      data: {
+        name: 'Master Data Test Admin',
+        email: `admin_${ts}@example.com`,
+        password: hashedPassword,
+        gender: 'MALE' as any,
+        phone: `999${ts}`,
+        roleId: testRoleId,
+      },
+    });
+    testUserId = createdUser.id;
 
     // Login
     const loginRes = await request(app.getHttpServer())
       .post('/api/auth/login')
-      .send({ email: testUser.email, password: testUser.password });
+      .send({ email: `admin_${ts}@example.com`, password: 'password123' });
     accessToken = loginRes.body.data.accessToken;
   });
 

@@ -63,32 +63,19 @@ describe('Inventory API (e2e)', () => {
     }
     testRoleId = role.id;
 
+    const bcrypt = await import('bcrypt');
+    const hashedPassword = await bcrypt.hash('password123', 10);
     const testUser = await prisma.user.create({
       data: {
         name: 'Inventory Test Admin',
         email: `inv_admin_${ts}@example.com`,
-        password: 'password123', // In a real app we'd hash, but for auth bypass or login we might need to actually login via API
+        password: hashedPassword,
         gender: 'MALE' as any,
         phone: `888${ts}`,
         roleId: testRoleId,
-      }
+      },
     });
     testUserId = testUser.id;
-
-    // We must login via API to get the token, which requires a hashed password in DB if the API checks it.
-    // Instead of creating user via Prisma, let's create via API to ensure password hashing happens
-    await prisma.user.delete({ where: { id: testUserId } });
-    const userRes = await request(app.getHttpServer())
-      .post('/api/users/register')
-      .send({
-        name: 'Inventory Test Admin',
-        email: `inv_admin_${ts}@example.com`,
-        password: 'password123',
-        gender: 'MALE',
-        phone: `888${ts}`,
-        roleId: testRoleId,
-      });
-    testUserId = userRes.body.data.id;
 
     const loginRes = await request(app.getHttpServer())
       .post('/api/auth/login')
@@ -137,6 +124,11 @@ describe('Inventory API (e2e)', () => {
     await prisma.batchItem.deleteMany({});
     await prisma.batch.deleteMany({});
     await prisma.document.deleteMany({});
+
+    // Cleanup test POs and buyers created in stock-out tests
+    await prisma.pOItem.deleteMany({ where: { po: { poNumber: { startsWith: 'PO_' } } } });
+    await prisma.pO.deleteMany({ where: { poNumber: { startsWith: 'PO_' } } });
+    await prisma.buyer.deleteMany({ where: { name: { startsWith: 'B_' } } });
 
     // Cleanup master data
     await prisma.variantProduct.deleteMany({ where: { id: testIds.variantProductId }});

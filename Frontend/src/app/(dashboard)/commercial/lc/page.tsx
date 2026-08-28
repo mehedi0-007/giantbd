@@ -5,7 +5,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { LC } from '@/types/commercial';
 import { LcDrawer } from '@/components/commercial/lc-drawer';
-import { DataPagination } from '@/components/common/data-pagination';
+import { DataPagination, ConfirmDialog, TableSkeleton, EmptyState } from '@/components/common';
+import { toast } from 'sonner';
 import { formatDate } from '@/lib/utils';
 import {
   FileText,
@@ -26,10 +27,11 @@ export default function LcPage() {
   const [pageSize, setPageSize] = useState(10);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [selectedLc, setSelectedLc] = useState<LC | null>(null);
+  const [lcToDelete, setLcToDelete] = useState<LC | null>(null);
 
   // Fetch LC List
   const { data, isLoading, isFetching } = useQuery({
-    queryKey: ['lcs', page, pageSize, search, statusFilter],
+    queryKey: ['lc-list', page, pageSize, search, statusFilter],
     queryFn: async () => {
       const res = await api.get('/lc', {
         params: {
@@ -43,14 +45,18 @@ export default function LcPage() {
     },
   });
 
-  // Soft-Delete Mutation
+  // Delete Mutation
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       await api.delete(`/lc/${id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['lcs'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard-data'] });
+      toast.success('LC cancelled successfully');
+      queryClient.invalidateQueries({ queryKey: ['lc-list'] });
+      setLcToDelete(null);
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message || 'Failed to cancel LC');
     },
   });
 
@@ -60,8 +66,11 @@ export default function LcPage() {
       await api.post(`/lc/${id}/restore`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['lcs'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard-data'] });
+      toast.success('LC reopened successfully');
+      queryClient.invalidateQueries({ queryKey: ['lc-list'] });
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message || 'Failed to reopen LC');
     },
   });
 
@@ -172,34 +181,41 @@ export default function LcPage() {
       {/* LC Data Table */}
       <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs">
         {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-20">
-            <Loader2 className="h-8 w-8 animate-spin text-blue-600 mb-3" />
-            <p className="text-xs font-medium text-slate-500">Loading LC registry...</p>
-          </div>
+          <TableSkeleton
+            rows={6}
+            columns={['20%', '22%', '24%', '14%', '10%', '10%']}
+          />
         ) : lcs.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 mb-3">
-              <FileText className="h-6 w-6" />
-            </div>
-            <h3 className="text-sm font-bold text-slate-900">No Letters of Credit</h3>
-            <p className="text-xs text-slate-500 mt-1 max-w-sm">
-              {search || statusFilter ? 'No LCs matched your filter criteria.' : 'Create your first commercial Letter of Credit.'}
-            </p>
-            {!search && !statusFilter && (
-              <button
-                type="button"
-                onClick={handleOpenCreate}
-                className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-blue-700 transition cursor-pointer"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                <span>Open LC</span>
-              </button>
-            )}
-          </div>
+          <EmptyState
+            icon={<FileText className="h-7 w-7" />}
+            title={search || statusFilter ? 'No matching LCs found' : 'No Letters of Credit yet'}
+            description={
+              search || statusFilter
+                ? 'No Letters of Credit match your filter criteria. Try resetting your search or status filter.'
+                : 'Create your first commercial Letter of Credit to manage buyer export contracts.'
+            }
+            action={
+              search || statusFilter
+                ? {
+                    label: 'Reset Filters',
+                    onClick: () => {
+                      setSearch('');
+                      setStatusFilter('');
+                      setPage(1);
+                    },
+                    variant: 'secondary',
+                  }
+                : {
+                    label: 'Open New LC',
+                    onClick: handleOpenCreate,
+                    icon: <Plus className="h-3.5 w-3.5" />,
+                  }
+            }
+          />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+            <table className="w-full text-left text-xs min-w-[750px]">
+              <thead className="sticky top-0 z-10 border-b border-slate-100 bg-slate-50/95 backdrop-blur-xs text-[11px] font-bold uppercase tracking-wider text-slate-500">
                 <tr>
                   <th className="px-5 py-3.5">LC Number</th>
                   <th className="px-5 py-3.5">Buyer</th>
@@ -271,21 +287,19 @@ export default function LcPage() {
                                 type="button"
                                 onClick={() => handleOpenEdit(lc)}
                                 title="Edit LC"
-                                className="rounded-lg p-1.5 text-slate-400 hover:bg-blue-50 hover:text-blue-600 transition cursor-pointer"
+                                aria-label={`Edit LC ${lc.lcNumber}`}
+                                className="rounded-lg p-2 text-slate-400 hover:bg-blue-50 hover:text-blue-600 transition cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center"
                               >
-                                <Edit2 className="h-3.5 w-3.5" />
+                                <Edit2 className="h-4 w-4" />
                               </button>
                               <button
                                 type="button"
-                                onClick={() => {
-                                  if (confirm(`Are you sure you want to delete ${lc.lcNumber}?`)) {
-                                    deleteMutation.mutate(lc.id);
-                                  }
-                                }}
-                                title="Delete LC"
-                                className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600 transition cursor-pointer"
+                                onClick={() => setLcToDelete(lc)}
+                                title="Cancel LC"
+                                aria-label={`Cancel LC ${lc.lcNumber}`}
+                                className="rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-600 transition cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center"
                               >
-                                <Trash2 className="h-3.5 w-3.5" />
+                                <Trash2 className="h-4 w-4" />
                               </button>
                             </>
                           ) : (
@@ -293,9 +307,9 @@ export default function LcPage() {
                               type="button"
                               onClick={() => restoreMutation.mutate(lc.id)}
                               title="Restore LC"
-                              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-emerald-600 hover:bg-emerald-50 transition cursor-pointer"
+                              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-emerald-600 hover:bg-emerald-50 transition cursor-pointer min-h-[36px]"
                             >
-                              <RotateCcw className="h-3 w-3" />
+                              <RotateCcw className="h-3.5 w-3.5" />
                               <span>Restore</span>
                             </button>
                           )}
@@ -325,8 +339,32 @@ export default function LcPage() {
       <LcDrawer
         isOpen={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
-        onSuccess={() => queryClient.invalidateQueries({ queryKey: ['lcs'] })}
+        onSuccess={() => {
+          toast.success(selectedLc ? 'LC updated successfully' : 'LC created successfully');
+          queryClient.invalidateQueries({ queryKey: ['lc-list'] });
+        }}
         lcToEdit={selectedLc}
+      />
+
+      {/* Accessible Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={Boolean(lcToDelete)}
+        onClose={() => setLcToDelete(null)}
+        onConfirm={async () => {
+          if (lcToDelete) {
+            await deleteMutation.mutateAsync(lcToDelete.id);
+          }
+        }}
+        title="Cancel Letter of Credit"
+        description={
+          <>
+            Are you sure you want to cancel LC <strong className="text-slate-900">{lcToDelete?.lcNumber}</strong>?
+            This will mark the contract as cancelled.
+          </>
+        }
+        confirmText="Cancel LC"
+        variant="danger"
+        isLoading={deleteMutation.isPending}
       />
     </div>
   );

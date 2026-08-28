@@ -3,11 +3,15 @@
 import { useAuthStore } from '@/store/auth.store';
 import { useRouter, usePathname } from 'next/navigation';
 import { useState, useRef, useEffect } from 'react';
-import { LogOut, User as UserIcon, Bell, ChevronDown } from 'lucide-react';
+import { LogOut, User as UserIcon, Bell, ChevronDown, Menu } from 'lucide-react';
 import api from '@/lib/api';
 import NextLink from 'next/link';
 
-export function Topbar() {
+interface TopbarProps {
+  onOpenMobileSidebar?: () => void;
+}
+
+export function Topbar({ onOpenMobileSidebar }: TopbarProps) {
   const { user, logout } = useAuthStore();
   const router = useRouter();
   const pathname = usePathname();
@@ -62,16 +66,26 @@ export function Topbar() {
   };
 
   return (
-    <header className="sticky top-0 z-20 flex h-16 w-full items-center justify-between border-b border-slate-200 bg-white/80 px-6 backdrop-blur-md">
-      {/* Breadcrumb Title */}
-      <div className="flex items-center gap-2">
-        <h2 className="text-lg font-semibold tracking-tight text-slate-800">
+    <header className="sticky top-0 z-20 flex h-16 w-full items-center justify-between border-b border-slate-200 bg-white/80 px-4 sm:px-6 backdrop-blur-md">
+      {/* Left Area: Mobile Hamburger + Breadcrumb Title */}
+      <div className="flex items-center gap-3">
+        {onOpenMobileSidebar && (
+          <button
+            type="button"
+            onClick={onOpenMobileSidebar}
+            aria-label="Open navigation menu"
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition lg:hidden"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+        )}
+        <h2 className="text-base sm:text-lg font-semibold tracking-tight text-slate-800 truncate max-w-[200px] sm:max-w-none">
           {getBreadcrumbTitle()}
         </h2>
       </div>
 
       {/* Right Controls: Notifications & User Profile */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3 sm:gap-4">
         {/* Alerts Bell (Placeholder) */}
         <button
           type="button"
@@ -87,7 +101,9 @@ export function Topbar() {
           <button
             type="button"
             onClick={() => setDropdownOpen(!dropdownOpen)}
-            className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 py-1.5 pl-2 pr-3 hover:bg-slate-100 transition"
+            aria-expanded={dropdownOpen}
+            aria-haspopup="true"
+            className="flex items-center gap-2 sm:gap-3 rounded-lg border border-slate-200 bg-slate-50 py-1.5 pl-2 pr-2.5 sm:pr-3 hover:bg-slate-100 transition"
           >
             {user?.image ? (
               <img
@@ -100,42 +116,44 @@ export function Topbar() {
                 {getInitials(user?.name)}
               </div>
             )}
-            <div className="text-left">
-              <div className="text-xs font-semibold text-slate-800 leading-tight">
+            <div className="hidden text-left md:block">
+              <p className="text-xs font-semibold text-slate-900 leading-tight">
                 {user?.name || 'Administrator'}
-              </div>
-              <div className="text-[10px] font-medium text-slate-500 leading-none">
-                {user?.role?.name || 'Staff'}
-              </div>
+              </p>
+              <p className="text-[10px] font-medium text-slate-500 leading-tight">
+                {user?.role?.name || 'User'}
+              </p>
             </div>
             <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
           </button>
 
+          {/* Dropdown Menu */}
           {dropdownOpen && (
-            <div className="absolute right-0 mt-2 w-52 rounded-lg border border-slate-200 bg-white py-1.5 shadow-lg shadow-slate-200/50">
-              <div className="border-b border-slate-100 px-3 py-2">
-                <p className="text-xs font-semibold text-slate-800">{user?.name}</p>
-                <p className="text-[11px] text-slate-400 truncate">{user?.email}</p>
+            <div className="absolute right-0 mt-2 w-56 rounded-lg border border-slate-200 bg-white p-1.5 shadow-lg shadow-slate-200/50 z-50 animate-in fade-in zoom-in-95 duration-100">
+              <div className="border-b border-slate-100 px-3 py-2 md:hidden">
+                <p className="text-xs font-semibold text-slate-900">{user?.name}</p>
+                <p className="text-[10px] text-slate-500">{user?.email}</p>
+                <span className="mt-1 inline-block rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700">
+                  {user?.role?.name}
+                </span>
               </div>
 
               <NextLink
                 href="/profile"
                 onClick={() => setDropdownOpen(false)}
-                className="flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 transition"
+                className="flex items-center gap-2.5 rounded-md px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 transition"
               >
                 <UserIcon className="h-4 w-4 text-slate-400" />
-                <span>My Profile & Settings</span>
+                <span>My Profile</span>
               </NextLink>
-
-              <div className="border-t border-slate-100 my-1" />
 
               <button
                 type="button"
                 onClick={handleLogout}
-                className="flex w-full items-center gap-2.5 px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 transition"
+                className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-xs font-medium text-rose-600 hover:bg-rose-50 transition"
               >
-                <LogOut className="h-4 w-4 text-red-500" />
-                <span>Sign out</span>
+                <LogOut className="h-4 w-4 text-rose-500" />
+                <span>Sign Out</span>
               </button>
             </div>
           )}

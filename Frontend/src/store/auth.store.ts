@@ -85,7 +85,6 @@ export const useAuthStore = create<AuthState>()(
       name: 'giant-bd-auth',
       partialize: (state) => ({
         user: state.user,
-        accessToken: state.accessToken,
         isAuthenticated: state.isAuthenticated,
       }),
     },
