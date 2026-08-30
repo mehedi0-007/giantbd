@@ -249,7 +249,7 @@ export default function StockOutPage() {
       if (doc) {
         const formData = new FormData();
         formData.append('status', newStatus);
-        formData.append('document', doc);
+        formData.append('receiptDocument', doc);
         await api.patch(`/inventory/stock-out/${id}/status`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
         });

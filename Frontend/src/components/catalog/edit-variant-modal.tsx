@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { VariantProduct } from '@/types/catalog';
+import { getFileUrl } from '@/lib/utils';
 import { Modal } from '@/components/common/modal';
 import {
   Edit3,
@@ -79,11 +80,7 @@ export function EditVariantModal({
 
       setSelectedFile(null);
       if (variant.picture) {
-        setImagePreview(
-          variant.picture.startsWith('http')
-            ? variant.picture
-            : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api'}/${variant.picture}`,
-        );
+        setImagePreview(getFileUrl(variant.picture));
       } else {
         setImagePreview(null);
       }

@@ -10,7 +10,7 @@ import { EditVariantModal } from '@/components/catalog/edit-variant-modal';
 import { DataPagination } from '@/components/common/data-pagination';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
 import { toast } from 'sonner';
-import { formatNumber } from '@/lib/utils';
+import { formatNumber, getFileUrl } from '@/lib/utils';
 import NextLink from 'next/link';
 import {
   Package,
@@ -251,7 +251,7 @@ export default function ProductDetailPage() {
                         <td className="px-5 py-3.5">
                           {v.picture ? (
                             <img
-                              src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api'}/${v.picture}`}
+                              src={getFileUrl(v.picture)}
                               alt={v.name}
                               className="h-9 w-9 rounded-lg object-cover border border-slate-200 cursor-pointer"
                               onClick={() => setSelectedVariantForEdit(v)}

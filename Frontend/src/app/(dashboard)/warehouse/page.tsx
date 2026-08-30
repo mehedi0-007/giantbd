@@ -185,18 +185,10 @@ export default function WarehousePage() {
           <button
             type="button"
             onClick={() => handleOpenAdd('rack', { warehouseId: selectedWarehouseId || undefined, zoneId: selectedZoneId || undefined, subZoneId: selectedSubZoneId || undefined })}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 shadow-2xs transition cursor-pointer"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            <span>Storage Rack</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => handleOpenAdd('location', { warehouseId: selectedWarehouseId || undefined, zoneId: selectedZoneId || undefined, subZoneId: selectedSubZoneId || undefined, rackId: selectedRackId || undefined })}
             className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-3.5 py-2 text-xs font-semibold text-white shadow-sm shadow-blue-500/20 hover:bg-blue-700 transition cursor-pointer"
           >
             <Plus className="h-3.5 w-3.5" />
-            <span>New Location</span>
+            <span>Generate Racks (Bulk)</span>
           </button>
         </div>
       </div>

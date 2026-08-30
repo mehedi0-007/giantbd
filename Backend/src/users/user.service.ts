@@ -1,5 +1,7 @@
 import {
+  BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -221,6 +223,92 @@ export class UserService {
     return {
       message: 'User restored successfully',
       data: this.responseUser(restored),
+    };
+  }
+
+  async updateAvatar(userId: string, currentUserId: string, file?: Express.Multer.File) {
+    if (!file) {
+      throw new BadRequestException('No avatar image file provided');
+    }
+
+    const user = await this.prismaService.user.findFirst({
+      where: { id: userId, status: { not: 'DELETED' } },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (user.id !== currentUserId) {
+      const currentUser = await this.prismaService.user.findUnique({
+        where: { id: currentUserId },
+        include: {
+          role: {
+            include: {
+              rolePermissions: { include: { permission: true } },
+            },
+          },
+        },
+      });
+      const perms = currentUser?.role?.rolePermissions?.map((rp) => rp.permission.name) || [];
+      if (!perms.includes('users:update') && currentUser?.role?.name !== 'SUPER_ADMIN') {
+        throw new ForbiddenException('You do not have permission to update other user avatars');
+      }
+    }
+
+    const imagePath = file.path.replace(/\\/g, '/');
+    const updatedUser = await this.prismaService.user.update({
+      where: { id: userId },
+      data: { image: imagePath },
+      include: { role: true },
+    });
+
+    return {
+      message: 'Avatar updated successfully',
+      data: this.responseUser(updatedUser),
+    };
+  }
+
+  async updateSignature(userId: string, currentUserId: string, file?: Express.Multer.File) {
+    if (!file) {
+      throw new BadRequestException('No signature image file provided');
+    }
+
+    const user = await this.prismaService.user.findFirst({
+      where: { id: userId, status: { not: 'DELETED' } },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (user.id !== currentUserId) {
+      const currentUser = await this.prismaService.user.findUnique({
+        where: { id: currentUserId },
+        include: {
+          role: {
+            include: {
+              rolePermissions: { include: { permission: true } },
+            },
+          },
+        },
+      });
+      const perms = currentUser?.role?.rolePermissions?.map((rp) => rp.permission.name) || [];
+      if (!perms.includes('users:update') && currentUser?.role?.name !== 'SUPER_ADMIN') {
+        throw new ForbiddenException('You do not have permission to update other user signatures');
+      }
+    }
+
+    const signaturePath = file.path.replace(/\\/g, '/');
+    const updatedUser = await this.prismaService.user.update({
+      where: { id: userId },
+      data: { signature: signaturePath },
+      include: { role: true },
+    });
+
+    return {
+      message: 'Signature updated successfully',
+      data: this.responseUser(updatedUser),
     };
   }
 

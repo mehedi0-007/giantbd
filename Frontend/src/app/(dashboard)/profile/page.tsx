@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
 import { User, Gender } from '@/types/auth';
+import { getFileUrl } from '@/lib/utils';
 import { toast } from 'sonner';
 import {
   User as UserIcon,
@@ -225,7 +226,7 @@ export default function ProfilePage() {
             <div className="relative inline-block">
               {currentUser.avatar ? (
                 <img
-                  src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api'}/${currentUser.avatar}`}
+                  src={getFileUrl(currentUser.avatar)}
                   alt={currentUser.name}
                   className="h-28 w-28 rounded-full object-cover border-4 border-slate-100 shadow-md mx-auto"
                 />
@@ -281,7 +282,7 @@ export default function ProfilePage() {
               {currentUser.signature ? (
                 <div className="space-y-2">
                   <img
-                    src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api'}/${currentUser.signature}`}
+                    src={getFileUrl(currentUser.signature)}
                     alt="Digital Signature"
                     className="max-h-16 mx-auto object-contain"
                   />
@@ -506,6 +507,18 @@ export default function ProfilePage() {
 
             <form onSubmit={handleChangePassword} className="space-y-4">
               <div>
+                <label className="mb-1 block text-xs font-semibold text-slate-700">Current Password</label>
+                <input
+                  type="password"
+                  required
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  placeholder="Enter current password"
+                  className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-900 focus:border-blue-500 focus:outline-hidden"
+                />
+              </div>
+
+              <div>
                 <label className="mb-1 block text-xs font-semibold text-slate-700">New Password</label>
                 <input
                   type="password"
@@ -532,7 +545,7 @@ export default function ProfilePage() {
               <div className="flex justify-end pt-2">
                 <button
                   type="submit"
-                  disabled={isUpdatingPassword || !newPassword || !confirmPassword}
+                  disabled={isUpdatingPassword || !currentPassword || !newPassword || !confirmPassword}
                   className="inline-flex items-center gap-1.5 rounded-xl bg-slate-900 px-5 py-2 text-xs font-semibold text-white shadow-xs hover:bg-slate-800 disabled:opacity-50 transition cursor-pointer"
                 >
                   {isUpdatingPassword ? (

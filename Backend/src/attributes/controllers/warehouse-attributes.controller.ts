@@ -180,4 +180,10 @@ export class WarehouseAttributesController {
   async findLocationById(@Param('id') id: string) {
     return this.warehouseAttributesService.findLocationById(id);
   }
+
+  @Delete('locations/:id')
+  @RequirePermissions('warehouse:delete')
+  async deleteLocation(@Param('id') id: string) {
+    return this.warehouseAttributesService.deleteLocation(id);
+  }
 }

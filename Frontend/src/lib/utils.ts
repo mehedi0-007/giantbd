@@ -95,3 +95,14 @@ export function calculateBatchAge(productionDate?: string | Date | null): BatchA
     dotClass: 'bg-rose-500',
   };
 }
+
+export function getFileUrl(path?: string | null): string {
+  if (!path) return '';
+  if (path.startsWith('http://') || path.startsWith('https://')) return path;
+
+  const rawUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+  const baseUrl = rawUrl.replace(/\/api\/?$/, '');
+  const cleanPath = path.startsWith('/') ? path.slice(1) : path;
+
+  return `${baseUrl}/${cleanPath}`;
+}

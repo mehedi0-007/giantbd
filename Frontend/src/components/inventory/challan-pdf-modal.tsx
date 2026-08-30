@@ -4,7 +4,7 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { StockOut } from '@/types/inventory';
-import { formatDate, formatNumber } from '@/lib/utils';
+import { formatDate, formatNumber, getFileUrl } from '@/lib/utils';
 import { Modal } from '@/components/common/modal';
 import { Printer, Boxes, CheckCircle2, Loader2 } from 'lucide-react';
 
@@ -165,10 +165,13 @@ export function ChallanPdfModal({
                   PO Reference: <strong className="font-mono text-slate-900">{activeChallan.po?.poNumber || activeChallan.poNumber || 'N/A'}</strong>
                 </div>
                 <div>
-                  Vehicle / Truck #: <strong className="text-slate-900">{activeChallan.vehicleNumber || 'DHAKA-METRO-T-8890'}</strong>
+                  Destination: <strong className="text-slate-900">{activeChallan.destination || 'N/A'}</strong>
                 </div>
                 <div>
-                  Driver / Carrier: <strong className="text-slate-900">{activeChallan.driverName || 'Md. Rafiqul Islam'} {activeChallan.driverPhone ? `(${activeChallan.driverPhone})` : ''}</strong>
+                  Vehicle / Truck #: <strong className="text-slate-900">{activeChallan.vehicleNumber || 'N/A'}</strong>
+                </div>
+                <div>
+                  Driver / Carrier: <strong className="text-slate-900">{activeChallan.driverName || 'N/A'} {activeChallan.driverPhone ? `(${activeChallan.driverPhone})` : ''}</strong>
                 </div>
               </div>
             </div>
@@ -245,27 +248,44 @@ export function ChallanPdfModal({
             )}
 
             {/* 3-Part Official Signatures Matrix */}
-            <div className="grid grid-cols-3 gap-6 pt-8 text-center text-xs">
-              <div className="border-t border-slate-400 pt-1.5">
-                <div className="font-bold text-slate-900">
-                  {activeChallan.issuer?.name || 'Store In-Charge'}
+            <div className="grid grid-cols-3 gap-6 pt-6 text-center text-xs">
+              <div className="flex flex-col items-center">
+                <div className="h-12 flex items-end justify-center w-full pb-1">
+                  {activeChallan.issuer?.signature ? (
+                    <img
+                      src={getFileUrl(activeChallan.issuer.signature)}
+                      alt="Digital Signature"
+                      className="h-10 max-w-[140px] object-contain"
+                    />
+                  ) : null}
                 </div>
-                <div className="text-slate-400 uppercase tracking-wider text-[10px]">
-                  Prepared & Dispatched By
+                <div className="w-full border-t border-slate-400 pt-1.5">
+                  <div className="font-bold text-slate-900">
+                    {activeChallan.issuer?.name || 'Store In-Charge'}
+                  </div>
+                  <div className="text-slate-400 uppercase tracking-wider text-[10px]">
+                    Prepared & Dispatched By
+                  </div>
                 </div>
               </div>
 
-              <div className="border-t border-slate-400 pt-1.5">
-                <div className="font-bold text-slate-900">Security Gate Officer</div>
-                <div className="text-slate-400 uppercase tracking-wider text-[10px]">
-                  Vehicle Checked & Out-Passed
+              <div className="flex flex-col items-center">
+                <div className="h-12 flex items-end justify-center w-full pb-1" />
+                <div className="w-full border-t border-slate-400 pt-1.5">
+                  <div className="font-bold text-slate-900">Security Gate Officer</div>
+                  <div className="text-slate-400 uppercase tracking-wider text-[10px]">
+                    Vehicle Checked & Out-Passed
+                  </div>
                 </div>
               </div>
 
-              <div className="border-t border-slate-400 pt-1.5">
-                <div className="font-bold text-slate-900">Consignee / Receiver</div>
-                <div className="text-slate-400 uppercase tracking-wider text-[10px]">
-                  Received in Good Order & Condition
+              <div className="flex flex-col items-center">
+                <div className="h-12 flex items-end justify-center w-full pb-1" />
+                <div className="w-full border-t border-slate-400 pt-1.5">
+                  <div className="font-bold text-slate-900">Consignee / Receiver</div>
+                  <div className="text-slate-400 uppercase tracking-wider text-[10px]">
+                    Received in Good Order & Condition
+                  </div>
                 </div>
               </div>
             </div>

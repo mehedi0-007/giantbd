@@ -435,7 +435,7 @@ export class StockOutService {
             },
           },
           buyer: { select: { id: true, name: true, code: true } },
-          issuer: { select: { id: true, name: true, email: true } },
+          issuer: { select: { id: true, name: true, email: true, signature: true } },
           _count: { select: { items: true } },
         },
         orderBy: { dispatchDate: 'desc' },
@@ -482,7 +482,7 @@ export class StockOutService {
           },
         },
         buyer: true,
-        issuer: { select: { id: true, name: true, email: true } },
+        issuer: { select: { id: true, name: true, email: true, signature: true } },
         items: {
           include: {
             variantProduct: {

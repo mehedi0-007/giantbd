@@ -6,6 +6,7 @@ import api from '@/lib/api';
 import { User, Role } from '@/types/auth';
 import { UserDrawer } from '@/components/admin/user-drawer';
 import { ConfirmDialog, TableSkeleton, EmptyState } from '@/components/common';
+import { getFileUrl } from '@/lib/utils';
 import { toast } from 'sonner';
 import {
   Users,
@@ -281,7 +282,7 @@ export default function UsersPage() {
                         <div className="flex items-center gap-3">
                           {u.avatar ? (
                             <img
-                              src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api'}/${u.avatar}`}
+                              src={getFileUrl(u.avatar)}
                               alt={u.name}
                               className="h-9 w-9 rounded-full object-cover border border-slate-200"
                             />

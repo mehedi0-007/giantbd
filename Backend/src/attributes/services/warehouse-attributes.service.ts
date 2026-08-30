@@ -904,4 +904,30 @@ export class WarehouseAttributesService {
 
     return { data: location };
   }
+
+  async deleteLocation(id: string) {
+    const location = await this.prisma.storageLocation.findFirst({
+      where: { id, status: { not: 'DELETED' } },
+    });
+
+    if (!location) {
+      throw new NotFoundException('Storage location not found');
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.storageLocation.update({
+        where: { id },
+        data: { status: 'DELETED' },
+      });
+
+      if (location.rackId) {
+        await tx.rack.update({
+          where: { id: location.rackId },
+          data: { status: 'DELETED' },
+        });
+      }
+    });
+
+    return { message: `Storage location '${location.code}' soft-deleted successfully` };
+  }
 }

@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useState, useRef, useEffect } from 'react';
 import { LogOut, User as UserIcon, Bell, ChevronDown, Menu } from 'lucide-react';
 import api from '@/lib/api';
+import { getFileUrl } from '@/lib/utils';
 import NextLink from 'next/link';
 
 interface TopbarProps {
@@ -107,7 +108,7 @@ export function Topbar({ onOpenMobileSidebar }: TopbarProps) {
           >
             {user?.image ? (
               <img
-                src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api'}/${user.image}`}
+                src={getFileUrl(user.image)}
                 alt={user.name}
                 className="h-7 w-7 rounded-full object-cover border border-slate-200"
               />

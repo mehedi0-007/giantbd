@@ -7,6 +7,7 @@ import {
   Patch,
   Post,
   Query,
+  UploadedFile,
   UploadedFiles,
   UseGuards,
   UseInterceptors,
@@ -20,6 +21,7 @@ import {
   RequirePermissions,
   PermissionsGuard,
   UserFileUploadInterceptor,
+  DocumentUploadInterceptor,
 } from '../common';
 
 @Controller('users')
@@ -67,6 +69,26 @@ export class UserController {
     @Body() dto: UpdateUserDTO,
   ) {
     return this.userService.updateUser(id, dto);
+  }
+
+  @Post(':id/avatar')
+  @UseInterceptors(DocumentUploadInterceptor('avatar'))
+  async updateAvatar(
+    @Param('id') id: string,
+    @CurrentUser('id') currentUserId: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    return this.userService.updateAvatar(id, currentUserId, file);
+  }
+
+  @Post(':id/signature')
+  @UseInterceptors(DocumentUploadInterceptor('signature'))
+  async updateSignature(
+    @Param('id') id: string,
+    @CurrentUser('id') currentUserId: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    return this.userService.updateSignature(id, currentUserId, file);
   }
 
   @Delete(':id')
