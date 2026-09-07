@@ -1,7 +1,7 @@
 'use client';
 
 import { useDashboardData } from '@/hooks/use-dashboard';
-import { KpiCards } from '@/components/dashboard/kpi-cards';
+import { MovementKpiCards } from '@/components/dashboard/movement-kpi-cards';
 import { MovementChart } from '@/components/dashboard/movement-chart';
 import { PoStatusChart } from '@/components/dashboard/po-status-chart';
 import { ExpiringLcsFeed } from '@/components/dashboard/expiring-lcs-feed';
@@ -13,8 +13,8 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-10">
-      {/* 1. Top KPI Cards Row */}
-      <KpiCards kpi={data?.kpi} isLoading={isLoading} />
+      {/* 1. Inward and Outward Movement Cards */}
+      <MovementKpiCards movements={data?.movements} isLoading={isLoading} />
 
       {/* 2. Visual Analytics Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">

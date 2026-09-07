@@ -46,7 +46,7 @@ export class LoggingInterceptor implements NestInterceptor {
             userId,
           };
 
-          const logMsg = `${method} ${originalUrl} ${statusCode} +${duration}ms (User: ${userId})`;
+          const logMsg = `${method} ${originalUrl} ${statusCode} +${duration}ms`;
 
           if (statusCode >= 500) {
             this.logger.error(logMsg, JSON.stringify(logPayload));

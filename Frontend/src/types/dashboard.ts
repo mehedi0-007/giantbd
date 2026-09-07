@@ -57,6 +57,15 @@ export interface RecentStockBatch {
   createdAt: string;
 }
 
+export interface MovementLogItem {
+  type: 'IN' | 'OUT';
+  pairs: number;
+  batchId: string;
+  masterId: string;
+  variantId: string;
+  date: string;
+}
+
 export interface DashboardData {
   kpi: KpiMetrics;
   movementTrends: MovementTrendItem[];
@@ -64,4 +73,5 @@ export interface DashboardData {
   activeLcs: ActiveLcItem[];
   pendingChallans: PendingChallan[];
   recentStocks: RecentStockBatch[];
+  movements?: MovementLogItem[];
 }

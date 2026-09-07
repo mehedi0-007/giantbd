@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+@theme {
+  --color-slate-100: #ffffff;
+}
+
 @layer base {
   :root {
     --background: #f4f6fa;
@@ -36,7 +40,7 @@
   background-color: #ffffff;
   border-radius: 1.25rem;
   border: 1px solid rgba(226, 232, 240, 0.8);
-  box-shadow: 0 10px 25px -5px rgba(148, 163, 184, 0.12), 0 8px 10px -6px rgba(148, 163, 184, 0.08);
+  /* box-shadow: 0 10px 25px -5px rgba(148, 163, 184, 0.12), 0 8px 10px -6px rgba(148, 163, 184, 0.08); */
 }
 
 .card-giant-curved {

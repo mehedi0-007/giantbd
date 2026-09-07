@@ -15,7 +15,7 @@ export function GiantLogo({ className = 'h-20 w-auto', width = 190, height = 68 
         alt="Giant BD CO LIMITED"
         width={width}
         height={height}
-        className="object-contain h-full w-auto scale-175 origin-center"
+        className="object-contain h-full w-auto origin-center"
         priority
       />
     </div>

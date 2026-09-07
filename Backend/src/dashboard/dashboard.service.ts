@@ -31,6 +31,8 @@ export class DashboardService {
       activeLcsRaw,
       pendingChallansRaw,
       recentBatchesRaw,
+      stockInItemsRaw,
+      stockOutItemsRaw,
     ] = await Promise.all([
       // Stock total available
       this.prisma.batchItem.aggregate({
@@ -134,6 +136,29 @@ export class DashboardService {
               location: { select: { code: true, name: true } },
             },
           },
+        },
+      }),
+      // Raw Stock In Items for movement metrics
+      this.prisma.batchItem.findMany({
+        select: {
+          receivedQty: true,
+          batchId: true,
+          productId: true,
+          product: { select: { masterProductId: true } },
+          createdAt: true,
+        },
+      }),
+      // Raw Stock Out Items for movement metrics
+      this.prisma.stockOutItem.findMany({
+        where: {
+          stockOut: { status: { not: 'CANCELLED' } },
+        },
+        select: {
+          quantity: true,
+          variantProductId: true,
+          batchItem: { select: { batchId: true } },
+          variantProduct: { select: { masterProductId: true } },
+          stockOut: { select: { dispatchDate: true, createdAt: true } },
         },
       }),
     ]);
@@ -258,6 +283,26 @@ export class DashboardService {
       };
     });
 
+    // 8. Format Minimal Movement Records for Client Dynamic Calculations
+    const movements = [
+      ...stockInItemsRaw.map((item) => ({
+        type: 'IN' as const,
+        pairs: item.receivedQty,
+        batchId: item.batchId,
+        masterId: item.product?.masterProductId || '',
+        variantId: item.productId,
+        date: item.createdAt.toISOString(),
+      })),
+      ...stockOutItemsRaw.map((item) => ({
+        type: 'OUT' as const,
+        pairs: item.quantity,
+        batchId: item.batchItem?.batchId || '',
+        masterId: item.variantProduct?.masterProductId || '',
+        variantId: item.variantProductId,
+        date: (item.stockOut.dispatchDate || item.stockOut.createdAt).toISOString(),
+      })),
+    ];
+
     return {
       kpi,
       movementTrends,
@@ -265,6 +310,7 @@ export class DashboardService {
       activeLcs,
       pendingChallans,
       recentStocks,
+      movements,
     };
   }
 }

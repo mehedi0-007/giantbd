@@ -120,11 +120,6 @@ export default function LoginPage() {
     if (value && index < 5) {
       otpInputRefs.current[index + 1]?.focus();
     }
-
-    const fullOtp = newOtp.join('');
-    if (fullOtp.length === 6) {
-      executeOtpVerification(fullOtp);
-    }
   };
 
   const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -140,7 +135,6 @@ export default function LoginPage() {
       const digits = pastedData.split('');
       setOtp(digits);
       otpInputRefs.current[5]?.focus();
-      executeOtpVerification(pastedData);
     }
   };
 
