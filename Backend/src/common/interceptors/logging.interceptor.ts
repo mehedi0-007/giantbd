@@ -25,10 +25,6 @@ export class LoggingInterceptor implements NestInterceptor {
     const request = ctx.getRequest<Request>();
     const response = ctx.getResponse<Response>();
 
-    const correlationId =
-      (request.headers['x-correlation-id'] as string) || randomUUID();
-    response.setHeader('x-correlation-id', correlationId);
-
     const { method, originalUrl, ip } = request;
     const user = (request as any).user;
     const userId = user?.id || 'anonymous';
@@ -42,7 +38,6 @@ export class LoggingInterceptor implements NestInterceptor {
           const statusCode = response.statusCode;
 
           const logPayload = {
-            correlationId,
             method,
             url: originalUrl,
             status: statusCode,
@@ -51,7 +46,7 @@ export class LoggingInterceptor implements NestInterceptor {
             userId,
           };
 
-          const logMsg = `[${correlationId}] ${method} ${originalUrl} ${statusCode} +${duration}ms (User: ${userId})`;
+          const logMsg = `${method} ${originalUrl} ${statusCode} +${duration}ms (User: ${userId})`;
 
           if (statusCode >= 500) {
             this.logger.error(logMsg, JSON.stringify(logPayload));
@@ -68,7 +63,7 @@ export class LoggingInterceptor implements NestInterceptor {
               ? error.getStatus()
               : HttpStatus.INTERNAL_SERVER_ERROR;
 
-          const logMsg = `[${correlationId}] ${method} ${originalUrl} ${status} +${duration}ms - Error: ${error.message}`;
+          const logMsg = `${method} ${originalUrl} ${status} +${duration}ms - Error: ${error.message}`;
 
           if (status >= 500) {
             this.logger.error(logMsg, error.stack);

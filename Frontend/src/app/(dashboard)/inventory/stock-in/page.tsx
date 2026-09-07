@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { MasterProduct, Color, ProductGender } from '@/types/catalog';
 import { PO } from '@/types/commercial';
@@ -10,19 +10,12 @@ import { BatchLabelModal } from '@/components/inventory/batch-label-modal';
 import { formatNumber } from '@/lib/utils';
 import {
   ArrowDownToLine,
-  Package,
-  Layers,
-  FileText,
   Upload,
-  Printer,
   Loader2,
   CheckCircle2,
   AlertCircle,
-  Plus,
-  Trash2,
   ArrowRight,
   ArrowLeft,
-  Boxes,
 } from 'lucide-react';
 
 interface SizeRow {
@@ -193,16 +186,6 @@ export default function StockInPage() {
   const selectedProduct = products.find((p) => p.id === selectedProductId);
   const selectedColor = availableColors.find((c) => c.id === selectedColorId);
 
-  // Human-Friendly Location Name Formatter
-  const formatLocationName = (loc: any) => {
-    if (!loc) return 'Unassigned';
-    const parts = [];
-    if (loc.warehouse?.name) parts.push(loc.warehouse.name);
-    if (loc.rack?.name) parts.push(loc.rack.name);
-    parts.push(loc.name || loc.code);
-    return parts.join(' • ');
-  };
-
   // Transition Step 1 ➔ Step 2: Auto-load existing variants for this Product+Color+Gender
   const handleProceedToMatrix = async () => {
     if (!selectedProductId) {
@@ -274,7 +257,7 @@ export default function StockInPage() {
     } catch (err: any) {
       setErrorMsg(
         err.response?.data?.message ||
-          'Failed to load size matrix. Ensure variants are configured in Catalog Management.',
+        'Failed to load size matrix. Ensure variants are configured in Catalog Management.',
       );
     }
   };
@@ -439,22 +422,20 @@ export default function StockInPage() {
       {/* 3-Step Wizard Indicator */}
       <div className="grid grid-cols-3 gap-3">
         <div
-          className={`flex items-center gap-3 rounded-2xl border p-4 transition ${
-            step === 1
-              ? 'border-blue-600 bg-blue-50/60 shadow-xs'
-              : step > 1
+          className={`flex items-center gap-3 rounded-2xl border p-4 transition ${step === 1
+            ? 'border-blue-600 bg-blue-50/60 shadow-xs'
+            : step > 1
               ? 'border-emerald-300 bg-emerald-50/40'
               : 'border-slate-200 bg-white opacity-60'
-          }`}
+            }`}
         >
           <div
-            className={`flex h-8 w-8 items-center justify-center rounded-xl font-bold text-xs ${
-              step === 1
-                ? 'bg-blue-600 text-white'
-                : step > 1
+            className={`flex h-8 w-8 items-center justify-center rounded-xl font-bold text-xs ${step === 1
+              ? 'bg-blue-600 text-white'
+              : step > 1
                 ? 'bg-emerald-600 text-white'
                 : 'bg-slate-100 text-slate-500'
-            }`}
+              }`}
           >
             {step > 1 ? <CheckCircle2 className="h-4 w-4" /> : '1'}
           </div>
@@ -465,22 +446,20 @@ export default function StockInPage() {
         </div>
 
         <div
-          className={`flex items-center gap-3 rounded-2xl border p-4 transition ${
-            step === 2
-              ? 'border-blue-600 bg-blue-50/60 shadow-xs'
-              : step > 2
+          className={`flex items-center gap-3 rounded-2xl border p-4 transition ${step === 2
+            ? 'border-blue-600 bg-blue-50/60 shadow-xs'
+            : step > 2
               ? 'border-emerald-300 bg-emerald-50/40'
               : 'border-slate-200 bg-white opacity-60'
-          }`}
+            }`}
         >
           <div
-            className={`flex h-8 w-8 items-center justify-center rounded-xl font-bold text-xs ${
-              step === 2
-                ? 'bg-blue-600 text-white'
-                : step > 2
+            className={`flex h-8 w-8 items-center justify-center rounded-xl font-bold text-xs ${step === 2
+              ? 'bg-blue-600 text-white'
+              : step > 2
                 ? 'bg-emerald-600 text-white'
                 : 'bg-slate-100 text-slate-500'
-            }`}
+              }`}
           >
             {step > 2 ? <CheckCircle2 className="h-4 w-4" /> : '2'}
           </div>
@@ -491,16 +470,14 @@ export default function StockInPage() {
         </div>
 
         <div
-          className={`flex items-center gap-3 rounded-2xl border p-4 transition ${
-            step === 3
-              ? 'border-blue-600 bg-blue-50/60 shadow-xs'
-              : 'border-slate-200 bg-white opacity-60'
-          }`}
+          className={`flex items-center gap-3 rounded-2xl border p-4 transition ${step === 3
+            ? 'border-blue-600 bg-blue-50/60 shadow-xs'
+            : 'border-slate-200 bg-white opacity-60'
+            }`}
         >
           <div
-            className={`flex h-8 w-8 items-center justify-center rounded-xl font-bold text-xs ${
-              step === 3 ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-500'
-            }`}
+            className={`flex h-8 w-8 items-center justify-center rounded-xl font-bold text-xs ${step === 3 ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-500'
+              }`}
           >
             3
           </div>
@@ -570,10 +547,10 @@ export default function StockInPage() {
                   {!selectedProductId
                     ? '⚠️ First select a Master Product'
                     : loadingProductDetails
-                    ? 'Loading configured colors...'
-                    : availableColors.length === 0
-                    ? 'No colors configured for this style'
-                    : 'Select Color Variation'}
+                      ? 'Loading configured colors...'
+                      : availableColors.length === 0
+                        ? 'No colors configured for this style'
+                        : 'Select Color Variation'}
                 </option>
                 {availableColors.map((c) => (
                   <option key={c.id} value={c.id}>
@@ -601,8 +578,8 @@ export default function StockInPage() {
                   {!selectedColorId
                     ? '⚠️ First select a Color'
                     : availableGenders.length === 0
-                    ? 'No gender lines for this color'
-                    : 'Select Gender Line'}
+                      ? 'No gender lines for this color'
+                      : 'Select Gender Line'}
                 </option>
                 {availableGenders.map((g) => (
                   <option key={g} value={g}>
@@ -810,8 +787,8 @@ export default function StockInPage() {
                     {!selectedWarehouseId
                       ? 'Select Warehouse first'
                       : availableZones.length === 0
-                      ? 'No zones configured'
-                      : 'Select Zone'}
+                        ? 'No zones configured'
+                        : 'Select Zone'}
                   </option>
                   {availableZones.map((z: any) => (
                     <option key={z.id} value={z.id}>
@@ -840,8 +817,8 @@ export default function StockInPage() {
                     {!selectedZoneId
                       ? 'Select Zone first'
                       : availableSubZones.length === 0
-                      ? 'No sub-zones'
-                      : 'Select Sub-Zone'}
+                        ? 'No sub-zones'
+                        : 'Select Sub-Zone'}
                   </option>
                   {availableSubZones.map((sz: any) => (
                     <option key={sz.id} value={sz.id}>
@@ -869,8 +846,8 @@ export default function StockInPage() {
                     {!selectedSubZoneId
                       ? 'Select Sub-Zone first'
                       : availableRacks.length === 0
-                      ? 'No racks configured'
-                      : 'Select Rack Location'}
+                        ? 'No racks configured'
+                        : 'Select Rack Location'}
                   </option>
                   {availableRacks.map((r: any) => (
                     <option key={r.id} value={r.id}>

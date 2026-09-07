@@ -8,7 +8,7 @@ import { MasterProductDrawer } from '@/components/catalog/master-product-drawer'
 import { DataPagination, ConfirmDialog, TableSkeleton, EmptyState } from '@/components/common';
 import { toast } from 'sonner';
 import { formatNumber } from '@/lib/utils';
-import { useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation'; 
 import NextLink from 'next/link';
 import {
   Package,

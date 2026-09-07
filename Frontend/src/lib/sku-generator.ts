@@ -1,10 +1,4 @@
-/**
- * Intelligent Deterministic SKU & Code Auto-Generation Engine for Giant BD ERP
- */
 
-/**
- * Clean and extract a 2-4 letter abbreviation from a string name
- */
 export function extractAbbreviation(name: string, maxLen = 3): string {
   if (!name || !name.trim()) return '';
 
@@ -28,11 +22,6 @@ export function extractAbbreviation(name: string, maxLen = 3): string {
   return clean.slice(0, maxLen).toUpperCase();
 }
 
-/**
- * Generate Master Product SKU
- * Format: [CAT]-[SUBCAT]-[NAME_ACRONYM]-[YEAR]
- * Example: FTW-RUN-AFV-26
- */
 export function generateMasterProductSku(
   name: string,
   categoryName?: string,
@@ -62,11 +51,6 @@ export function generateMasterProductSku(
   return parts.filter(Boolean).join('-');
 }
 
-/**
- * Generate Variant Product SKU
- * Format: [MasterSKU]-[COLOR]-[GENDER]-[SIZE]
- * Example: FTW-RUN-AFV-26-NVY-M-42
- */
 export function generateVariantSku(
   masterSku: string,
   colorName: string,
@@ -81,50 +65,35 @@ export function generateVariantSku(
   return `${prefix}-${colorCode}-${genderCode}-${cleanSize}`;
 }
 
-/**
- * Generate Warehouse Code
- * Example: "Central Warehouse" -> "WH-CW" or "WH01"
- */
+
 export function generateWarehouseCode(name: string): string {
   if (!name.trim()) return 'WH';
   const abbr = extractAbbreviation(name, 3);
   return `WH-${abbr}`;
 }
 
-/**
- * Generate Zone Code
- * Example: WH01 + "Alpha Zone" -> "ZA"
- */
+
 export function generateZoneCode(zoneName: string): string {
   if (!zoneName.trim()) return 'ZA';
   const abbr = extractAbbreviation(zoneName, 2);
   return `Z${abbr}`;
 }
 
-/**
- * Generate SubZone Code
- * Example: "SubZone 1" -> "SZ01"
- */
+
 export function generateSubZoneCode(subZoneName: string): string {
   if (!subZoneName.trim()) return 'SZ1';
   const abbr = extractAbbreviation(subZoneName, 3);
   return `S${abbr}`;
 }
 
-/**
- * Generate Rack Code
- * Example: "Tier 1 Rack" -> "R01"
- */
+
 export function generateRackCode(rackName: string): string {
   if (!rackName.trim()) return 'R01';
   const abbr = extractAbbreviation(rackName, 3);
   return `R${abbr}`;
 }
 
-/**
- * Generate Location / Bin Code (Code 128 format)
- * Example: WH1-ZA-SZ1-R01
- */
+
 export function generateLocationBarcode(
   warehouseCode?: string,
   zoneCode?: string,
