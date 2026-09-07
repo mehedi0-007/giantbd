@@ -103,7 +103,7 @@ export default function PoDetailPage() {
         </p>
         <NextLink
           href="/commercial/po"
-          className="rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white shadow-xs"
+          className="btn-giant-primary inline-flex items-center rounded-xl px-4 py-2 text-xs font-semibold text-white shadow-lg shadow-[#3b66b7]/20"
         >
           Back to Orders
         </NextLink>

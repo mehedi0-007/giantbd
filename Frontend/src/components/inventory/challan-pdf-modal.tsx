@@ -79,14 +79,14 @@ export function ChallanPdfModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer min-h-[40px]"
+            className="rounded-xl border border-slate-200/80 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer min-h-[40px]"
           >
             Close
           </button>
           <button
             type="button"
             onClick={handlePrint}
-            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 transition cursor-pointer min-h-[40px]"
+            className="btn-giant-primary inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-xs font-semibold text-white shadow-lg shadow-[#3b66b7]/20 transition cursor-pointer min-h-[40px]"
           >
             <Printer className="h-4 w-4" />
             <span>Print A4 Document</span>

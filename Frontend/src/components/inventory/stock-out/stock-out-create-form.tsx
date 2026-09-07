@@ -592,7 +592,7 @@ export function StockOutCreateForm({
             <button
               type="submit"
               disabled={isCreating || totalSelectedPairs === 0}
-              className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-2.5 text-xs font-semibold text-white shadow-sm shadow-blue-500/20 hover:bg-blue-700 disabled:opacity-50 transition cursor-pointer min-h-[40px]"
+              className="btn-giant-primary inline-flex items-center gap-2 rounded-xl px-6 py-2.5 text-xs font-semibold text-white shadow-lg shadow-[#3b66b7]/20 disabled:opacity-50 transition cursor-pointer min-h-[40px]"
             >
               {isCreating ? (
                 <>

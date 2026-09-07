@@ -40,8 +40,8 @@ export function EmptyState({
         : act.variant === 'outline'
           ? 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
           : isPrimary
-            ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-xs'
-            : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50';
+            ? 'bg-[#3b66b7] text-white hover:bg-[#32589f] shadow-md shadow-[#3b66b7]/20'
+            : 'border border-slate-200/80 bg-white text-slate-700 hover:bg-slate-50';
 
     const commonClasses = `inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition cursor-pointer min-h-[38px] ${variantClasses}`;
 

@@ -213,9 +213,9 @@ export function BulkVariantModal({
                   key={size}
                   type="button"
                   onClick={() => toggleSize(size)}
-                  className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-bold transition cursor-pointer min-h-[36px] ${
+                  className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold transition cursor-pointer min-h-[36px] ${
                     isSelected
-                      ? 'border-blue-600 bg-blue-50 text-blue-700'
+                      ? 'border-[#3b66b7] bg-[#3b66b7]/10 text-[#3b66b7]'
                       : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
                   }`}
                 >
@@ -233,12 +233,12 @@ export function BulkVariantModal({
               value={customSizeInput}
               onChange={(e) => setCustomSizeInput(e.target.value)}
               placeholder="Custom size (e.g. 47 or XL)"
-              className="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-900 focus:border-blue-500 focus:outline-hidden min-h-[36px]"
+              className="flex-1 rounded-xl border border-slate-200/80 bg-[#f4f7fc] px-3 py-1.5 text-xs text-slate-900 focus:border-[#3b66b7]/50 focus:bg-white focus:outline-hidden min-h-[36px]"
             />
             <button
               type="button"
               onClick={handleAddCustomSize}
-              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition cursor-pointer min-h-[36px]"
+              className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition cursor-pointer min-h-[36px]"
             >
               <Plus className="h-3.5 w-3.5" />
               <span>Add</span>
@@ -251,14 +251,14 @@ export function BulkVariantModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer min-h-[40px]"
+            className="rounded-xl border border-slate-200/80 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer min-h-[40px]"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={isLoading}
-            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition cursor-pointer shadow-sm shadow-blue-500/20 disabled:opacity-50 min-h-[40px]"
+            className="btn-giant-primary inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-xs font-semibold text-white shadow-lg shadow-[#3b66b7]/20 disabled:opacity-50 transition cursor-pointer min-h-[40px]"
           >
             {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
             <span>Generate {selectedSizes.length} Variants</span>

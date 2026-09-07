@@ -7,17 +7,18 @@ interface GiantLogoProps {
   height?: number;
 }
 
-export function GiantLogo({ className = 'h-14 w-auto', width = 190, height = 68 }: GiantLogoProps) {
+export function GiantLogo({ className = 'h-20 w-auto', width = 190, height = 68 }: GiantLogoProps) {
   return (
-    <div className={`relative flex items-center justify-center ${className}`}>
+    <div className={`relative flex items-center justify-center overflow-hidden ${className}`}>
       <Image
         src="/giant-logo.png"
         alt="Giant BD CO LIMITED"
         width={width}
         height={height}
-        className="object-contain max-h-16 w-auto drop-shadow-xs"
+        className="object-contain h-full w-auto scale-175 origin-center"
         priority
       />
     </div>
   );
 }
+

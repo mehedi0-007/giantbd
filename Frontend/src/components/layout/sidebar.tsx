@@ -163,9 +163,9 @@ export function Sidebar({ mobileOpen = false, onClose }: SidebarProps) {
   const sidebarContent = (
     <div className="flex h-full flex-col bg-white">
       {/* Brand Header */}
-      <div className="flex h-16 shrink-0 items-center justify-between border-b border-slate-100 px-5">
+      <div className="flex h-20 shrink-0 items-center justify-center border-b border-slate-100 px-5">
         <NextLink href="/" className="flex items-center gap-2 hover:opacity-90 transition-opacity">
-          <GiantLogo className="h-8 w-auto" width={130} height={40} />
+          <GiantLogo className="h-10 w-auto scale-125 origin-center" width={150} height={45} />
         </NextLink>
 
         {/* Mobile close button */}

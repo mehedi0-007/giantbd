@@ -385,10 +385,10 @@ export function WarehouseDrawer({
         {/* 2A. BULK RACK CREATION SECTION */}
         {(type === 'rack' || type === 'location') ? (
           <div className="space-y-4 pt-2 border-t border-slate-100">
-            <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-4 space-y-3">
+            <div className="rounded-2xl border border-[#3b66b7]/20 bg-[#3b66b7]/5 p-4 space-y-3">
               <div className="flex items-center justify-between">
-                <label htmlFor="wh-rack-count" className="text-xs font-bold text-blue-950 flex items-center gap-1.5">
-                  <Boxes className="h-4 w-4 text-blue-600" />
+                <label htmlFor="wh-rack-count" className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                  <Boxes className="h-4 w-4 text-[#3b66b7]" />
                   <span>Number of Storage Racks to Create</span>
                   <span className="text-red-500">*</span>
                 </label>
@@ -398,10 +398,10 @@ export function WarehouseDrawer({
                       key={preset}
                       type="button"
                       onClick={() => setRackCount(preset)}
-                      className={`px-2 py-0.5 rounded text-[10px] font-bold transition cursor-pointer ${
+                      className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition cursor-pointer ${
                         rackCount === preset
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-white border border-blue-200 text-blue-700 hover:bg-blue-100/50'
+                          ? 'bg-[#3b66b7] text-white shadow-xs'
+                          : 'bg-white border border-[#3b66b7]/30 text-[#3b66b7] hover:bg-[#3b66b7]/10'
                       }`}
                     >
                       +{preset}
@@ -581,14 +581,14 @@ export function WarehouseDrawer({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer min-h-[40px]"
+            className="rounded-xl border border-slate-200/80 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer min-h-[40px]"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={isLoading}
-            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition cursor-pointer shadow-sm shadow-blue-500/20 disabled:opacity-50 min-h-[40px]"
+            className="btn-giant-primary inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-xs font-semibold text-white shadow-lg shadow-[#3b66b7]/20 disabled:opacity-50 transition cursor-pointer min-h-[40px]"
           >
             {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
             <span>

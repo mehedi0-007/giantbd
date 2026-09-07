@@ -89,7 +89,7 @@ export default function ProductDetailPage() {
         </p>
         <NextLink
           href="/catalog/products"
-          className="rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white shadow-xs"
+          className="btn-giant-primary inline-flex items-center rounded-xl px-4 py-2 text-xs font-semibold text-white shadow-lg shadow-[#3b66b7]/20"
         >
           Back to Catalog
         </NextLink>
@@ -219,7 +219,7 @@ export default function ProductDetailPage() {
             <button
               type="button"
               onClick={() => setIsBulkModalOpen(true)}
-              className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-blue-700 transition cursor-pointer"
+              className="mt-4 btn-giant-primary inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-semibold text-white shadow-lg shadow-[#3b66b7]/20 transition cursor-pointer"
             >
               <Plus className="h-3.5 w-3.5" />
               <span>Create variant products</span>

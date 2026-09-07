@@ -237,9 +237,6 @@ export default function LoginPage() {
               Welcome to<br />
               <span className="text-white/95">Giant BD ERP</span>
             </h1>
-            <p className="text-xs text-white/70 max-w-xs leading-relaxed font-normal">
-              Enterprise Garments & Apparel Manufacturing, Commercial Export & Real-time WMS
-            </p>
           </div>
         </div>
 
@@ -265,7 +262,7 @@ export default function LoginPage() {
           <div className="w-full max-w-sm flex flex-col items-center">
             {/* Logo */}
             <div className="mb-6">
-              <GiantLogo className="h-13 w-auto" width={180} height={60} />
+              <GiantLogo className="h-30 w-auto" width={260} height={90} />
             </div>
 
             {/* Title & Subtitle */}
@@ -372,7 +369,7 @@ export default function LoginPage() {
           <div className="w-full max-w-sm flex flex-col items-center">
             {/* Logo */}
             <div className="mb-8">
-              <GiantLogo className="h-14 w-auto" width={200} height={70} />
+              <GiantLogo className="h-35 w-auto" width={300} height={110} />
             </div>
 
             {/* Error Message */}
@@ -395,7 +392,7 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter Your Email"
-                  className="w-full rounded-xl bg-[#f4f7fc] border border-transparent focus:border-[#3b66b7]/40 focus:bg-white py-3.5 px-4 text-sm text-slate-800 placeholder:text-slate-400 outline-hidden transition-all duration-150 shadow-xs"
+                  className="w-full rounded-xl bg-[#f4faff] border border-transparent focus:border-[#3b66b7]/40 focus:bg-white py-3.5 px-4 text-sm text-slate-800 placeholder:text-slate-400 outline-hidden transition-all duration-150 shadow-sm"
                 />
               </div>
 
@@ -409,7 +406,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Password"
-                  className="w-full rounded-xl bg-[#f4f7fc] border border-transparent focus:border-[#3b66b7]/40 focus:bg-white py-3.5 pl-4 pr-11 text-sm text-slate-800 placeholder:text-slate-400 outline-hidden transition-all duration-150 shadow-xs"
+                  className="w-full rounded-xl bg-[#f4faff] border border-transparent focus:border-[#3b66b7]/40 focus:bg-white py-3.5 pl-4 pr-11 text-sm text-slate-800 placeholder:text-slate-400 outline-hidden transition-all duration-150 shadow-sm"
                 />
                 <button
                   type="button"
