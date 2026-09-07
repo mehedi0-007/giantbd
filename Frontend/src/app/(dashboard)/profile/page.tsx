@@ -222,7 +222,7 @@ export default function ProfilePage() {
         {/* Left Column: Avatar & Digital Signature Stamp */}
         <div className="space-y-6">
           {/* Avatar Card */}
-          <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs text-center space-y-4">
+          <div className="card-giant rounded-3xl border border-slate-200/80 bg-white p-6 shadow-xs text-center space-y-4">
             <div className="relative inline-block">
               {currentUser.avatar ? (
                 <img
@@ -231,13 +231,13 @@ export default function ProfilePage() {
                   className="h-28 w-28 rounded-full object-cover border-4 border-slate-100 shadow-md mx-auto"
                 />
               ) : (
-                <div className="h-28 w-28 rounded-full bg-blue-600 text-white font-extrabold text-3xl flex items-center justify-center mx-auto shadow-md">
+                <div className="h-28 w-28 rounded-full bg-gradient-to-br from-[#3b66b7] to-[#25468a] text-white font-extrabold text-3xl flex items-center justify-center mx-auto shadow-md">
                   {currentUser.name ? currentUser.name[0]?.toUpperCase() : 'U'}
                 </div>
               )}
               <label
                 htmlFor="avatar-upload"
-                className="absolute bottom-0 right-0 p-2 bg-blue-600 text-white rounded-full cursor-pointer hover:bg-blue-700 shadow-md transition"
+                className="absolute bottom-0 right-0 p-2.5 bg-[#3b66b7] text-white rounded-full cursor-pointer hover:bg-[#32589f] shadow-md transition"
                 title="Change Avatar"
               >
                 {isUploadingAvatar ? (
@@ -259,7 +259,7 @@ export default function ProfilePage() {
             <div>
               <h2 className="text-base font-bold text-slate-900">{currentUser.name}</h2>
               <p className="text-xs font-medium text-slate-500">{currentUser.email}</p>
-              <div className="mt-2 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+              <div className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold badge-giant">
                 <Shield className="h-3 w-3" />
                 <span>{currentUser.role?.name || 'USER'}</span>
               </div>
@@ -267,10 +267,10 @@ export default function ProfilePage() {
           </div>
 
           {/* Digital Signature Card */}
-          <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs space-y-4">
+          <div className="card-giant rounded-3xl border border-slate-200/80 bg-white p-6 shadow-xs space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2">
-                <FileSignature className="h-4 w-4 text-blue-600" />
+                <FileSignature className="h-4 w-4 text-[#3b66b7]" />
                 <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">Digital Signature</h3>
               </div>
             </div>
@@ -278,7 +278,7 @@ export default function ProfilePage() {
               Your official seal applied to Delivery Challans & Commercial documents.
             </p>
 
-            <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-center">
+            <div className="rounded-2xl border border-dashed border-slate-300 bg-[#f8fafd] p-4 text-center">
               {currentUser.signature ? (
                 <div className="space-y-2">
                   <img
@@ -299,7 +299,7 @@ export default function ProfilePage() {
 
             <label
               htmlFor="sig-upload"
-              className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 shadow-2xs transition cursor-pointer"
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200/80 bg-white py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 shadow-2xs transition cursor-pointer"
             >
               {isUploadingSig ? (
                 <>
@@ -327,7 +327,7 @@ export default function ProfilePage() {
         {/* Right Column: Forms */}
         <div className="md:col-span-2 space-y-6">
           {/* Personal Details Form */}
-          <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs space-y-5">
+          <div className="card-giant rounded-3xl border border-slate-200/80 bg-white p-6 shadow-xs space-y-5">
             <div className="border-b border-slate-100 pb-3">
               <h3 className="text-base font-bold text-slate-900">Personal Information</h3>
               <p className="text-xs text-slate-500">Update your profile identity and contact details</p>
@@ -352,45 +352,45 @@ export default function ProfilePage() {
 
             <form onSubmit={handleUpdateProfile} className="space-y-4">
               <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-700">Full Name</label>
+                <label className="mb-1.5 block text-xs font-semibold text-slate-700">Full Name</label>
                 <input
                   type="text"
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-900 focus:border-blue-500 focus:outline-hidden"
+                  className="w-full rounded-xl border border-slate-200/80 bg-[#f4f7fc] px-3.5 py-2.5 text-xs text-slate-900 focus:border-[#3b66b7]/50 focus:bg-white focus:outline-hidden"
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="mb-1 block text-xs font-semibold text-slate-700">Email (Read Only)</label>
+                  <label className="mb-1.5 block text-xs font-semibold text-slate-700">Email (Read Only)</label>
                   <input
                     type="email"
                     disabled
                     value={currentUser.email || ''}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-100 px-3 py-2 text-xs text-slate-600 font-mono"
+                    className="w-full rounded-xl border border-slate-200/80 bg-slate-100 px-3.5 py-2.5 text-xs text-slate-600 font-mono"
                   />
                 </div>
 
                 <div>
-                  <label className="mb-1 block text-xs font-semibold text-slate-700">Phone Number</label>
+                  <label className="mb-1.5 block text-xs font-semibold text-slate-700">Phone Number</label>
                   <input
                     type="text"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     placeholder="01700000000"
-                    className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-900 focus:border-blue-500 focus:outline-hidden"
+                    className="w-full rounded-xl border border-slate-200/80 bg-[#f4f7fc] px-3.5 py-2.5 text-xs text-slate-900 focus:border-[#3b66b7]/50 focus:bg-white focus:outline-hidden"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-700">Gender</label>
+                <label className="mb-1.5 block text-xs font-semibold text-slate-700">Gender</label>
                 <select
                   value={gender}
                   onChange={(e) => setGender(e.target.value as Gender)}
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 focus:border-blue-500 focus:outline-hidden"
+                  className="w-full rounded-xl border border-slate-200/80 bg-[#f4f7fc] px-3.5 py-2.5 text-xs text-slate-900 focus:border-[#3b66b7]/50 focus:bg-white focus:outline-hidden cursor-pointer"
                 >
                   <option value="MALE">MALE</option>
                   <option value="FEMALE">FEMALE</option>
@@ -402,7 +402,7 @@ export default function ProfilePage() {
                 <button
                   type="submit"
                   disabled={isUpdatingProfile}
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-5 py-2 text-xs font-semibold text-white shadow-xs hover:bg-blue-700 disabled:opacity-50 transition cursor-pointer"
+                  className="btn-giant-primary inline-flex items-center gap-1.5 rounded-xl px-5 py-2.5 text-xs font-semibold text-white shadow-lg shadow-[#3b66b7]/20 disabled:opacity-50 transition cursor-pointer"
                 >
                   {isUpdatingProfile ? (
                     <>
@@ -418,13 +418,13 @@ export default function ProfilePage() {
           </div>
 
           {/* Two-Factor Authentication (2FA) Security Card */}
-          <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs space-y-4">
+          <div className="card-giant rounded-3xl border border-slate-200/80 bg-white p-6 shadow-xs space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
                 <h3 className="text-base font-bold text-slate-900">Two-Factor Authentication (2FA)</h3>
                 <p className="text-xs text-slate-500">Require a 6-digit email OTP verification code upon login</p>
               </div>
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#3b66b7]/10 text-[#3b66b7]">
                 <Shield className="h-4 w-4" />
               </div>
             </div>
@@ -446,7 +446,7 @@ export default function ProfilePage() {
               </div>
             )}
 
-            <div className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 p-4">
+            <div className="flex items-center justify-between rounded-2xl border border-slate-200/80 bg-[#f8fafd] p-4">
               <div className="space-y-0.5 max-w-sm">
                 <span className="text-xs font-bold text-slate-900">Email OTP Verification</span>
                 <p className="text-[11px] text-slate-500">
@@ -458,7 +458,7 @@ export default function ProfilePage() {
 
               <div className="flex items-center gap-3">
                 {currentUser.role?.isTwoFactorRequired ? (
-                  <span className="rounded-full bg-blue-100 px-2.5 py-1 text-[10px] font-bold text-blue-800">
+                  <span className="rounded-full bg-[#3b66b7]/10 border border-[#3b66b7]/20 px-2.5 py-1 text-[10px] font-bold text-[#3b66b7]">
                     Enforced by Role
                   </span>
                 ) : (
@@ -467,7 +467,7 @@ export default function ProfilePage() {
                     disabled={isUpdating2FA}
                     onClick={() => handleToggle2FA(!currentUser.isTwoFactorEnabled)}
                     className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden disabled:opacity-50 ${
-                      currentUser.isTwoFactorEnabled ? 'bg-blue-600' : 'bg-slate-300'
+                      currentUser.isTwoFactorEnabled ? 'bg-[#3b66b7]' : 'bg-slate-300'
                     }`}
                   >
                     <span
@@ -482,7 +482,7 @@ export default function ProfilePage() {
           </div>
 
           {/* Password Security Form */}
-          <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs space-y-5">
+          <div className="card-giant rounded-3xl border border-slate-200/80 bg-white p-6 shadow-xs space-y-5">
             <div className="border-b border-slate-100 pb-3">
               <h3 className="text-base font-bold text-slate-900">Security & Password</h3>
               <p className="text-xs text-slate-500">Change your account access password</p>
@@ -507,38 +507,38 @@ export default function ProfilePage() {
 
             <form onSubmit={handleChangePassword} className="space-y-4">
               <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-700">Current Password</label>
+                <label className="mb-1.5 block text-xs font-semibold text-slate-700">Current Password</label>
                 <input
                   type="password"
                   required
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
                   placeholder="Enter current password"
-                  className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-900 focus:border-blue-500 focus:outline-hidden"
+                  className="w-full rounded-xl border border-slate-200/80 bg-[#f4f7fc] px-3.5 py-2.5 text-xs text-slate-900 focus:border-[#3b66b7]/50 focus:bg-white focus:outline-hidden"
                 />
               </div>
 
               <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-700">New Password</label>
+                <label className="mb-1.5 block text-xs font-semibold text-slate-700">New Password</label>
                 <input
                   type="password"
                   required
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="Min 6 characters"
-                  className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-900 focus:border-blue-500 focus:outline-hidden"
+                  className="w-full rounded-xl border border-slate-200/80 bg-[#f4f7fc] px-3.5 py-2.5 text-xs text-slate-900 focus:border-[#3b66b7]/50 focus:bg-white focus:outline-hidden"
                 />
               </div>
 
               <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-700">Confirm New Password</label>
+                <label className="mb-1.5 block text-xs font-semibold text-slate-700">Confirm New Password</label>
                 <input
                   type="password"
                   required
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="Repeat new password"
-                  className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-900 focus:border-blue-500 focus:outline-hidden"
+                  className="w-full rounded-xl border border-slate-200/80 bg-[#f4f7fc] px-3.5 py-2.5 text-xs text-slate-900 focus:border-[#3b66b7]/50 focus:bg-white focus:outline-hidden"
                 />
               </div>
 
@@ -546,7 +546,7 @@ export default function ProfilePage() {
                 <button
                   type="submit"
                   disabled={isUpdatingPassword || !currentPassword || !newPassword || !confirmPassword}
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-slate-900 px-5 py-2 text-xs font-semibold text-white shadow-xs hover:bg-slate-800 disabled:opacity-50 transition cursor-pointer"
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-slate-900 px-5 py-2.5 text-xs font-semibold text-white shadow-md hover:bg-slate-800 disabled:opacity-50 transition cursor-pointer"
                 >
                   {isUpdatingPassword ? (
                     <>

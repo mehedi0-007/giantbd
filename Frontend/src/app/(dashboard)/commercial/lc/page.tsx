@@ -114,11 +114,11 @@ export default function LcPage() {
       {/* Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             <h1 className="text-2xl font-bold tracking-tight text-slate-900">
               Letters of Credit (LC) Tracker
             </h1>
-            <span className="rounded-md bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700">
+            <span className="badge-giant">
               {totalCount} Total
             </span>
           </div>
@@ -130,7 +130,7 @@ export default function LcPage() {
         <button
           type="button"
           onClick={handleOpenCreate}
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white shadow-sm shadow-blue-500/20 hover:bg-blue-700 transition cursor-pointer"
+          className="btn-giant-primary"
         >
           <Plus className="h-4 w-4" />
           <span>Open New LC</span>
@@ -138,9 +138,9 @@ export default function LcPage() {
       </div>
 
       {/* Filter & Search Bar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-white p-3 shadow-xs">
+      <div className="card-giant flex flex-col sm:flex-row items-center justify-between gap-3 p-3.5">
         <div className="relative flex-1 w-full sm:max-w-md">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+          <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-slate-400" />
           <input
             type="text"
             value={search}
@@ -149,7 +149,7 @@ export default function LcPage() {
               setPage(1);
             }}
             placeholder="Search by LC number or remarks..."
-            className="w-full rounded-xl border border-slate-200 bg-slate-50/50 py-2 pl-9 pr-3 text-xs text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500/20"
+            className="input-giant pl-9"
           />
         </div>
 
@@ -160,7 +160,7 @@ export default function LcPage() {
               setStatusFilter(e.target.value);
               setPage(1);
             }}
-            className="rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs font-semibold text-slate-700 focus:border-blue-500 focus:outline-hidden"
+            className="rounded-xl border border-slate-200/80 bg-[#f4f7fc] px-3.5 py-2 text-xs font-semibold text-slate-700 focus:border-[#3b66b7]/50 focus:bg-white focus:outline-hidden"
           >
             <option value="">All Statuses</option>
             <option value="OPEN">OPEN</option>
@@ -172,14 +172,14 @@ export default function LcPage() {
 
           {isFetching && (
             <div className="flex items-center gap-1.5 text-xs text-slate-400">
-              <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-600" />
+              <Loader2 className="h-3.5 w-3.5 animate-spin text-[#3b66b7]" />
             </div>
           )}
         </div>
       </div>
 
       {/* LC Data Table */}
-      <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs">
+      <div className="card-giant overflow-hidden">
         {isLoading ? (
           <TableSkeleton
             rows={6}
@@ -237,7 +237,7 @@ export default function LcPage() {
                     >
                       {/* LC Number */}
                       <td className="px-5 py-4 font-mono font-bold text-slate-900">
-                        <span className="inline-flex rounded-md bg-amber-50/80 px-2 py-0.5 text-[11px] font-bold text-amber-800 border border-amber-200/80">
+                        <span className="inline-flex rounded-lg bg-[#3b66b7]/10 px-2.5 py-1 text-[11px] font-bold text-[#3b66b7] border border-[#3b66b7]/20">
                           {lc.lcNumber}
                         </span>
                       </td>
@@ -261,8 +261,8 @@ export default function LcPage() {
 
                       {/* Linked POs */}
                       <td className="px-5 py-4">
-                        <div className="flex items-center gap-1 text-slate-700 font-semibold">
-                          <ShoppingBag className="h-3.5 w-3.5 text-blue-500" />
+                        <div className="flex items-center gap-1.5 text-slate-700 font-semibold">
+                          <ShoppingBag className="h-3.5 w-3.5 text-[#3b66b7]" />
                           <span>{lc._count?.purchaseOrders || lc.purchaseOrders?.length || 0} POs</span>
                         </div>
                       </td>
@@ -288,7 +288,7 @@ export default function LcPage() {
                                 onClick={() => handleOpenEdit(lc)}
                                 title="Edit LC"
                                 aria-label={`Edit LC ${lc.lcNumber}`}
-                                className="rounded-lg p-2 text-slate-400 hover:bg-blue-50 hover:text-blue-600 transition cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center"
+                                className="rounded-lg p-2 text-slate-400 hover:bg-[#3b66b7]/10 hover:text-[#3b66b7] transition cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center"
                               >
                                 <Edit2 className="h-4 w-4" />
                               </button>

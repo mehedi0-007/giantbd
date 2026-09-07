@@ -169,11 +169,11 @@ export default function PoPage() {
       {/* Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             <h1 className="text-2xl font-bold tracking-tight text-slate-900">
               Purchase Orders (PO) Manager
             </h1>
-            <span className="rounded-md bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700">
+            <span className="badge-giant">
               {totalCount} Total Orders
             </span>
           </div>
@@ -185,7 +185,7 @@ export default function PoPage() {
         <button
           type="button"
           onClick={handleOpenCreate}
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white shadow-sm shadow-blue-500/20 hover:bg-blue-700 transition cursor-pointer"
+          className="btn-giant-primary"
         >
           <Plus className="h-4 w-4" />
           <span>New Purchase Order</span>
@@ -193,9 +193,9 @@ export default function PoPage() {
       </div>
 
       {/* Filter & Search Bar */}
-      <div className="flex flex-col lg:flex-row items-center gap-3 rounded-2xl border border-slate-200/80 bg-white p-3 shadow-xs">
+      <div className="card-giant flex flex-col lg:flex-row items-center gap-3 p-3.5">
         <div className="relative flex-1 w-full">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+          <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-slate-400" />
           <input
             type="text"
             value={search}
@@ -204,7 +204,7 @@ export default function PoPage() {
               setPage(1);
             }}
             placeholder="Search by PO number or buyer name..."
-            className="w-full rounded-xl border border-slate-200 bg-slate-50/50 py-2 pl-9 pr-3 text-xs text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500/20"
+            className="input-giant pl-9"
           />
         </div>
 
@@ -215,7 +215,7 @@ export default function PoPage() {
             setBuyerFilter(e.target.value);
             setPage(1);
           }}
-          className="w-full lg:w-auto rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs font-semibold text-slate-700 focus:border-blue-500 focus:outline-hidden"
+          className="w-full lg:w-auto rounded-xl border border-slate-200/80 bg-[#f4f7fc] px-3.5 py-2 text-xs font-semibold text-slate-700 focus:border-[#3b66b7]/50 focus:bg-white focus:outline-hidden"
         >
           <option value="">🏢 All Buyers</option>
           {buyers.map((b) => (
@@ -232,7 +232,7 @@ export default function PoPage() {
             setLcFilter(e.target.value);
             setPage(1);
           }}
-          className="w-full lg:w-auto rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs font-semibold text-slate-700 focus:border-blue-500 focus:outline-hidden"
+          className="w-full lg:w-auto rounded-xl border border-slate-200/80 bg-[#f4f7fc] px-3.5 py-2 text-xs font-semibold text-slate-700 focus:border-[#3b66b7]/50 focus:bg-white focus:outline-hidden"
         >
           <option value="">📄 All LC Types</option>
           <option value="WITH_LC">Linked to LC</option>
@@ -246,7 +246,7 @@ export default function PoPage() {
             setStatusFilter(e.target.value);
             setPage(1);
           }}
-          className="w-full lg:w-auto rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs font-semibold text-slate-700 focus:border-blue-500 focus:outline-hidden"
+          className="w-full lg:w-auto rounded-xl border border-slate-200/80 bg-[#f4f7fc] px-3.5 py-2 text-xs font-semibold text-slate-700 focus:border-[#3b66b7]/50 focus:bg-white focus:outline-hidden"
         >
           <option value="">All Statuses</option>
           <option value="DRAFT">DRAFT</option>
@@ -263,7 +263,7 @@ export default function PoPage() {
           <button
             type="button"
             onClick={handleResetFilters}
-            className="w-full lg:w-auto shrink-0 rounded-xl border border-slate-200 bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-200 transition cursor-pointer"
+            className="w-full lg:w-auto shrink-0 rounded-xl border border-slate-200 bg-slate-100 px-3.5 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-200 transition cursor-pointer"
           >
             Reset
           </button>
@@ -271,13 +271,13 @@ export default function PoPage() {
 
         {isFetching && (
           <div className="flex items-center gap-1.5 text-xs text-slate-400">
-            <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-600" />
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-[#3b66b7]" />
           </div>
         )}
       </div>
 
       {/* PO Data Table */}
-      <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs">
+      <div className="card-giant overflow-hidden">
         {isLoading ? (
           <TableSkeleton
             rows={6}
@@ -339,10 +339,10 @@ export default function PoPage() {
                       <td className="px-5 py-4 font-mono font-bold text-slate-900">
                         <NextLink
                           href={`/commercial/po/${po.id}`}
-                          className="inline-flex items-center gap-1.5 rounded-md bg-blue-50 px-2 py-0.5 text-xs font-bold text-blue-700 border border-blue-200/80 hover:bg-blue-100 transition"
+                          className="inline-flex items-center gap-1.5 rounded-lg bg-[#3b66b7]/10 px-2.5 py-1 text-xs font-bold text-[#3b66b7] border border-[#3b66b7]/20 hover:bg-[#3b66b7]/20 transition"
                         >
                           <span>{po.poNumber}</span>
-                          <ChevronRight className="h-3 w-3 text-blue-500" />
+                          <ChevronRight className="h-3 w-3 text-[#3b66b7]" />
                         </NextLink>
                       </td>
 
@@ -382,7 +382,7 @@ export default function PoPage() {
                         <div className="flex items-center justify-end gap-1.5">
                           <NextLink
                             href={`/commercial/po/${po.id}`}
-                            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 transition"
+                            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 hover:bg-[#3b66b7]/10 hover:text-[#3b66b7] hover:border-[#3b66b7]/30 transition"
                           >
                             <span>Details</span>
                             <ArrowRight className="h-3 w-3 text-slate-400" />
@@ -395,7 +395,7 @@ export default function PoPage() {
                                 onClick={() => handleOpenEdit(po)}
                                 title="Edit PO"
                                 aria-label={`Edit PO ${po.poNumber}`}
-                                className="rounded-lg p-2 text-slate-400 hover:bg-blue-50 hover:text-blue-600 transition cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center"
+                                className="rounded-lg p-2 text-slate-400 hover:bg-[#3b66b7]/10 hover:text-[#3b66b7] transition cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center"
                               >
                                 <Edit2 className="h-4 w-4" />
                               </button>

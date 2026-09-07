@@ -87,14 +87,14 @@ export function Topbar({ onOpenMobileSidebar }: TopbarProps) {
 
       {/* Right Controls: Notifications & User Profile */}
       <div className="flex items-center gap-3 sm:gap-4">
-        {/* Alerts Bell (Placeholder) */}
+        {/* Alerts Bell */}
         <button
           type="button"
           aria-label="Notifications"
-          className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition"
+          className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200/80 bg-[#f4f7fc] text-slate-500 hover:bg-[#3b66b7]/10 hover:text-[#3b66b7] transition cursor-pointer"
         >
           <Bell className="h-4 w-4" />
-          <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-blue-600" />
+          <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-[#3b66b7] ring-2 ring-white" />
         </button>
 
         {/* User Dropdown */}
@@ -104,7 +104,7 @@ export function Topbar({ onOpenMobileSidebar }: TopbarProps) {
             onClick={() => setDropdownOpen(!dropdownOpen)}
             aria-expanded={dropdownOpen}
             aria-haspopup="true"
-            className="flex items-center gap-2 sm:gap-3 rounded-lg border border-slate-200 bg-slate-50 py-1.5 pl-2 pr-2.5 sm:pr-3 hover:bg-slate-100 transition"
+            className="flex items-center gap-2 sm:gap-3 rounded-xl border border-slate-200/80 bg-[#f4f7fc] py-1.5 pl-2 pr-2.5 sm:pr-3 hover:bg-slate-100 transition cursor-pointer"
           >
             {user?.image ? (
               <img
@@ -113,7 +113,7 @@ export function Topbar({ onOpenMobileSidebar }: TopbarProps) {
                 className="h-7 w-7 rounded-full object-cover border border-slate-200"
               />
             ) : (
-              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-600 text-xs font-semibold text-white">
+              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#3b66b7] text-xs font-semibold text-white shadow-xs shadow-[#3b66b7]/30">
                 {getInitials(user?.name)}
               </div>
             )}
@@ -130,11 +130,11 @@ export function Topbar({ onOpenMobileSidebar }: TopbarProps) {
 
           {/* Dropdown Menu */}
           {dropdownOpen && (
-            <div className="absolute right-0 mt-2 w-56 rounded-lg border border-slate-200 bg-white p-1.5 shadow-lg shadow-slate-200/50 z-50 animate-in fade-in zoom-in-95 duration-100">
+            <div className="absolute right-0 mt-2 w-56 rounded-2xl border border-slate-100 bg-white p-2 shadow-xl shadow-slate-200/60 z-50 animate-in fade-in zoom-in-95 duration-100">
               <div className="border-b border-slate-100 px-3 py-2 md:hidden">
                 <p className="text-xs font-semibold text-slate-900">{user?.name}</p>
                 <p className="text-[10px] text-slate-500">{user?.email}</p>
-                <span className="mt-1 inline-block rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700">
+                <span className="mt-1 inline-block rounded-md bg-[#3b66b7]/10 px-2 py-0.5 text-[10px] font-semibold text-[#3b66b7]">
                   {user?.role?.name}
                 </span>
               </div>
@@ -142,7 +142,7 @@ export function Topbar({ onOpenMobileSidebar }: TopbarProps) {
               <NextLink
                 href="/profile"
                 onClick={() => setDropdownOpen(false)}
-                className="flex items-center gap-2.5 rounded-md px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 transition"
+                className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-slate-700 hover:bg-[#3b66b7]/8 hover:text-[#3b66b7] transition"
               >
                 <UserIcon className="h-4 w-4 text-slate-400" />
                 <span>My Profile</span>
@@ -151,7 +151,7 @@ export function Topbar({ onOpenMobileSidebar }: TopbarProps) {
               <button
                 type="button"
                 onClick={handleLogout}
-                className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-xs font-medium text-rose-600 hover:bg-rose-50 transition"
+                className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-rose-600 hover:bg-rose-50 transition cursor-pointer"
               >
                 <LogOut className="h-4 w-4 text-rose-500" />
                 <span>Sign Out</span>

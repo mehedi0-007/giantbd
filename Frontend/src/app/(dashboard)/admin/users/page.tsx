@@ -147,7 +147,7 @@ export default function UsersPage() {
         <button
           type="button"
           onClick={handleOpenCreate}
-          className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white shadow-xs hover:bg-blue-700 transition cursor-pointer"
+          className="btn-giant-primary"
         >
           <Plus className="h-4 w-4" />
           <span>New User Account</span>
@@ -155,9 +155,9 @@ export default function UsersPage() {
       </div>
 
       {/* Search & Filter */}
-      <div className="flex flex-col sm:flex-row items-center gap-3 rounded-2xl border border-slate-200/80 bg-white p-3 shadow-xs">
+      <div className="card-giant flex flex-col sm:flex-row items-center gap-3 p-3.5">
         <div className="relative flex-1 w-full">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+          <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-slate-400" />
           <input
             type="text"
             value={search}
@@ -166,7 +166,7 @@ export default function UsersPage() {
               setPage(1);
             }}
             placeholder="Search by name, email, or phone..."
-            className="w-full rounded-xl border border-slate-200 bg-slate-50/50 py-2 pl-9 pr-3 text-xs text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:outline-hidden"
+            className="input-giant pl-9"
           />
         </div>
 
@@ -177,7 +177,7 @@ export default function UsersPage() {
             setRoleFilter(e.target.value);
             setPage(1);
           }}
-          className="w-full sm:w-auto rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs font-semibold text-slate-700 focus:border-blue-500 focus:outline-hidden"
+          className="w-full sm:w-auto rounded-xl border border-slate-200/80 bg-[#f4f7fc] px-3.5 py-2 text-xs font-semibold text-slate-700 focus:border-[#3b66b7]/50 focus:bg-white focus:outline-hidden"
         >
           <option value="">🛡️ All Security Roles</option>
           {roles.map((r) => (
@@ -194,7 +194,7 @@ export default function UsersPage() {
             setTwoFAFilter(e.target.value as any);
             setPage(1);
           }}
-          className="w-full sm:w-auto rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs font-semibold text-slate-700 focus:border-blue-500 focus:outline-hidden"
+          className="w-full sm:w-auto rounded-xl border border-slate-200/80 bg-[#f4f7fc] px-3.5 py-2 text-xs font-semibold text-slate-700 focus:border-[#3b66b7]/50 focus:bg-white focus:outline-hidden"
         >
           <option value="ALL">🔐 All 2FA Statuses</option>
           <option value="ENABLED">🔒 2FA Active</option>
@@ -206,7 +206,7 @@ export default function UsersPage() {
           <button
             type="button"
             onClick={handleResetFilters}
-            className="w-full sm:w-auto shrink-0 rounded-xl border border-slate-200 bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-200 transition cursor-pointer"
+            className="w-full sm:w-auto shrink-0 rounded-xl border border-slate-200 bg-slate-100 px-3.5 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-200 transition cursor-pointer"
           >
             Reset
           </button>
@@ -214,13 +214,13 @@ export default function UsersPage() {
 
         {isFetching && (
           <div className="flex items-center gap-1.5 text-xs text-slate-400">
-            <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-600" />
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-[#3b66b7]" />
           </div>
         )}
       </div>
 
       {/* Users Table */}
-      <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs">
+      <div className="card-giant overflow-hidden">
         {isLoading ? (
           <TableSkeleton
             rows={6}
@@ -287,7 +287,7 @@ export default function UsersPage() {
                               className="h-9 w-9 rounded-full object-cover border border-slate-200"
                             />
                           ) : (
-                            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 text-white font-bold text-xs">
+                            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#3b66b7] text-white font-bold text-xs shadow-sm shadow-[#3b66b7]/20">
                               {u.name.charAt(0).toUpperCase()}
                             </div>
                           )}
@@ -349,7 +349,7 @@ export default function UsersPage() {
                               <button
                                 type="button"
                                 onClick={() => handleOpenEdit(u)}
-                                className="p-1.5 text-slate-400 hover:text-blue-600 transition cursor-pointer"
+                                className="p-2 text-slate-400 hover:text-[#3b66b7] hover:bg-[#3b66b7]/10 rounded-lg transition cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center"
                                 title="Edit User"
                               >
                                 <Edit2 className="h-3.5 w-3.5" />

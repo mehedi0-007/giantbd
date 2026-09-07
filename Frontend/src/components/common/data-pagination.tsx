@@ -153,10 +153,10 @@ export function DataPagination({
                   key={`page-${pageNum}`}
                   type="button"
                   onClick={() => onPageChange(pageNum)}
-                  className={`flex h-7 min-w-[28px] items-center justify-center rounded-lg px-1.5 text-xs font-semibold transition cursor-pointer ${
+                  className={`flex h-7 min-w-[28px] items-center justify-center rounded-lg px-2 text-xs font-semibold transition cursor-pointer ${
                     isActive
-                      ? 'bg-blue-600 text-white shadow-xs'
-                      : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-900'
+                      ? 'bg-[#3b66b7] text-white shadow-sm shadow-[#3b66b7]/25 font-bold'
+                      : 'border border-slate-200 bg-white text-slate-700 hover:bg-[#3b66b7]/8 hover:text-[#3b66b7]'
                   }`}
                 >
                   {pageNum}

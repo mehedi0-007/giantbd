@@ -87,15 +87,15 @@ export function StockOutTable({
   return (
     <div className="space-y-4">
       {/* Search & Multi-Filters Bar */}
-      <div className="flex flex-col lg:flex-row items-center gap-3 rounded-2xl border border-slate-200/80 bg-white p-3 shadow-xs">
+      <div className="card-giant flex flex-col lg:flex-row items-center gap-3 p-3.5">
         <div className="relative flex-1 w-full">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+          <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-slate-400" />
           <input
             type="text"
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder="Search by challan #, PO number, or buyer..."
-            className="w-full rounded-xl border border-slate-200 bg-slate-50/50 py-2 pl-9 pr-3 text-xs text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:outline-hidden min-h-[40px]"
+            className="input-giant pl-9"
           />
         </div>
 
@@ -103,7 +103,7 @@ export function StockOutTable({
         <select
           value={buyerFilter}
           onChange={(e) => onBuyerFilterChange(e.target.value)}
-          className="w-full lg:w-auto rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs font-semibold text-slate-700 focus:border-blue-500 focus:outline-hidden min-h-[40px]"
+          className="w-full lg:w-auto rounded-xl border border-slate-200/80 bg-[#f4f7fc] px-3.5 py-2 text-xs font-semibold text-slate-700 focus:border-[#3b66b7]/50 focus:bg-white focus:outline-hidden min-h-[40px]"
         >
           <option value="">🏢 All Buyers</option>
           {buyers.map((b) => (
@@ -117,7 +117,7 @@ export function StockOutTable({
         <select
           value={typeFilter}
           onChange={(e) => onTypeFilterChange(e.target.value)}
-          className="w-full lg:w-auto rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs font-semibold text-slate-700 focus:border-blue-500 focus:outline-hidden min-h-[40px]"
+          className="w-full lg:w-auto rounded-xl border border-slate-200/80 bg-[#f4f7fc] px-3.5 py-2 text-xs font-semibold text-slate-700 focus:border-[#3b66b7]/50 focus:bg-white focus:outline-hidden min-h-[40px]"
         >
           <option value="">📦 All Dispatch Types</option>
           <option value="PO_SHIPMENT">PO Shipment</option>
@@ -130,7 +130,7 @@ export function StockOutTable({
         <select
           value={statusFilter}
           onChange={(e) => onStatusFilterChange(e.target.value)}
-          className="w-full lg:w-auto rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs font-semibold text-slate-700 focus:border-blue-500 focus:outline-hidden min-h-[40px]"
+          className="w-full lg:w-auto rounded-xl border border-slate-200/80 bg-[#f4f7fc] px-3.5 py-2 text-xs font-semibold text-slate-700 focus:border-[#3b66b7]/50 focus:bg-white focus:outline-hidden min-h-[40px]"
         >
           <option value="">All Statuses</option>
           <option value="ISSUED">ISSUED</option>
@@ -144,7 +144,7 @@ export function StockOutTable({
           <button
             type="button"
             onClick={onResetFilters}
-            className="w-full lg:w-auto shrink-0 rounded-xl border border-slate-200 bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-200 transition cursor-pointer min-h-[40px]"
+            className="w-full lg:w-auto shrink-0 rounded-xl border border-slate-200 bg-slate-100 px-3.5 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-200 transition cursor-pointer min-h-[40px]"
           >
             Reset
           </button>
@@ -152,13 +152,13 @@ export function StockOutTable({
 
         {isFetching && (
           <div className="flex items-center gap-1.5 text-xs text-slate-400 pr-1">
-            <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-600" />
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-[#3b66b7]" />
           </div>
         )}
       </div>
 
       {/* Challans Table */}
-      <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs">
+      <div className="card-giant overflow-hidden">
         {isLoading ? (
           <TableSkeleton
             rows={6}
@@ -166,7 +166,7 @@ export function StockOutTable({
           />
         ) : challans.length === 0 ? (
           <EmptyState
-            icon={<Truck className="h-7 w-7 text-blue-600" />}
+            icon={<Truck className="h-7 w-7 text-[#3b66b7]" />}
             title={hasActiveFilters ? 'No matching challans found' : 'No delivery challans yet'}
             description={
               hasActiveFilters
@@ -205,9 +205,9 @@ export function StockOutTable({
                   {challans.map((c) => (
                     <tr key={c.id} className="hover:bg-slate-50/70 transition-colors">
                       <td className="px-5 py-4">
-                        <div className="font-mono font-bold text-slate-900 text-xs">
+                        <span className="inline-flex rounded-lg bg-[#3b66b7]/10 px-2.5 py-1 text-xs font-bold text-[#3b66b7] border border-[#3b66b7]/20 font-mono">
                           {c.challanNumber}
-                        </div>
+                        </span>
                         <div className="text-[10px] text-slate-400">
                           Sequence #{c.partialSequence || 1} • {c.type}
                         </div>

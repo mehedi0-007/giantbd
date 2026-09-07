@@ -43,7 +43,7 @@ export function ConfirmDialog({
       <AlertTriangle className="h-5 w-5" />
     </div>
   ) : (
-    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#3b66b7]/10 text-[#3b66b7]">
       <Info className="h-5 w-5" />
     </div>
   );
@@ -69,7 +69,7 @@ export function ConfirmDialog({
             type="button"
             disabled={isLoading}
             onClick={onClose}
-            className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs sm:text-sm font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer min-h-[40px] disabled:opacity-50"
+            className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer min-h-[40px] disabled:opacity-50"
           >
             {cancelText}
           </button>
@@ -80,14 +80,14 @@ export function ConfirmDialog({
               await onConfirm();
             }}
             className={cn(
-              'inline-flex items-center gap-2 rounded-lg px-4 py-2 text-xs sm:text-sm font-semibold text-white transition cursor-pointer min-h-[40px] shadow-sm disabled:opacity-50',
+              'inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs sm:text-sm font-semibold text-white transition cursor-pointer min-h-[40px] shadow-sm disabled:opacity-50',
               isDanger &&
                 'bg-red-600 hover:bg-red-700 shadow-red-500/20 focus:ring-2 focus:ring-red-500 focus:ring-offset-2',
               isWarning &&
                 'bg-amber-600 hover:bg-amber-700 shadow-amber-500/20 focus:ring-2 focus:ring-amber-500 focus:ring-offset-2',
               !isDanger &&
                 !isWarning &&
-                'bg-blue-600 hover:bg-blue-700 shadow-blue-500/20 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2',
+                'bg-[#3b66b7] hover:bg-[#32589f] shadow-md shadow-[#3b66b7]/25 focus:ring-2 focus:ring-[#3b66b7] focus:ring-offset-2',
             )}
           >
             {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}

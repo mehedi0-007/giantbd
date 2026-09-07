@@ -101,11 +101,11 @@ export default function MovementsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             <h1 className="text-2xl font-bold tracking-tight text-slate-900">
               Inventory Movements Ledger
             </h1>
-            <span className="rounded-md bg-purple-50 px-2.5 py-0.5 text-xs font-semibold text-purple-700">
+            <span className="badge-giant">
               Double-Entry Audit Log
             </span>
           </div>
@@ -116,9 +116,9 @@ export default function MovementsPage() {
       </div>
 
       {/* Filter Controls */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-white p-3 shadow-xs">
+      <div className="card-giant flex flex-col sm:flex-row items-center justify-between gap-3 p-3.5">
         <div className="relative flex-1 w-full sm:max-w-md">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+          <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-slate-400" />
           <input
             type="text"
             value={search}
@@ -127,7 +127,7 @@ export default function MovementsPage() {
               setPage(1);
             }}
             placeholder="Search by SKU, note, or reference ID..."
-            className="w-full rounded-xl border border-slate-200 bg-slate-50/50 py-2 pl-9 pr-3 text-xs text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:outline-hidden"
+            className="input-giant pl-9"
           />
         </div>
 
@@ -138,7 +138,7 @@ export default function MovementsPage() {
               setTypeFilter(e.target.value);
               setPage(1);
             }}
-            className="rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs font-semibold text-slate-700 focus:border-blue-500 focus:outline-hidden"
+            className="rounded-xl border border-slate-200/80 bg-[#f4f7fc] px-3.5 py-2 text-xs font-semibold text-slate-700 focus:border-[#3b66b7]/50 focus:bg-white focus:outline-hidden"
           >
             <option value="">All Movement Types</option>
             <option value="RECEIVED">RECEIVED (+ Inward)</option>
@@ -151,14 +151,14 @@ export default function MovementsPage() {
 
           {isFetching && (
             <div className="flex items-center gap-1.5 text-xs text-slate-400">
-              <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-600" />
+              <Loader2 className="h-3.5 w-3.5 animate-spin text-[#3b66b7]" />
             </div>
           )}
         </div>
       </div>
 
       {/* Movements Table */}
-      <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs">
+      <div className="card-giant overflow-hidden">
         {isLoading ? (
           <TableSkeleton
             rows={6}

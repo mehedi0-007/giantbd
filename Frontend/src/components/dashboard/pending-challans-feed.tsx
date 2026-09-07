@@ -16,7 +16,7 @@ export function PendingChallansFeed({
 }: PendingChallansFeedProps) {
   if (isLoading || !challans) {
     return (
-      <div className="h-full rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs animate-pulse">
+      <div className="h-full card-giant p-6 animate-pulse">
         <div className="h-5 w-48 rounded-md bg-slate-100 mb-2" />
         <div className="h-3 w-60 rounded-md bg-slate-100 mb-6" />
         <div className="space-y-3">
@@ -29,7 +29,7 @@ export function PendingChallansFeed({
   }
 
   return (
-    <div className="flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs h-full">
+    <div className="flex flex-col justify-between card-giant p-6 h-full">
       <div>
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center gap-2">
@@ -37,14 +37,14 @@ export function PendingChallansFeed({
               In-Transit Challans
             </h3>
             {challans.length > 0 && (
-              <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700">
+              <span className="badge-giant">
                 {challans.length} Pending Delivery
               </span>
             )}
           </div>
           <NextLink
             href="/inventory/stock-out"
-            className="text-xs font-medium text-blue-600 hover:text-blue-700 flex items-center gap-1"
+            className="text-xs font-semibold text-[#3b66b7] hover:underline flex items-center gap-1"
           >
             <span>All Challans</span>
             <ArrowRight className="h-3 w-3" />
@@ -56,7 +56,7 @@ export function PendingChallansFeed({
 
         {challans.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-10 text-center">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-50 text-blue-600 mb-2">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#3b66b7]/10 text-[#3b66b7] mb-2">
               <CheckCircle2 className="h-5 w-5" />
             </div>
             <p className="text-xs font-semibold text-slate-800">

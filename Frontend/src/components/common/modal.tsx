@@ -152,7 +152,7 @@ export function Modal({
         aria-describedby={description ? descId : undefined}
         tabIndex={-1}
         className={cn(
-          'relative w-full rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl transition-all',
+          'relative w-full rounded-3xl border border-slate-100 bg-white p-6 sm:p-7 shadow-2xl transition-all',
           'animate-in fade-in zoom-in-95 duration-150',
           'focus:outline-hidden',
           sizeClasses[size],
@@ -164,7 +164,7 @@ export function Modal({
           <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-4 mb-5">
             <div className="flex items-start gap-3">
               {icon && (
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#3b66b7]/10 text-[#3b66b7]">
                   {icon}
                 </div>
               )}

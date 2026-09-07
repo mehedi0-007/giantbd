@@ -25,7 +25,7 @@ export function KpiCards({ kpi, isLoading }: KpiCardsProps) {
         {[1, 2, 3, 4].map((i) => (
           <div
             key={i}
-            className="h-32 animate-pulse rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs"
+            className="h-32 animate-pulse card-giant p-5"
           >
             <div className="flex items-center justify-between">
               <div className="h-4 w-24 rounded-md bg-slate-100" />
@@ -62,12 +62,12 @@ export function KpiCards({ kpi, isLoading }: KpiCardsProps) {
       value: formatNumber(kpi.activePoCount),
       subtitle: (
         <span className="text-slate-600">
-          <strong className="font-semibold text-blue-700">{kpi.poFulfillmentRate}%</strong> overall fulfilled
+          <strong className="font-semibold text-[#3b66b7]">{kpi.poFulfillmentRate}%</strong> overall fulfilled
         </span>
       ),
-      badgeBg: 'bg-blue-50 border-blue-200',
+      badgeBg: 'bg-[#3b66b7]/10 border-[#3b66b7]/20',
       icon: ShoppingBag,
-      iconColor: 'bg-blue-600 shadow-blue-500/20 text-white',
+      iconColor: 'bg-[#3b66b7] shadow-[#3b66b7]/20 text-white',
       link: '/commercial/po',
     },
     {
@@ -107,7 +107,7 @@ export function KpiCards({ kpi, isLoading }: KpiCardsProps) {
           <NextLink
             key={idx}
             href={card.link}
-            className="group relative flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs transition-all duration-150 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md"
+            className="group relative flex flex-col justify-between card-giant p-5.5 transition-all duration-200 hover:-translate-y-1 hover:border-[#3b66b7]/40 hover:shadow-xl"
           >
             <div>
               <div className="flex items-center justify-between">
@@ -130,7 +130,7 @@ export function KpiCards({ kpi, isLoading }: KpiCardsProps) {
 
             <div className="mt-3 flex items-center justify-between pt-3 border-t border-slate-100 text-xs">
               <div className="truncate">{card.subtitle}</div>
-              <ArrowUpRight className="h-3.5 w-3.5 text-slate-400 group-hover:text-blue-600 transition-colors shrink-0 ml-1" />
+              <ArrowUpRight className="h-3.5 w-3.5 text-slate-400 group-hover:text-[#3b66b7] transition-colors shrink-0 ml-1" />
             </div>
           </NextLink>
         );

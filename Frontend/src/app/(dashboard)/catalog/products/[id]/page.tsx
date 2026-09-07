@@ -145,7 +145,7 @@ export default function ProductDetailPage() {
         <button
           type="button"
           onClick={() => setIsBulkModalOpen(true)}
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white shadow-sm shadow-blue-500/20 hover:bg-blue-700 transition cursor-pointer"
+          className="btn-giant-primary"
         >
           <Plus className="h-4 w-4" />
           <span>Create variant products</span>
@@ -154,7 +154,7 @@ export default function ProductDetailPage() {
 
       {/* Metric Cards Banner */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs">
+        <div className="card-giant p-5.5">
           <div className="text-xs font-semibold uppercase tracking-wider text-slate-400">
             Total Active Variants
           </div>
@@ -163,7 +163,7 @@ export default function ProductDetailPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs">
+        <div className="card-giant p-5.5">
           <div className="text-xs font-semibold uppercase tracking-wider text-slate-400">
             Total In-Hand Stock
           </div>
@@ -172,7 +172,7 @@ export default function ProductDetailPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs">
+        <div className="card-giant p-5.5">
           <div className="text-xs font-semibold uppercase tracking-wider text-slate-400">
             Low Stock Alerts (&lt; 30 pairs)
           </div>
@@ -188,13 +188,13 @@ export default function ProductDetailPage() {
       </div>
 
       {/* Variant Matrix Table */}
-      <div className="rounded-2xl border border-slate-200/80 bg-white shadow-xs overflow-hidden">
+      <div className="card-giant overflow-hidden">
         <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
           <div className="flex items-center gap-2">
             <h3 className="text-base font-bold text-slate-900">
               Variant Products
             </h3>
-            <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700">
+            <span className="badge-giant">
               {variants.length} Records
             </span>
           </div>
@@ -202,9 +202,9 @@ export default function ProductDetailPage() {
           <button
             type="button"
             onClick={() => setIsBulkModalOpen(true)}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition cursor-pointer"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-[#f4f7fc] px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-[#3b66b7]/8 hover:text-[#3b66b7] transition cursor-pointer"
           >
-            <Plus className="h-3.5 w-3.5 text-blue-600" />
+            <Plus className="h-3.5 w-3.5 text-[#3b66b7]" />
             <span>Create variant products</span>
           </button>
         </div>

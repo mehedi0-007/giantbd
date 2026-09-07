@@ -20,7 +20,7 @@ interface MovementChartProps {
 export function MovementChart({ data, isLoading }: MovementChartProps) {
   if (isLoading || !data) {
     return (
-      <div className="h-80 w-full animate-pulse rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs">
+      <div className="h-80 w-full animate-pulse card-giant p-6">
         <div className="h-5 w-48 rounded-md bg-slate-100 mb-2" />
         <div className="h-3 w-64 rounded-md bg-slate-100 mb-6" />
         <div className="h-52 w-full rounded-xl bg-slate-50" />
@@ -32,12 +32,12 @@ export function MovementChart({ data, isLoading }: MovementChartProps) {
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-lg text-xs">
+        <div className="rounded-xl border border-slate-100 bg-white p-3 shadow-xl text-xs">
           <p className="font-semibold text-slate-800 mb-1.5">{label}</p>
           <div className="space-y-1">
             <div className="flex items-center justify-between gap-4">
-              <span className="flex items-center gap-1.5 text-blue-600 font-medium">
-                <span className="h-2 w-2 rounded-full bg-blue-600" />
+              <span className="flex items-center gap-1.5 text-[#3b66b7] font-medium">
+                <span className="h-2 w-2 rounded-full bg-[#3b66b7]" />
                 Stock-In:
               </span>
               <span className="font-bold text-slate-900">
@@ -61,7 +61,7 @@ export function MovementChart({ data, isLoading }: MovementChartProps) {
   };
 
   return (
-    <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs">
+    <div className="card-giant p-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6">
         <div>
           <h3 className="text-base font-bold text-slate-900 tracking-tight">
@@ -75,7 +75,7 @@ export function MovementChart({ data, isLoading }: MovementChartProps) {
         {/* Legend */}
         <div className="flex items-center gap-4 text-xs font-medium">
           <div className="flex items-center gap-1.5 text-slate-600">
-            <span className="h-2.5 w-2.5 rounded-full bg-blue-600" />
+            <span className="h-2.5 w-2.5 rounded-full bg-[#3b66b7]" />
             <span>Stock-In</span>
           </div>
           <div className="flex items-center gap-1.5 text-slate-600">
@@ -93,8 +93,8 @@ export function MovementChart({ data, isLoading }: MovementChartProps) {
           >
             <defs>
               <linearGradient id="colorStockIn" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#2563eb" stopOpacity={0.25} />
-                <stop offset="95%" stopColor="#2563eb" stopOpacity={0.0} />
+                <stop offset="5%" stopColor="#3b66b7" stopOpacity={0.28} />
+                <stop offset="95%" stopColor="#3b66b7" stopOpacity={0.0} />
               </linearGradient>
               <linearGradient id="colorStockOut" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="#ef4444" stopOpacity={0.2} />
@@ -118,7 +118,7 @@ export function MovementChart({ data, isLoading }: MovementChartProps) {
             <Area
               type="monotone"
               dataKey="stockIn"
-              stroke="#2563eb"
+              stroke="#3b66b7"
               strokeWidth={2.5}
               fillOpacity={1}
               fill="url(#colorStockIn)"

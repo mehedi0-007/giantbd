@@ -244,11 +244,11 @@ export default function CurrentStockPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             <h1 className="text-2xl font-bold tracking-tight text-slate-900">
               Current Stock & Inventory Ledger
             </h1>
-            <span className="rounded-md bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700">
+            <span className="badge-giant">
               Live Balance
             </span>
           </div>
@@ -258,13 +258,13 @@ export default function CurrentStockPage() {
         </div>
 
         {/* View Mode Switcher */}
-        <div className="rounded-xl border border-slate-200 bg-slate-100/80 p-1 flex items-center gap-1 shrink-0 self-start sm:self-auto">
+        <div className="rounded-2xl border border-slate-200 bg-slate-100/80 p-1.5 flex items-center gap-1.5 shrink-0 self-start sm:self-auto">
           <button
             type="button"
             onClick={() => setViewMode('batches')}
-            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition cursor-pointer ${
+            className={`inline-flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-xs font-bold transition cursor-pointer ${
               viewMode === 'batches'
-                ? 'bg-white text-blue-700 shadow-xs'
+                ? 'bg-[#3b66b7] text-white shadow-md shadow-[#3b66b7]/20'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
@@ -274,9 +274,9 @@ export default function CurrentStockPage() {
           <button
             type="button"
             onClick={() => setViewMode('items')}
-            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition cursor-pointer ${
+            className={`inline-flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-xs font-bold transition cursor-pointer ${
               viewMode === 'items'
-                ? 'bg-white text-blue-700 shadow-xs'
+                ? 'bg-[#3b66b7] text-white shadow-md shadow-[#3b66b7]/20'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
@@ -289,12 +289,14 @@ export default function CurrentStockPage() {
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {/* Total In-Hand */}
-        <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs">
+        <div className="card-giant p-5">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
               Total In-Hand Balance
             </span>
-            <Package className="h-4 w-4 text-blue-600" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#3b66b7]/10 text-[#3b66b7]">
+              <Package className="h-4 w-4" />
+            </div>
           </div>
           <div className="mt-2 flex items-baseline gap-2">
             <span className="text-2xl font-bold text-slate-900">
@@ -305,12 +307,14 @@ export default function CurrentStockPage() {
         </div>
 
         {/* Total Batches Count */}
-        <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs">
+        <div className="card-giant p-5">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
               {viewMode === 'batches' ? 'Active Batches' : 'Stock Positions'}
             </span>
-            <Boxes className="h-4 w-4 text-emerald-600" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+              <Boxes className="h-4 w-4" />
+            </div>
           </div>
           <div className="mt-2 flex items-baseline gap-2">
             <span className="text-2xl font-bold text-emerald-600">
@@ -325,15 +329,17 @@ export default function CurrentStockPage() {
         {/* Low Stock / Status */}
         <div
           onClick={() => viewMode === 'items' && setLowStockOnly(!lowStockOnly)}
-          className={`rounded-2xl border p-5 shadow-xs transition ${
+          className={`card-giant p-5 transition ${
             viewMode === 'items' ? 'cursor-pointer hover:border-amber-400' : ''
-          } ${lowStockOnly ? 'border-amber-400 bg-amber-50/50' : 'border-slate-200/80 bg-white'}`}
+          } ${lowStockOnly ? 'border-amber-400 bg-amber-50/50' : ''}`}
         >
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-amber-700">
               {viewMode === 'batches' ? 'Inventory Status' : 'Low Stock (< 30 Pairs)'}
             </span>
-            <AlertTriangle className="h-4 w-4 text-amber-500" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-50 text-amber-500">
+              <AlertTriangle className="h-4 w-4" />
+            </div>
           </div>
           <div className="mt-2 flex items-baseline gap-2">
             <span className="text-2xl font-bold text-amber-600">
@@ -347,17 +353,17 @@ export default function CurrentStockPage() {
       </div>
 
       {/* Multi-Filter Bar */}
-      <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs space-y-3">
+      <div className="card-giant p-4 space-y-3">
         <div className="flex flex-col lg:flex-row items-center gap-3">
           {/* Search Input */}
           <div className="relative flex-1 w-full">
-            <Barcode className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+            <Barcode className="absolute left-3.5 top-2.5 h-4 w-4 text-slate-400" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search Batch ID, PO, SKU, Style Name..."
-              className="w-full rounded-xl border border-slate-200 bg-slate-50/50 py-2 pl-9 pr-3 text-xs text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:outline-hidden"
+              className="input-giant pl-9"
             />
           </div>
 
@@ -365,7 +371,7 @@ export default function CurrentStockPage() {
           <select
             value={colorFilter}
             onChange={(e) => setColorFilter(e.target.value)}
-            className="w-full lg:w-auto rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs font-semibold text-slate-700 focus:border-blue-500 focus:outline-hidden"
+            className="w-full lg:w-auto rounded-xl border border-slate-200/80 bg-[#f4f7fc] px-3.5 py-2 text-xs font-semibold text-slate-700 focus:border-[#3b66b7]/50 focus:bg-white focus:outline-hidden"
           >
             <option value="">🎨 All Colors</option>
             {colors.map((c) => (
@@ -447,7 +453,7 @@ export default function CurrentStockPage() {
 
       {/* Main Table: Grouped by Batches */}
       {viewMode === 'batches' ? (
-        <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs">
+        <div className="card-giant overflow-hidden">
           {loadingBatches ? (
             <TableSkeleton
               rows={6}
@@ -719,7 +725,7 @@ export default function CurrentStockPage() {
         </div>
       ) : (
         /* Flat Items View */
-        <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs">
+        <div className="card-giant overflow-hidden">
           {loadingStock ? (
             <TableSkeleton
               rows={6}

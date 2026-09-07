@@ -125,7 +125,7 @@ export function LcDrawer({
             aria-required="true"
             value={formData.buyerId}
             onChange={(e) => setFormData({ ...formData, buyerId: e.target.value })}
-            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 min-h-[40px]"
+            className="w-full rounded-xl border border-slate-200/80 bg-[#f4f7fc] px-3.5 py-2 text-sm text-slate-900 focus:border-[#3b66b7]/50 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#3b66b7]/15 min-h-[42px]"
           >
             <option value="" disabled>Select Buyer</option>
             {buyers.map((b) => (
@@ -149,7 +149,7 @@ export function LcDrawer({
             value={formData.lcNumber}
             onChange={(e) => setFormData({ ...formData, lcNumber: e.target.value.toUpperCase() })}
             placeholder="e.g. LC-2026-8899"
-            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 min-h-[40px] font-mono uppercase"
+            className="w-full rounded-xl border border-slate-200/80 bg-[#f4f7fc] px-3.5 py-2 text-sm text-slate-900 focus:border-[#3b66b7]/50 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#3b66b7]/15 min-h-[42px] font-mono uppercase"
           />
         </div>
 
@@ -162,7 +162,7 @@ export function LcDrawer({
             id="lc-status"
             value={formData.status}
             onChange={(e) => setFormData({ ...formData, status: e.target.value as LCStatus })}
-            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 min-h-[40px]"
+            className="w-full rounded-xl border border-slate-200/80 bg-[#f4f7fc] px-3.5 py-2 text-sm text-slate-900 focus:border-[#3b66b7]/50 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#3b66b7]/15 min-h-[42px]"
           >
             <option value="OPEN">Open (Active)</option>
             <option value="IN_PROGRESS">In Progress</option>
@@ -183,7 +183,7 @@ export function LcDrawer({
             value={formData.remarks || ''}
             onChange={(e) => setFormData({ ...formData, remarks: e.target.value })}
             placeholder="e.g. Sight LC 90 days via Standard Chartered Bank Dhaka"
-            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20"
+            className="w-full rounded-xl border border-slate-200/80 bg-[#f4f7fc] px-3.5 py-2 text-sm text-slate-900 focus:border-[#3b66b7]/50 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#3b66b7]/15"
           />
         </div>
 
@@ -192,14 +192,14 @@ export function LcDrawer({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer min-h-[40px]"
+            className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer min-h-[40px]"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={isLoading}
-            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition cursor-pointer shadow-sm shadow-blue-500/20 disabled:opacity-50 min-h-[40px]"
+            className="inline-flex items-center gap-2 rounded-xl bg-[#3b66b7] px-5 py-2 text-sm font-semibold text-white hover:bg-[#32589f] transition cursor-pointer shadow-md shadow-[#3b66b7]/20 disabled:opacity-50 min-h-[40px]"
           >
             {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
             <span>{lcToEdit ? 'Save Changes' : 'Open LC'}</span>

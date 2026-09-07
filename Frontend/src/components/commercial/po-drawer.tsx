@@ -159,7 +159,7 @@ export function PoDrawer({
                 buyerId: matchedLc?.buyerId || '',
               });
             }}
-            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 min-h-[40px]"
+            className="w-full rounded-xl border border-slate-200/80 bg-[#f4f7fc] px-3.5 py-2 text-sm text-slate-900 focus:border-[#3b66b7]/50 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#3b66b7]/15 min-h-[42px]"
           >
             <option value="" disabled>
               Select Active Letter of Credit (LC)
@@ -177,14 +177,14 @@ export function PoDrawer({
           const matchedLc = lcs.find((l) => l.id === formData.lcId);
           if (!matchedLc?.buyer) return null;
           return (
-            <div className="rounded-xl border border-blue-100 bg-blue-50/60 p-3 text-xs">
-              <div className="font-bold text-blue-900 flex items-center justify-between">
+            <div className="rounded-2xl border border-[#3b66b7]/20 bg-[#3b66b7]/5 p-3.5 text-xs">
+              <div className="font-bold text-[#3b66b7] flex items-center justify-between">
                 <span>🏢 Buyer: {matchedLc.buyer.name}</span>
-                <span className="font-mono text-[10px] bg-blue-100 px-1.5 py-0.5 rounded text-blue-700 font-bold">
+                <span className="font-mono text-[10px] bg-[#3b66b7]/10 px-2 py-0.5 rounded-lg text-[#3b66b7] font-bold border border-[#3b66b7]/20">
                   {matchedLc.buyer.code}
                 </span>
               </div>
-              <div className="text-[11px] text-blue-700/80 mt-1 flex items-center gap-3">
+              <div className="text-[11px] text-[#3b66b7]/80 mt-1 flex items-center gap-3">
                 <span>Country: {matchedLc.buyer.country || 'N/A'}</span>
               </div>
             </div>
@@ -204,7 +204,7 @@ export function PoDrawer({
             value={formData.poNumber}
             onChange={(e) => setFormData({ ...formData, poNumber: e.target.value.toUpperCase() })}
             placeholder="e.g. PO-2026-8801"
-            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 min-h-[40px] font-mono uppercase"
+            className="w-full rounded-xl border border-slate-200/80 bg-[#f4f7fc] px-3.5 py-2 text-sm text-slate-900 focus:border-[#3b66b7]/50 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#3b66b7]/15 min-h-[42px] font-mono uppercase"
           />
         </div>
 
@@ -217,7 +217,7 @@ export function PoDrawer({
             id="po-status-select"
             value={formData.status}
             onChange={(e) => setFormData({ ...formData, status: e.target.value as POStatus })}
-            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 min-h-[40px]"
+            className="w-full rounded-xl border border-slate-200/80 bg-[#f4f7fc] px-3.5 py-2 text-sm text-slate-900 focus:border-[#3b66b7]/50 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#3b66b7]/15 min-h-[42px]"
           >
             <option value="DRAFT">Draft</option>
             <option value="CONFIRMED">Confirmed</option>
@@ -240,7 +240,7 @@ export function PoDrawer({
             value={formData.remarks || ''}
             onChange={(e) => setFormData({ ...formData, remarks: e.target.value })}
             placeholder="e.g. Initial order for SS26 collection, delivery in Chittagong Port"
-            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20"
+            className="w-full rounded-xl border border-slate-200/80 bg-[#f4f7fc] px-3.5 py-2 text-sm text-slate-900 focus:border-[#3b66b7]/50 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#3b66b7]/15"
           />
         </div>
 
@@ -249,14 +249,14 @@ export function PoDrawer({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer min-h-[40px]"
+            className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer min-h-[40px]"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={isLoading}
-            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition cursor-pointer shadow-sm shadow-blue-500/20 disabled:opacity-50 min-h-[40px]"
+            className="inline-flex items-center gap-2 rounded-xl bg-[#3b66b7] px-5 py-2 text-sm font-semibold text-white hover:bg-[#32589f] transition cursor-pointer shadow-md shadow-[#3b66b7]/20 disabled:opacity-50 min-h-[40px]"
           >
             {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
             <span>{poToEdit ? 'Save Changes' : 'Create PO & Add Items'}</span>

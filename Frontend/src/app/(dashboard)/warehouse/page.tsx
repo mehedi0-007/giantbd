@@ -146,9 +146,9 @@ export default function WarehousePage() {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-              Warehouses & Storage Locations
+              Spatial Warehouse Architecture
             </h1>
-            <span className="rounded-md bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700">
+            <span className="badge-giant">
               {locations.length} Locations Active
             </span>
           </div>
@@ -161,7 +161,7 @@ export default function WarehousePage() {
           <button
             type="button"
             onClick={() => handleOpenAdd('warehouse')}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 shadow-2xs transition cursor-pointer"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 shadow-xs transition cursor-pointer"
           >
             <Plus className="h-3.5 w-3.5" />
             <span>Warehouse</span>
@@ -169,7 +169,7 @@ export default function WarehousePage() {
           <button
             type="button"
             onClick={() => handleOpenAdd('zone', { warehouseId: selectedWarehouseId || undefined })}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 shadow-2xs transition cursor-pointer"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 shadow-xs transition cursor-pointer"
           >
             <Plus className="h-3.5 w-3.5" />
             <span>Zone</span>
@@ -177,7 +177,7 @@ export default function WarehousePage() {
           <button
             type="button"
             onClick={() => handleOpenAdd('subzone', { warehouseId: selectedWarehouseId || undefined, zoneId: selectedZoneId || undefined })}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 shadow-2xs transition cursor-pointer"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 shadow-xs transition cursor-pointer"
           >
             <Plus className="h-3.5 w-3.5" />
             <span>Sub-Zone</span>
@@ -185,9 +185,9 @@ export default function WarehousePage() {
           <button
             type="button"
             onClick={() => handleOpenAdd('rack', { warehouseId: selectedWarehouseId || undefined, zoneId: selectedZoneId || undefined, subZoneId: selectedSubZoneId || undefined })}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-3.5 py-2 text-xs font-semibold text-white shadow-sm shadow-blue-500/20 hover:bg-blue-700 transition cursor-pointer"
+            className="btn-giant-primary"
           >
-            <Plus className="h-3.5 w-3.5" />
+            <Plus className="h-4 w-4" />
             <span>Generate Racks (Bulk)</span>
           </button>
         </div>
@@ -196,10 +196,10 @@ export default function WarehousePage() {
       {/* Main Split Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left 4 Cols: Interactive Hierarchy Explorer */}
-        <div className="lg:col-span-5 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs">
+        <div className="lg:col-span-5 card-giant p-5">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
             <div className="flex items-center gap-2">
-              <FolderTree className="h-4 w-4 text-blue-600" />
+              <FolderTree className="h-4 w-4 text-[#3b66b7]" />
               <h3 className="text-sm font-bold text-slate-900">Hierarchy Navigator</h3>
             </div>
             <div className="flex items-center gap-2">
@@ -444,15 +444,15 @@ export default function WarehousePage() {
         {/* Right 7 Cols: Storage Locations Table */}
         <div className="lg:col-span-7 space-y-4">
           {/* Multi-Filter Bar */}
-          <div className="flex flex-col sm:flex-row items-center gap-3 rounded-2xl border border-slate-200/80 bg-white p-3 shadow-xs">
+          <div className="card-giant flex flex-col sm:flex-row items-center gap-3 p-3.5">
             <div className="relative flex-1 w-full">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+              <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-slate-400" />
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search by location code or barcode..."
-                className="w-full rounded-xl border border-slate-200 bg-slate-50/50 py-2 pl-9 pr-3 text-xs text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:outline-hidden"
+                className="input-giant pl-9"
               />
             </div>
 
@@ -465,7 +465,7 @@ export default function WarehousePage() {
                 setSelectedSubZoneId('');
                 setSelectedRackId('');
               }}
-              className="w-full sm:w-auto rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs font-semibold text-slate-700 focus:border-blue-500 focus:outline-hidden"
+              className="w-full sm:w-auto rounded-xl border border-slate-200/80 bg-[#f4f7fc] px-3.5 py-2 text-xs font-semibold text-slate-700 focus:border-[#3b66b7]/50 focus:bg-white focus:outline-hidden"
             >
               <option value="">🏭 All Warehouses</option>
               {warehouses.map((w) => (
@@ -479,7 +479,7 @@ export default function WarehousePage() {
             <select
               value={occupancyFilter}
               onChange={(e) => setOccupancyFilter(e.target.value as any)}
-              className="w-full sm:w-auto rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs font-semibold text-slate-700 focus:border-blue-500 focus:outline-hidden"
+              className="w-full sm:w-auto rounded-xl border border-slate-200/80 bg-[#f4f7fc] px-3.5 py-2 text-xs font-semibold text-slate-700 focus:border-[#3b66b7]/50 focus:bg-white focus:outline-hidden"
             >
               <option value="ALL">📦 All Locations</option>
               <option value="OCCUPIED">🟢 Occupied Locations</option>
@@ -491,7 +491,7 @@ export default function WarehousePage() {
               <button
                 type="button"
                 onClick={clearFilters}
-                className="w-full sm:w-auto shrink-0 rounded-xl border border-slate-200 bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-200 transition cursor-pointer"
+                className="w-full sm:w-auto shrink-0 rounded-xl border border-slate-200 bg-slate-100 px-3.5 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-200 transition cursor-pointer"
               >
                 Reset
               </button>
@@ -499,13 +499,13 @@ export default function WarehousePage() {
 
             {isFetching && (
               <div className="flex items-center gap-1.5 text-xs text-slate-400 pr-1">
-                <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-600" />
+                <Loader2 className="h-3.5 w-3.5 animate-spin text-[#3b66b7]" />
               </div>
             )}
           </div>
 
           {/* Locations Table */}
-          <div className="rounded-2xl border border-slate-200/80 bg-white shadow-xs overflow-hidden">
+          <div className="card-giant overflow-hidden">
             {loadingLoc ? (
               <TableSkeleton
                 rows={6}
@@ -513,12 +513,12 @@ export default function WarehousePage() {
               />
             ) : locations.length === 0 ? (
               <EmptyState
-                icon={<Boxes className="h-7 w-7 text-amber-600" />}
+                icon={<Boxes className="h-7 w-7 text-[#3b66b7]" />}
                 title={search || selectedWarehouseId || selectedZoneId || selectedSubZoneId || selectedRackId ? 'No matching locations found' : 'No storage locations yet'}
                 description={
                   search || selectedWarehouseId || selectedZoneId || selectedSubZoneId || selectedRackId
                     ? 'No storage bins match your active hierarchy or occupancy filter.'
-                    : 'Create storage locations to assign addresses for incoming stock batches.'
+                    : 'Add warehouse storage bins or bulk generate racks to begin spatial inventory mapping.'
                 }
                 action={
                   search || selectedWarehouseId || selectedZoneId || selectedSubZoneId || selectedRackId
@@ -551,11 +551,11 @@ export default function WarehousePage() {
                         <tr key={loc.id} className="hover:bg-slate-50/70 transition-colors">
                           {/* Bin Code & Barcode */}
                           <td className="px-5 py-3.5">
-                            <div className="font-mono font-bold text-slate-900 text-xs">
+                            <span className="inline-flex rounded-lg bg-[#3b66b7]/10 px-2.5 py-1 text-xs font-bold text-[#3b66b7] border border-[#3b66b7]/20 font-mono">
                               {loc.code}
-                            </div>
+                            </span>
                             {loc.barcode && (
-                              <div className="flex items-center gap-1 font-mono text-[10px] text-slate-500 mt-0.5">
+                              <div className="flex items-center gap-1 font-mono text-[10px] text-slate-500 mt-1">
                                 <Barcode className="h-3 w-3 text-slate-400" />
                                 <span>{loc.barcode}</span>
                               </div>
@@ -604,7 +604,7 @@ export default function WarehousePage() {
                               <button
                                 type="button"
                                 onClick={() => setSelectedLocationForBarcode(loc)}
-                                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-blue-600 hover:bg-blue-50 transition cursor-pointer min-h-[36px]"
+                                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-[#3b66b7]/10 hover:text-[#3b66b7] hover:border-[#3b66b7]/30 transition cursor-pointer min-h-[36px]"
                                 title="Print Barcode Sticker"
                                 aria-label={`Print barcode for location ${loc.code}`}
                               >

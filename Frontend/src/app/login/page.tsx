@@ -222,16 +222,15 @@ export default function LoginPage() {
 
       {/* Main Dual-Panel Card Container */}
       <div className="relative w-full max-w-4xl min-h-[520px] bg-white rounded-3xl shadow-2xl shadow-slate-300/60 overflow-hidden flex flex-col md:flex-row border border-slate-100">
-        
+
         {/* ========================================================================= */}
         {/* DESKTOP SLIDING BLUE BANNER (Slides smoothly across Left <-> Right)      */}
         {/* ========================================================================= */}
         <div
-          className={`hidden md:flex absolute top-0 bottom-0 w-1/2 bg-[#3b66b7] text-white flex-col items-center justify-center p-10 z-20 transition-all duration-700 ease-in-out shadow-xl ${
-            is2FA
-              ? 'left-1/2 rounded-tl-[130px] rounded-bl-[0px] rounded-tr-[0px] rounded-br-[0px]'
-              : 'left-0 rounded-tr-[130px] rounded-br-[0px] rounded-tl-[0px] rounded-bl-[0px]'
-          }`}
+          className={`hidden md:flex absolute top-0 bottom-0 w-1/2 bg-[#3b66b7] text-white flex-col items-center justify-center p-10 z-20 transition-all duration-1000 ease-in-out shadow-xl ${is2FA
+            ? 'left-1/2 rounded-tl-[130px] rounded-bl-[130px] rounded-tr-[0px] rounded-br-[0px]'
+            : 'left-0 rounded-tr-[130px] rounded-br-[130px] rounded-tl-[0px] rounded-bl-[0px]'
+            }`}
         >
           <div className="flex flex-col items-center text-center space-y-4 px-4 select-none">
             <h1 className="text-3xl lg:text-4xl font-extrabold text-white leading-snug tracking-tight">
@@ -258,11 +257,10 @@ export default function LoginPage() {
         {/* PANEL A: 2FA OTP VERIFICATION (Stationed on the Left Half)                */}
         {/* ========================================================================= */}
         <div
-          className={`w-full md:w-1/2 flex flex-col justify-center items-center px-6 py-10 sm:px-12 md:absolute md:left-0 md:top-0 md:bottom-0 z-10 transition-all duration-500 ${
-            is2FA
-              ? 'opacity-100 pointer-events-auto translate-x-0'
-              : 'hidden md:flex md:opacity-0 md:pointer-events-none md:-translate-x-6'
-          }`}
+          className={`w-full md:w-1/2 flex flex-col justify-center items-center px-6 py-10 sm:px-12 md:absolute md:left-0 md:top-0 md:bottom-0 z-10 transition-all duration-500 ${is2FA
+            ? 'opacity-100 pointer-events-auto translate-x-0'
+            : 'hidden md:flex md:opacity-0 md:pointer-events-none md:-translate-x-6'
+            }`}
         >
           <div className="w-full max-w-sm flex flex-col items-center">
             {/* Logo */}
@@ -366,11 +364,10 @@ export default function LoginPage() {
         {/* PANEL B: CREDENTIALS LOGIN (Stationed on the Right Half)                   */}
         {/* ========================================================================= */}
         <div
-          className={`w-full md:w-1/2 flex flex-col justify-center items-center px-6 py-10 sm:px-12 md:absolute md:right-0 md:top-0 md:bottom-0 z-10 transition-all duration-500 ${
-            !is2FA
-              ? 'opacity-100 pointer-events-auto translate-x-0'
-              : 'hidden md:flex md:opacity-0 md:pointer-events-none md:translate-x-6'
-          }`}
+          className={`w-full md:w-1/2 flex flex-col justify-center items-center px-6 py-10 sm:px-12 md:absolute md:right-0 md:top-0 md:bottom-0 z-10 transition-all duration-500 ${!is2FA
+            ? 'opacity-100 pointer-events-auto translate-x-0'
+            : 'hidden md:flex md:opacity-0 md:pointer-events-none md:translate-x-6'
+            }`}
         >
           <div className="w-full max-w-sm flex flex-col items-center">
             {/* Logo */}

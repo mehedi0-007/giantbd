@@ -172,7 +172,7 @@ export default function RolesPage() {
         <button
           type="button"
           onClick={handleOpenCreate}
-          className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white shadow-xs hover:bg-blue-700 transition cursor-pointer min-h-[40px]"
+          className="btn-giant-primary inline-flex items-center gap-2 rounded-2xl px-5 py-2.5 text-xs font-semibold text-white shadow-lg shadow-[#3b66b7]/20 transition cursor-pointer min-h-[40px]"
         >
           <Plus className="h-4 w-4" />
           <span>Create New Role</span>
@@ -183,9 +183,9 @@ export default function RolesPage() {
       {isLoading ? (
         <CardSkeleton count={3} className="grid-cols-1 md:grid-cols-2 lg:grid-cols-3" />
       ) : roles.length === 0 ? (
-        <div className="rounded-2xl border border-slate-200/80 bg-white shadow-xs overflow-hidden">
+        <div className="card-giant rounded-3xl border border-slate-200/80 bg-white shadow-xs overflow-hidden">
           <EmptyState
-            icon={<ShieldCheck className="h-7 w-7 text-blue-600" />}
+            icon={<ShieldCheck className="h-7 w-7 text-[#3b66b7]" />}
             title="No custom roles configured"
             description="Create custom security roles to configure fine-grained permissions for warehouse and commercial staff."
             action={{
@@ -204,18 +204,18 @@ export default function RolesPage() {
             return (
               <div
                 key={role.id}
-                className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 shadow-xs hover:shadow-md transition"
+                className="card-giant flex flex-col justify-between rounded-3xl border border-slate-200/80 bg-white p-6 shadow-xs hover:shadow-md transition"
               >
                 <div>
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-2.5">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#3b66b7]/10 text-[#3b66b7]">
                         <ShieldCheck className="h-5 w-5" />
                       </div>
                       <div>
                         <h3 className="font-bold text-slate-900 text-sm">{role.name}</h3>
                         {role.isTwoFactorRequired ? (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.2 rounded-full mt-0.5">
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full mt-0.5">
                             <Lock className="h-2.5 w-2.5" />
                             <span>2FA Enforced</span>
                           </span>
@@ -229,7 +229,7 @@ export default function RolesPage() {
                       <button
                         type="button"
                         onClick={() => handleOpenEdit(role)}
-                        className="p-2 text-slate-400 hover:text-blue-600 transition cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg hover:bg-blue-50"
+                        className="p-2 text-slate-400 hover:text-[#3b66b7] transition cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center rounded-xl hover:bg-[#3b66b7]/10"
                         title="Edit Permissions"
                         aria-label={`Edit permissions for role ${role.name}`}
                       >
@@ -239,7 +239,7 @@ export default function RolesPage() {
                         <button
                           type="button"
                           onClick={() => setRoleToDelete(role)}
-                          className="p-2 text-slate-400 hover:text-red-600 transition cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg hover:bg-red-50"
+                          className="p-2 text-slate-400 hover:text-red-600 transition cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center rounded-xl hover:bg-red-50"
                           title="Delete Role"
                           aria-label={`Delete role ${role.name}`}
                         >
@@ -253,9 +253,9 @@ export default function RolesPage() {
                     {role.description || 'No description provided for this role.'}
                   </p>
 
-                  <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 text-xs">
+                  <div className="mt-5 flex items-center justify-between border-t border-slate-100 pt-3 text-xs">
                     <span className="text-slate-500">Active Permissions:</span>
-                    <span className="font-bold font-mono text-blue-700 bg-blue-50 px-2 py-0.5 rounded text-[11px]">
+                    <span className="font-bold font-mono text-[#3b66b7] bg-[#3b66b7]/10 border border-[#3b66b7]/20 px-2.5 py-1 rounded-xl text-[11px]">
                       {isSuperAdmin ? 'ALL (*)' : `${permCount} Grants`}
                     </span>
                   </div>
@@ -288,7 +288,7 @@ export default function RolesPage() {
 
           {/* Role Name */}
           <div>
-            <label htmlFor="role-name-input" className="mb-1 block text-xs font-semibold text-slate-700">
+            <label htmlFor="role-name-input" className="mb-1.5 block text-xs font-semibold text-slate-700">
               Role Name Identifier <span className="text-red-500">*</span>
             </label>
             <input
@@ -300,13 +300,13 @@ export default function RolesPage() {
               disabled={editingRole?.name === 'SUPER_ADMIN'}
               onChange={(e) => setName(e.target.value.toUpperCase())}
               placeholder="e.g. INVENTORY_MANAGER"
-              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 font-mono uppercase min-h-[40px] disabled:bg-slate-100"
+              className="w-full rounded-xl border border-slate-200/80 bg-[#f4f7fc] px-3.5 py-2.5 text-sm text-slate-900 focus:border-[#3b66b7]/50 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#3b66b7]/20 font-mono uppercase min-h-[42px] disabled:bg-slate-100"
             />
           </div>
 
           {/* Description */}
           <div>
-            <label htmlFor="role-desc-input" className="mb-1 block text-xs font-semibold text-slate-700">
+            <label htmlFor="role-desc-input" className="mb-1.5 block text-xs font-semibold text-slate-700">
               Role Purpose & Description
             </label>
             <textarea
@@ -315,17 +315,17 @@ export default function RolesPage() {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="e.g. Responsible for warehouse receiving, dispatch, and physical cycle counts"
-              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20"
+              className="w-full rounded-xl border border-slate-200/80 bg-[#f4f7fc] px-3.5 py-2.5 text-sm text-slate-900 focus:border-[#3b66b7]/50 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#3b66b7]/20"
             />
           </div>
 
           {/* 2FA Enforce Switch */}
-          <div className="flex items-center justify-between rounded-xl border border-slate-200 p-3 bg-slate-50/50">
+          <div className="flex items-center justify-between rounded-2xl border border-slate-200/80 p-4 bg-[#f8fafd]">
             <div>
               <label htmlFor="role-2fa-toggle" className="text-xs font-bold text-slate-900 block cursor-pointer">
                 Mandatory Two-Factor Authentication (2FA)
               </label>
-              <p className="text-[11px] text-slate-500">
+              <p className="text-[11px] text-slate-500 mt-0.5">
                 Requires all users assigned to this role to provide TOTP authentication upon sign-in.
               </p>
             </div>
@@ -334,7 +334,7 @@ export default function RolesPage() {
               type="checkbox"
               checked={isTwoFactorRequired}
               onChange={(e) => setIsTwoFactorRequired(e.target.checked)}
-              className="h-4 w-4 rounded text-blue-600 focus:ring-blue-500 cursor-pointer"
+              className="h-4 w-4 rounded text-[#3b66b7] focus:ring-[#3b66b7] cursor-pointer"
             />
           </div>
 
@@ -346,21 +346,21 @@ export default function RolesPage() {
               </label>
             </div>
 
-            <div className="max-h-72 overflow-y-auto space-y-3 rounded-xl border border-slate-200 p-3 bg-slate-50/50">
+            <div className="max-h-72 overflow-y-auto space-y-3 rounded-2xl border border-slate-200/80 p-3.5 bg-[#f8fafd]">
               {Object.entries(groupedPermissions).map(([moduleName, perms]) => {
                 const modPermNames = perms.map((p) => p.name);
                 const allSelected = modPermNames.every((p) => selectedPermissions.includes(p));
 
                 return (
-                  <div key={moduleName} className="rounded-xl border border-slate-200 bg-white p-3 space-y-2">
-                    <div className="flex items-center justify-between border-b border-slate-100 pb-1.5">
+                  <div key={moduleName} className="rounded-2xl border border-slate-200/80 bg-white p-3.5 space-y-2.5 shadow-2xs">
+                    <div className="flex items-center justify-between border-b border-slate-100 pb-2">
                       <span className="font-bold text-xs text-slate-900 tracking-wider">
                         {moduleName} MODULE
                       </span>
                       <button
                         type="button"
                         onClick={() => toggleModuleAll(moduleName)}
-                        className="text-[11px] font-semibold text-blue-600 hover:underline cursor-pointer"
+                        className="text-[11px] font-semibold text-[#3b66b7] hover:underline cursor-pointer"
                       >
                         {allSelected ? 'Deselect All' : 'Select All'}
                       </button>
@@ -372,22 +372,22 @@ export default function RolesPage() {
                         return (
                           <label
                             key={p.id}
-                            className={`flex items-start gap-2 p-2 rounded-lg border cursor-pointer transition min-h-[38px] ${
+                            className={`flex items-start gap-2.5 p-2.5 rounded-xl border cursor-pointer transition min-h-[40px] ${
                               isChecked
-                                ? 'border-blue-500 bg-blue-50/50 font-semibold text-slate-900'
-                                : 'border-slate-100 text-slate-600 hover:bg-slate-50'
+                                ? 'border-[#3b66b7] bg-[#3b66b7]/5 font-semibold text-slate-900'
+                                : 'border-slate-200/60 text-slate-600 hover:bg-slate-50'
                             }`}
                           >
                             <input
                               type="checkbox"
                               checked={isChecked}
                               onChange={() => togglePermission(p.id)}
-                              className="mt-0.5 rounded text-blue-600"
+                              className="mt-0.5 rounded text-[#3b66b7] focus:ring-[#3b66b7]"
                             />
                             <div>
                               <div className="font-mono text-xs">{p.name}</div>
                               {p.description && (
-                                <div className="text-[10px] text-slate-400 font-normal">
+                                <div className="text-[10px] text-slate-400 font-normal mt-0.5">
                                   {p.description}
                                 </div>
                               )}
@@ -407,14 +407,14 @@ export default function RolesPage() {
             <button
               type="button"
               onClick={() => setIsModalOpen(false)}
-              className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer min-h-[40px]"
+              className="rounded-xl border border-slate-200/80 bg-white px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer min-h-[40px]"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSaving || !name.trim()}
-              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-50 transition cursor-pointer min-h-[40px]"
+              className="btn-giant-primary inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-xs font-semibold text-white shadow-lg shadow-[#3b66b7]/20 disabled:opacity-50 transition cursor-pointer min-h-[40px]"
             >
               {isSaving ? (
                 <>

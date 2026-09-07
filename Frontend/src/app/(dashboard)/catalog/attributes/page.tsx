@@ -201,11 +201,11 @@ export default function AttributesPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             <h1 className="text-2xl font-bold tracking-tight text-slate-900">
               Master Attributes Manager
             </h1>
-            <span className="rounded-md bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700">
+            <span className="badge-giant">
               Taxonomy & Variants
             </span>
           </div>
@@ -217,7 +217,7 @@ export default function AttributesPage() {
         <button
           type="button"
           onClick={handleOpenAdd}
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white shadow-sm shadow-blue-500/20 hover:bg-blue-700 transition cursor-pointer"
+          className="btn-giant-primary"
         >
           <Plus className="h-4 w-4" />
           <span>Add {activeTab.slice(0, -1)}</span>
@@ -231,7 +231,7 @@ export default function AttributesPage() {
           onClick={() => setActiveTab('categories')}
           className={`flex items-center gap-2 border-b-2 px-4 py-3 text-xs font-bold transition cursor-pointer ${
             activeTab === 'categories'
-              ? 'border-blue-600 text-blue-600'
+              ? 'border-[#3b66b7] text-[#3b66b7]'
               : 'border-transparent text-slate-500 hover:text-slate-700'
           }`}
         >
@@ -244,7 +244,7 @@ export default function AttributesPage() {
           onClick={() => setActiveTab('subcategories')}
           className={`flex items-center gap-2 border-b-2 px-4 py-3 text-xs font-bold transition cursor-pointer ${
             activeTab === 'subcategories'
-              ? 'border-blue-600 text-blue-600'
+              ? 'border-[#3b66b7] text-[#3b66b7]'
               : 'border-transparent text-slate-500 hover:text-slate-700'
           }`}
         >
@@ -257,7 +257,7 @@ export default function AttributesPage() {
           onClick={() => setActiveTab('colors')}
           className={`flex items-center gap-2 border-b-2 px-4 py-3 text-xs font-bold transition cursor-pointer ${
             activeTab === 'colors'
-              ? 'border-blue-600 text-blue-600'
+              ? 'border-[#3b66b7] text-[#3b66b7]'
               : 'border-transparent text-slate-500 hover:text-slate-700'
           }`}
         >
@@ -270,7 +270,7 @@ export default function AttributesPage() {
           onClick={() => setActiveTab('materials')}
           className={`flex items-center gap-2 border-b-2 px-4 py-3 text-xs font-bold transition cursor-pointer ${
             activeTab === 'materials'
-              ? 'border-blue-600 text-blue-600'
+              ? 'border-[#3b66b7] text-[#3b66b7]'
               : 'border-transparent text-slate-500 hover:text-slate-700'
           }`}
         >
@@ -280,7 +280,7 @@ export default function AttributesPage() {
       </div>
 
       {/* Tab Content Tables */}
-      <div className="rounded-2xl border border-slate-200/80 bg-white shadow-xs overflow-hidden">
+      <div className="card-giant overflow-hidden">
         {/* 1. CATEGORIES */}
         {activeTab === 'categories' && (
           loadingCat ? (
@@ -688,7 +688,7 @@ export default function AttributesPage() {
                   ? 'Synthetic Leather'
                   : 'Running Shoes'
               }`}
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-hidden min-h-[40px]"
+              className="input-giant"
             />
           </div>
 
@@ -702,7 +702,7 @@ export default function AttributesPage() {
                   type="color"
                   value={colorCode}
                   onChange={(e) => setColorCode(e.target.value)}
-                  className="h-10 w-10 rounded-lg border border-slate-200 cursor-pointer p-0.5 bg-white min-h-[40px] min-w-[40px]"
+                  className="h-10 w-10 rounded-xl border border-slate-200 cursor-pointer p-0.5 bg-white min-h-[40px] min-w-[40px]"
                 />
                 <input
                   id="attr-color-hex"
@@ -710,7 +710,7 @@ export default function AttributesPage() {
                   value={colorCode}
                   onChange={(e) => setColorCode(e.target.value)}
                   placeholder="#2563eb"
-                  className="flex-1 font-mono uppercase rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-hidden min-h-[40px]"
+                  className="input-giant flex-1 font-mono uppercase"
                 />
               </div>
             </div>
@@ -720,14 +720,14 @@ export default function AttributesPage() {
             <button
               type="button"
               onClick={() => setIsModalOpen(false)}
-              className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer min-h-[40px]"
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer min-h-[40px]"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSaving || !name.trim()}
-              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-50 transition cursor-pointer min-h-[40px]"
+              className="btn-giant-primary"
             >
               {isSaving ? (
                 <>

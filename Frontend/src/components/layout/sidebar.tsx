@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation';
 import NextLink from 'next/link';
 import { useAuthStore } from '@/store/auth.store';
 import { cn } from '@/lib/utils';
+import { GiantLogo } from '@/components/common/giant-logo';
 import {
   LayoutDashboard,
   Users,
@@ -163,19 +164,9 @@ export function Sidebar({ mobileOpen = false, onClose }: SidebarProps) {
     <div className="flex h-full flex-col bg-white">
       {/* Brand Header */}
       <div className="flex h-16 shrink-0 items-center justify-between border-b border-slate-100 px-5">
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600 shadow-sm shadow-blue-500/20">
-            <Boxes className="h-5 w-5 text-white" />
-          </div>
-          <div>
-            <h1 className="text-base font-bold tracking-tight text-slate-900 leading-none">
-              Giant BD
-            </h1>
-            <span className="text-[11px] font-medium text-slate-400">
-              ERP & WMS Platform
-            </span>
-          </div>
-        </div>
+        <NextLink href="/" className="flex items-center gap-2 hover:opacity-90 transition-opacity">
+          <GiantLogo className="h-8 w-auto" width={130} height={40} />
+        </NextLink>
 
         {/* Mobile close button */}
         {onClose && (
@@ -183,7 +174,7 @@ export function Sidebar({ mobileOpen = false, onClose }: SidebarProps) {
             type="button"
             onClick={onClose}
             aria-label="Close navigation sidebar"
-            className="flex h-8 w-8 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-600 lg:hidden"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 lg:hidden"
           >
             <X className="h-5 w-5" />
           </button>
@@ -221,18 +212,18 @@ export function Sidebar({ mobileOpen = false, onClose }: SidebarProps) {
                         if (onClose) onClose();
                       }}
                       className={cn(
-                        'group flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-all duration-150',
+                        'group flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-150',
                         isActive
-                          ? 'bg-blue-50 font-semibold text-blue-700 shadow-xs'
-                          : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900',
+                          ? 'bg-[#3b66b7] font-semibold text-white shadow-md shadow-[#3b66b7]/25'
+                          : 'text-slate-600 hover:bg-[#3b66b7]/8 hover:text-[#3b66b7]',
                       )}
                     >
                       <Icon
                         className={cn(
                           'h-4 w-4 shrink-0 transition-colors',
                           isActive
-                            ? 'text-blue-600'
-                            : 'text-slate-400 group-hover:text-slate-600',
+                            ? 'text-white'
+                            : 'text-slate-400 group-hover:text-[#3b66b7]',
                         )}
                       />
                       <span>{item.label}</span>
@@ -247,9 +238,9 @@ export function Sidebar({ mobileOpen = false, onClose }: SidebarProps) {
 
       {/* Footer System Status */}
       <div className="border-t border-slate-100 p-3">
-        <div className="flex items-center gap-2 rounded-md bg-slate-50 px-3 py-2 text-xs text-slate-500">
+        <div className="flex items-center gap-2 rounded-xl bg-[#f4f7fc] border border-slate-200/50 px-3 py-2 text-xs text-slate-500">
           <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="font-medium">System Online (v1.0)</span>
+          <span className="font-medium text-slate-600">System Online (v1.0)</span>
         </div>
       </div>
     </div>

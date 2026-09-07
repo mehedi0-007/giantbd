@@ -369,11 +369,11 @@ export default function StockOutPage() {
       {/* Top Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             <h1 className="text-2xl font-bold tracking-tight text-slate-900">
               Goods Dispatch & Delivery Challans
             </h1>
-            <span className="rounded-md bg-purple-50 px-2 py-0.5 text-xs font-semibold text-purple-700">
+            <span className="badge-giant">
               Stock-Out
             </span>
           </div>
@@ -386,7 +386,7 @@ export default function StockOutPage() {
           <button
             type="button"
             onClick={() => setActiveTab('create')}
-            className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white shadow-xs hover:bg-blue-700 transition cursor-pointer min-h-[40px]"
+            className="btn-giant-primary"
           >
             <Truck className="h-4 w-4" />
             <span>Dispatch New Shipment</span>
@@ -402,7 +402,7 @@ export default function StockOutPage() {
           aria-selected={activeTab === 'registry'}
           onClick={() => setActiveTab('registry')}
           className={`flex items-center gap-2 border-b-2 px-4 py-3 text-xs font-bold transition cursor-pointer min-h-[40px] ${activeTab === 'registry'
-              ? 'border-blue-600 text-blue-600'
+              ? 'border-[#3b66b7] text-[#3b66b7]'
               : 'border-transparent text-slate-500 hover:text-slate-700'
             }`}
         >
@@ -416,7 +416,7 @@ export default function StockOutPage() {
           aria-selected={activeTab === 'create'}
           onClick={() => setActiveTab('create')}
           className={`flex items-center gap-2 border-b-2 px-4 py-3 text-xs font-bold transition cursor-pointer min-h-[40px] ${activeTab === 'create'
-              ? 'border-blue-600 text-blue-600'
+              ? 'border-[#3b66b7] text-[#3b66b7]'
               : 'border-transparent text-slate-500 hover:text-slate-700'
             }`}
         >

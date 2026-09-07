@@ -155,7 +155,7 @@ export function Drawer({
           <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
             <div className="flex items-center gap-3">
               {icon && (
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#3b66b7]/10 text-[#3b66b7]">
                   {icon}
                 </div>
               )}

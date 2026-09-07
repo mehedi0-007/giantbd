@@ -14,7 +14,7 @@ export default function DashboardLayout({
 
   return (
     <AuthGuard>
-      <div className="flex min-h-screen bg-slate-50">
+      <div className="flex min-h-screen bg-[#f4f6fa]">
         {/* Responsive Desktop & Mobile Drawer Sidebar */}
         <Sidebar
           mobileOpen={mobileSidebarOpen}

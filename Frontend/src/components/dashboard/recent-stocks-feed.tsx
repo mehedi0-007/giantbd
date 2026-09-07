@@ -13,7 +13,7 @@ interface RecentStocksFeedProps {
 export function RecentStocksFeed({ stocks, isLoading }: RecentStocksFeedProps) {
   if (isLoading || !stocks) {
     return (
-      <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs animate-pulse">
+      <div className="card-giant p-6 animate-pulse">
         <div className="flex items-center justify-between mb-4">
           <div className="h-5 w-44 rounded-md bg-slate-100" />
           <div className="h-4 w-20 rounded-md bg-slate-100" />
@@ -28,7 +28,7 @@ export function RecentStocksFeed({ stocks, isLoading }: RecentStocksFeedProps) {
   }
 
   return (
-    <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs">
+    <div className="card-giant p-6">
       {/* Feed Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-4 border-b border-slate-100">
         <div>
@@ -40,7 +40,7 @@ export function RecentStocksFeed({ stocks, isLoading }: RecentStocksFeedProps) {
               Recent In-Hand Stocks
             </h3>
             {stocks.length > 0 && (
-              <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 border border-emerald-200/60">
+              <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700 border border-emerald-200/60">
                 Latest Batches
               </span>
             )}
@@ -52,7 +52,7 @@ export function RecentStocksFeed({ stocks, isLoading }: RecentStocksFeedProps) {
 
         <NextLink
           href="/inventory/stock"
-          className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-blue-600 shadow-2xs hover:bg-blue-50 hover:border-blue-200 transition cursor-pointer self-start sm:self-auto"
+          className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-white px-3.5 py-1.5 text-xs font-semibold text-[#3b66b7] shadow-2xs hover:bg-[#3b66b7]/5 hover:border-[#3b66b7]/30 transition cursor-pointer self-start sm:self-auto"
         >
           <span>See All Stocks</span>
           <ArrowRight className="h-3.5 w-3.5" />

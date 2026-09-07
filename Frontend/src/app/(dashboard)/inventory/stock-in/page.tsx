@@ -405,11 +405,11 @@ export default function StockInPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             <h1 className="text-2xl font-bold tracking-tight text-slate-900">
               Goods Receipt (Stock-In Wizard)
             </h1>
-            <span className="rounded-md bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
+            <span className="badge-giant">
               Inward Lot Engine
             </span>
           </div>
@@ -423,15 +423,15 @@ export default function StockInPage() {
       <div className="grid grid-cols-3 gap-3">
         <div
           className={`flex items-center gap-3 rounded-2xl border p-4 transition ${step === 1
-            ? 'border-blue-600 bg-blue-50/60 shadow-xs'
+            ? 'border-[#3b66b7] bg-[#3b66b7]/10 shadow-sm shadow-[#3b66b7]/20'
             : step > 1
               ? 'border-emerald-300 bg-emerald-50/40'
-              : 'border-slate-200 bg-white opacity-60'
+              : 'border-slate-200/80 bg-white opacity-60'
             }`}
         >
           <div
             className={`flex h-8 w-8 items-center justify-center rounded-xl font-bold text-xs ${step === 1
-              ? 'bg-blue-600 text-white'
+              ? 'bg-[#3b66b7] text-white'
               : step > 1
                 ? 'bg-emerald-600 text-white'
                 : 'bg-slate-100 text-slate-500'
@@ -447,15 +447,15 @@ export default function StockInPage() {
 
         <div
           className={`flex items-center gap-3 rounded-2xl border p-4 transition ${step === 2
-            ? 'border-blue-600 bg-blue-50/60 shadow-xs'
+            ? 'border-[#3b66b7] bg-[#3b66b7]/10 shadow-sm shadow-[#3b66b7]/20'
             : step > 2
               ? 'border-emerald-300 bg-emerald-50/40'
-              : 'border-slate-200 bg-white opacity-60'
+              : 'border-slate-200/80 bg-white opacity-60'
             }`}
         >
           <div
             className={`flex h-8 w-8 items-center justify-center rounded-xl font-bold text-xs ${step === 2
-              ? 'bg-blue-600 text-white'
+              ? 'bg-[#3b66b7] text-white'
               : step > 2
                 ? 'bg-emerald-600 text-white'
                 : 'bg-slate-100 text-slate-500'
@@ -471,12 +471,12 @@ export default function StockInPage() {
 
         <div
           className={`flex items-center gap-3 rounded-2xl border p-4 transition ${step === 3
-            ? 'border-blue-600 bg-blue-50/60 shadow-xs'
-            : 'border-slate-200 bg-white opacity-60'
+            ? 'border-[#3b66b7] bg-[#3b66b7]/10 shadow-sm shadow-[#3b66b7]/20'
+            : 'border-slate-200/80 bg-white opacity-60'
             }`}
         >
           <div
-            className={`flex h-8 w-8 items-center justify-center rounded-xl font-bold text-xs ${step === 3 ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-500'
+            className={`flex h-8 w-8 items-center justify-center rounded-xl font-bold text-xs ${step === 3 ? 'bg-[#3b66b7] text-white' : 'bg-slate-100 text-slate-500'
               }`}
           >
             3
@@ -497,7 +497,7 @@ export default function StockInPage() {
 
       {/* STEP 1: HEADER & INVOICE */}
       {step === 1 && (
-        <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs space-y-5">
+        <div className="card-giant p-6 space-y-5">
           <h3 className="text-base font-bold text-slate-900 border-b border-slate-100 pb-3">
             Inward Batch Information
           </h3>
@@ -706,7 +706,7 @@ export default function StockInPage() {
             <button
               type="button"
               onClick={handleProceedToMatrix}
-              className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-xs font-semibold text-white shadow-xs hover:bg-blue-700 transition cursor-pointer"
+              className="btn-giant-primary"
             >
               <span>Next: Size Matrix</span>
               <ArrowRight className="h-4 w-4" />
@@ -717,7 +717,7 @@ export default function StockInPage() {
 
       {/* STEP 2: DYNAMIC SIZE MATRIX */}
       {step === 2 && (
-        <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs space-y-5">
+        <div className="card-giant p-6 space-y-5">
           <div className="border-b border-slate-100 pb-4">
             <h3 className="text-base font-bold text-slate-900">
               Quantity Matrix ({sizeRows.length} Catalog Sizes)
@@ -1050,7 +1050,7 @@ export default function StockInPage() {
               <button
                 type="button"
                 onClick={handleProceedToReview}
-                className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-xs font-semibold text-white shadow-xs hover:bg-blue-700 transition cursor-pointer"
+                className="btn-giant-primary"
               >
                 <span>Review & Submit</span>
                 <ArrowRight className="h-4 w-4" />
@@ -1062,7 +1062,7 @@ export default function StockInPage() {
 
       {/* STEP 3: REVIEW & ATOMIC SUBMIT */}
       {step === 3 && (
-        <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs space-y-6">
+        <div className="card-giant p-6 space-y-6">
           <div className="border-b border-slate-100 pb-4">
             <h3 className="text-base font-bold text-slate-900">
               Confirm Inward Goods Batch
@@ -1074,21 +1074,21 @@ export default function StockInPage() {
 
           {/* Summary Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-            <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+            <div className="rounded-2xl border border-slate-100 bg-[#f4f7fc] p-3.5">
               <span className="text-slate-400">Product Style:</span>
               <p className="font-bold text-slate-900 mt-0.5">{selectedProduct?.name}</p>
             </div>
-            <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+            <div className="rounded-2xl border border-slate-100 bg-[#f4f7fc] p-3.5">
               <span className="text-slate-400">Color & Gender:</span>
               <p className="font-bold text-slate-900 mt-0.5">
                 {selectedColor?.name} ({selectedGender})
               </p>
             </div>
-            <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+            <div className="rounded-2xl border border-slate-100 bg-[#f4f7fc] p-3.5">
               <span className="text-slate-400">Production Date:</span>
               <p className="font-bold text-slate-900 mt-0.5">{productionDate}</p>
             </div>
-            <div className="rounded-xl border border-slate-100 bg-emerald-50/50 p-3">
+            <div className="rounded-2xl border border-emerald-100 bg-emerald-50/50 p-3.5">
               <span className="text-emerald-700 font-semibold">Total Inward Pairs:</span>
               <p className="font-extrabold text-emerald-800 text-base mt-0.5">
                 {formatNumber(totalReceivedPairs)} prs
@@ -1097,7 +1097,7 @@ export default function StockInPage() {
           </div>
 
           {/* Active Items Table */}
-          <div className="rounded-xl border border-slate-200 overflow-hidden">
+          <div className="rounded-2xl border border-slate-200 overflow-hidden">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 font-bold uppercase tracking-wider text-slate-500 text-[11px] border-b border-slate-100">
                 <tr>
@@ -1148,7 +1148,7 @@ export default function StockInPage() {
               type="button"
               onClick={handleExecuteStockIn}
               disabled={isSubmitting}
-              className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-6 py-2.5 text-xs font-semibold text-white shadow-sm shadow-emerald-500/20 hover:bg-emerald-700 disabled:opacity-50 transition cursor-pointer"
+              className="btn-giant-primary bg-[#3b66b7] hover:bg-[#32589f] disabled:opacity-50"
             >
               {isSubmitting ? (
                 <>

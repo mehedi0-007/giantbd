@@ -145,7 +145,7 @@ export default function ProductsPage() {
             <h1 className="text-2xl font-bold tracking-tight text-slate-900">
               Master Product Catalog
             </h1>
-            <span className="rounded-md bg-indigo-50 px-2 py-0.5 text-xs font-semibold text-indigo-700">
+            <span className="badge-giant">
               {totalCount} Master SKUs
             </span>
           </div>
@@ -157,7 +157,7 @@ export default function ProductsPage() {
         <button
           type="button"
           onClick={handleOpenCreate}
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white shadow-sm shadow-blue-500/20 hover:bg-blue-700 transition cursor-pointer"
+          className="btn-giant-primary"
         >
           <Plus className="h-4 w-4" />
           <span>New Master Product</span>
@@ -165,9 +165,9 @@ export default function ProductsPage() {
       </div>
 
       {/* Filter & View Mode Controls */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-white p-3 shadow-xs">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 card-giant p-3.5">
         <div className="relative flex-1 w-full sm:max-w-md">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+          <Search className="absolute left-3.5 top-3 h-4 w-4 text-slate-400" />
           <input
             type="text"
             value={search}
@@ -176,7 +176,7 @@ export default function ProductsPage() {
               setPage(1);
             }}
             placeholder="Search by product name or SKU prefix..."
-            className="w-full rounded-xl border border-slate-200 bg-slate-50/50 py-2 pl-9 pr-3 text-xs text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500/20"
+            className="w-full rounded-xl bg-[#f4f7fc] border border-transparent focus:border-[#3b66b7]/40 focus:bg-white py-2 pl-9 pr-3 text-xs text-slate-900 placeholder:text-slate-400 outline-hidden transition-all duration-150 shadow-xs"
           />
         </div>
 
@@ -187,7 +187,7 @@ export default function ProductsPage() {
               setCategoryFilter(e.target.value);
               setPage(1);
             }}
-            className="rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs font-semibold text-slate-700 focus:border-blue-500 focus:outline-hidden"
+            className="rounded-xl border border-slate-200/80 bg-[#f4f7fc] px-3 py-2 text-xs font-semibold text-slate-700 focus:border-[#3b66b7] focus:outline-hidden"
           >
             <option value="">All Categories</option>
             {categories.map((c) => (
@@ -203,7 +203,7 @@ export default function ProductsPage() {
               setMaterialFilter(e.target.value);
               setPage(1);
             }}
-            className="rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs font-semibold text-slate-700 focus:border-blue-500 focus:outline-hidden"
+            className="rounded-xl border border-slate-200/80 bg-[#f4f7fc] px-3 py-2 text-xs font-semibold text-slate-700 focus:border-[#3b66b7] focus:outline-hidden"
           >
             <option value="">All Materials</option>
             {materials.map((m) => (
@@ -215,7 +215,7 @@ export default function ProductsPage() {
 
           {isFetching && (
             <div className="flex items-center gap-1.5 text-xs text-slate-400">
-              <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-600" />
+              <Loader2 className="h-3.5 w-3.5 animate-spin text-[#3b66b7]" />
             </div>
           )}
         </div>
@@ -223,16 +223,16 @@ export default function ProductsPage() {
 
       {/* Main Content Area: List View */}
       {isLoading ? (
-        <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs">
+        <div className="overflow-hidden card-giant">
           <TableSkeleton
             rows={6}
             columns={['26%', '14%', '15%', '15%', '14%', '8%', '8%']}
           />
         </div>
       ) : products.length === 0 ? (
-        <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs">
+        <div className="overflow-hidden card-giant">
           <EmptyState
-            icon={<Package className="h-7 w-7 text-indigo-600" />}
+            icon={<Package className="h-7 w-7 text-[#3b66b7]" />}
             title={search || categoryFilter || materialFilter ? 'No matching products found' : 'No master products yet'}
             description={
               search || categoryFilter || materialFilter
@@ -261,10 +261,10 @@ export default function ProductsPage() {
         </div>
       ) : (
         /* TABLE LIST VIEW */
-        <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs">
+        <div className="overflow-hidden card-giant">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs min-w-[750px]">
-              <thead className="sticky top-0 z-10 border-b border-slate-100 bg-slate-50/95 backdrop-blur-xs text-[11px] font-bold uppercase tracking-wider text-slate-500">
+              <thead className="sticky top-0 z-10 border-b border-slate-100 bg-[#f4f7fc] text-[11px] font-bold uppercase tracking-wider text-slate-500">
                 <tr>
                   <th className="px-5 py-3.5">Master Product Name</th>
                   <th className="px-5 py-3.5">Material</th>
@@ -283,7 +283,7 @@ export default function ProductsPage() {
                   return (
                     <tr
                       key={p.id}
-                      className={`hover:bg-slate-50/70 transition-colors ${
+                      className={`hover:bg-[#3b66b7]/4 transition-colors ${
                         isDeleted ? 'bg-slate-50/40 opacity-70' : ''
                       }`}
                     >
@@ -291,7 +291,7 @@ export default function ProductsPage() {
                       <td className="px-5 py-4">
                         <NextLink
                           href={`/catalog/products/${p.id}`}
-                          className="font-bold text-slate-900 hover:text-blue-600 transition block text-sm"
+                          className="font-bold text-slate-900 hover:text-[#3b66b7] transition block text-sm"
                         >
                           {p.name}
                         </NextLink>

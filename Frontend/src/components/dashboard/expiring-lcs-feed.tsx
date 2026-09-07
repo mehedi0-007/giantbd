@@ -13,7 +13,7 @@ interface ActiveLcsFeedProps {
 export function ExpiringLcsFeed({ lcs, isLoading }: ActiveLcsFeedProps) {
   if (isLoading || !lcs) {
     return (
-      <div className="h-full rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs animate-pulse">
+      <div className="h-full card-giant p-6 animate-pulse">
         <div className="h-5 w-40 rounded-md bg-slate-100 mb-2" />
         <div className="h-3 w-56 rounded-md bg-slate-100 mb-6" />
         <div className="space-y-3">
@@ -28,7 +28,7 @@ export function ExpiringLcsFeed({ lcs, isLoading }: ActiveLcsFeedProps) {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'OPEN':
-        return 'bg-blue-50 text-blue-700 border-blue-200';
+        return 'bg-[#3b66b7]/10 text-[#3b66b7] border-[#3b66b7]/20';
       case 'IN_PROGRESS':
         return 'bg-amber-50 text-amber-700 border-amber-200';
       case 'FULFILLED':
@@ -39,7 +39,7 @@ export function ExpiringLcsFeed({ lcs, isLoading }: ActiveLcsFeedProps) {
   };
 
   return (
-    <div className="flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs h-full">
+    <div className="flex flex-col justify-between card-giant p-6 h-full">
       <div>
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center gap-2">
@@ -54,7 +54,7 @@ export function ExpiringLcsFeed({ lcs, isLoading }: ActiveLcsFeedProps) {
           </div>
           <NextLink
             href="/commercial/lc"
-            className="text-xs font-medium text-blue-600 hover:text-blue-700 flex items-center gap-1"
+            className="text-xs font-semibold text-[#3b66b7] hover:underline flex items-center gap-1"
           >
             <span>View All</span>
             <ArrowRight className="h-3 w-3" />
