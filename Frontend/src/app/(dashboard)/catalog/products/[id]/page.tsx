@@ -228,11 +228,13 @@ export default function ProductDetailPage() {
         ) : (
           <>
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs min-w-[850px]">
+              <table className="w-full text-left text-xs min-w-[1050px]">
                 <thead className="sticky top-0 z-10 border-b border-slate-100 bg-slate-50/95 backdrop-blur-xs text-[11px] font-bold uppercase tracking-wider text-slate-500">
                   <tr>
                     <th className="px-5 py-3.5">Image</th>
-                    <th className="px-5 py-3.5">SKU & Barcode</th>
+                    <th className="px-5 py-3.5">Master Product</th>
+                    <th className="px-5 py-3.5">Category</th>
+                    <th className="px-5 py-3.5">Variant SKU & Barcode</th>
                     <th className="px-5 py-3.5">Material</th>
                     <th className="px-5 py-3.5">Color</th>
                     <th className="px-5 py-3.5">Size & Gender</th>
@@ -265,6 +267,25 @@ export default function ProductDetailPage() {
                             >
                               <ImageIcon className="h-4 w-4" />
                             </button>
+                          )}
+                        </td>
+
+                        {/* Master Style */}
+                        <td className="px-5 py-3.5">
+                          <div className="font-bold text-slate-900 text-xs">
+                            {product.name}
+                          </div>
+                        </td>
+
+                        {/* Category */}
+                        <td className="px-5 py-3.5">
+                          <span className="inline-flex rounded-md bg-[#3b66b7]/10 border border-[#3b66b7]/20 px-2 py-0.5 text-xs font-semibold text-[#3b66b7]">
+                            {product.category?.name || '—'}
+                          </span>
+                          {product.subCategory?.name && (
+                            <div className="text-[10px] text-slate-500 font-medium mt-0.5">
+                              {product.subCategory.name}
+                            </div>
                           )}
                         </td>
 

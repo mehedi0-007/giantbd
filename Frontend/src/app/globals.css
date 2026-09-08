@@ -129,25 +129,83 @@
   background: #94a3b8;
 }
 
-/* Print Styles for Challan and Barcode Stickers */
+/* Print Styles for Challan, Barcode Stickers, and Official Documents */
+@page {
+  size: A4 portrait;
+  margin: 10mm;
+}
+
 @media print {
+  html,
+  body {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+    overflow: visible !important;
+    height: auto !important;
+    min-height: 100% !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Completely eliminate non-printable UI elements */
+  .no-print,
+  nav,
+  aside,
+  header {
+    display: none !important;
+  }
+
+  /* Hide everything on page by default */
   body * {
     visibility: hidden;
   }
 
+  /* Make printable area and all its children visible */
   .printable-area,
   .printable-area * {
     visibility: visible;
   }
 
+  /* Unroll scrollable containers so content is never clipped */
+  .overflow-y-auto,
+  .overflow-x-auto,
+  .overflow-hidden {
+    overflow: visible !important;
+    max-height: none !important;
+    height: auto !important;
+  }
+
+  /* Reset modal cards to print flat on page */
   .printable-area {
     position: absolute;
     left: 0;
     top: 0;
-    width: 100%;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+    page-break-inside: auto;
   }
 
-  .no-print {
-    display: none !important;
+  /* Clean table pagination across pages */
+  table {
+    page-break-inside: auto;
+  }
+
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  tfoot {
+    display: table-footer-group;
   }
 }
