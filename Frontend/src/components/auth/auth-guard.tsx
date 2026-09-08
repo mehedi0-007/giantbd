@@ -14,20 +14,48 @@ interface AuthGuardProps {
 export function AuthGuard({ children, requiredPermission }: AuthGuardProps) {
   const {
     isAuthenticated,
-    accessToken,
     setAuth,
     logout,
     hasPermission,
   } = useAuthStore();
   const router = useRouter();
   const pathname = usePathname();
+  const [isHydrated, setIsHydrated] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
   const isRefreshingRef = useRef(false);
 
+  // 1. Wait for Zustand persist to hydrate from localStorage
   useEffect(() => {
-    async function initSession() {
-      // If we don't have an in-memory access token, try a silent refresh via httpOnly cookie
-      if (!accessToken && !isRefreshingRef.current) {
+    if (useAuthStore.persist.hasHydrated()) {
+      setIsHydrated(true);
+      return;
+    }
+
+    const unsub = useAuthStore.persist.onFinishHydration(() => {
+      setIsHydrated(true);
+    });
+
+    return () => {
+      unsub();
+    };
+  }, []);
+
+  // 2. Validate session once storage is rehydrated
+  useEffect(() => {
+    if (!isHydrated) return;
+
+    async function checkSession() {
+      const currentToken = useAuthStore.getState().accessToken;
+
+      // If we already have a valid access token from storage, use it directly!
+      // Do NOT call /auth/refresh on page refresh!
+      if (currentToken) {
+        setIsInitializing(false);
+        return;
+      }
+
+      // Only attempt silent refresh if we genuinely have no access token in storage
+      if (!isRefreshingRef.current) {
         isRefreshingRef.current = true;
         try {
           const res = await api.post('/auth/refresh');
@@ -48,11 +76,12 @@ export function AuthGuard({ children, requiredPermission }: AuthGuardProps) {
       }
     }
 
-    initSession();
-  }, [accessToken, setAuth, logout]);
+    checkSession();
+  }, [isHydrated, setAuth, logout]);
 
+  // 3. Handle routing & permissions after initialization
   useEffect(() => {
-    if (isInitializing) return;
+    if (isInitializing || !isHydrated) return;
 
     if (!isAuthenticated && pathname !== '/login') {
       router.replace('/login');
@@ -63,9 +92,9 @@ export function AuthGuard({ children, requiredPermission }: AuthGuardProps) {
     ) {
       router.replace('/');
     }
-  }, [isAuthenticated, isInitializing, pathname, router, requiredPermission, hasPermission]);
+  }, [isAuthenticated, isInitializing, isHydrated, pathname, router, requiredPermission, hasPermission]);
 
-  if (isInitializing) {
+  if (!isHydrated || isInitializing) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50">
         <div className="flex flex-col items-center gap-3">
