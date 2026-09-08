@@ -1,12 +1,14 @@
 @import "tailwindcss";
 
 @theme {
-  --color-slate-100: #ffffff;
+  --color-slate-100: #f2f2f2;
+  --font-sans: var(--font-poppins), "Poppins", "Poppins Fallback", sans-serif;
 }
 
 @layer base {
   :root {
-    --background: #f4f6fa;
+    --font-sans: var(--font-poppins), "Poppins", "Poppins Fallback", sans-serif;
+    --background: #ffffff;
     --foreground: #0f172a;
     --card: #ffffff;
     --card-foreground: #0f172a;
@@ -28,6 +30,7 @@
   }
 
   body {
+    font-family: var(--font-poppins), "Poppins", "Poppins Fallback", sans-serif;
     background-color: var(--background);
     color: var(--foreground);
     font-feature-settings: "rlig" 1, "calt" 1;

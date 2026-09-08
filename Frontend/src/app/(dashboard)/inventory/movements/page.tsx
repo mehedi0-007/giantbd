@@ -43,8 +43,8 @@ export default function MovementsPage() {
   const movements: InventoryMovement[] = Array.isArray(movementsData?.data)
     ? movementsData.data
     : Array.isArray(movementsData)
-    ? movementsData
-    : [];
+      ? movementsData
+      : [];
 
   const totalCount = movementsData?.total || movements.length;
   const totalPages = movementsData?.total_page || 1;
@@ -63,7 +63,7 @@ export default function MovementsPage() {
           icon: <ArrowUpRight className="h-3 w-3 text-blue-600" />,
           classes: 'bg-blue-50 text-blue-700 border-blue-200',
           prefix: '-',
-          qtyColor: 'text-blue-700 font-bold',
+          qtyColor: 'text-red-700 font-bold',
         };
       case 'TRANSFER':
         return {
@@ -97,7 +97,7 @@ export default function MovementsPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-16">
+    <div className="space-y-6 mx-auto pb-16">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -117,7 +117,7 @@ export default function MovementsPage() {
 
       {/* Filter Controls */}
       <div className="card-giant flex flex-col sm:flex-row items-center justify-between gap-3 p-3.5">
-        <div className="relative flex-1 w-full sm:max-w-md">
+        <div className="relative  w-full sm:max-w-md">
           <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-slate-400" />
           <input
             type="text"
@@ -176,14 +176,14 @@ export default function MovementsPage() {
             action={
               search || typeFilter
                 ? {
-                    label: 'Reset Filters',
-                    onClick: () => {
-                      setSearch('');
-                      setTypeFilter('');
-                      setPage(1);
-                    },
-                    variant: 'secondary',
-                  }
+                  label: 'Reset Filters',
+                  onClick: () => {
+                    setSearch('');
+                    setTypeFilter('');
+                    setPage(1);
+                  },
+                  variant: 'secondary',
+                }
                 : undefined
             }
           />

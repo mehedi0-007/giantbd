@@ -77,8 +77,8 @@ export default function LcPage() {
   const lcs: LC[] = Array.isArray(data?.data)
     ? data.data
     : Array.isArray(data)
-    ? data
-    : [];
+      ? data
+      : [];
 
   const totalPages = data?.total_page || 1;
   const totalCount = data?.total || lcs.length;
@@ -110,7 +110,7 @@ export default function LcPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-10">
+    <div className="space-y-6 mx-auto pb-10">
       {/* Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -197,19 +197,19 @@ export default function LcPage() {
             action={
               search || statusFilter
                 ? {
-                    label: 'Reset Filters',
-                    onClick: () => {
-                      setSearch('');
-                      setStatusFilter('');
-                      setPage(1);
-                    },
-                    variant: 'secondary',
-                  }
+                  label: 'Reset Filters',
+                  onClick: () => {
+                    setSearch('');
+                    setStatusFilter('');
+                    setPage(1);
+                  },
+                  variant: 'secondary',
+                }
                 : {
-                    label: 'Open New LC',
-                    onClick: handleOpenCreate,
-                    icon: <Plus className="h-3.5 w-3.5" />,
-                  }
+                  label: 'Open New LC',
+                  onClick: handleOpenCreate,
+                  icon: <Plus className="h-3.5 w-3.5" />,
+                }
             }
           />
         ) : (
@@ -231,9 +231,8 @@ export default function LcPage() {
                   return (
                     <tr
                       key={lc.id}
-                      className={`hover:bg-slate-50/70 transition-colors ${
-                        isCancelled ? 'bg-slate-50/40 opacity-70' : ''
-                      }`}
+                      className={`hover:bg-slate-50/70 transition-colors ${isCancelled ? 'bg-slate-50/40 opacity-70' : ''
+                        }`}
                     >
                       {/* LC Number */}
                       <td className="px-5 py-4 font-mono font-bold text-slate-900">

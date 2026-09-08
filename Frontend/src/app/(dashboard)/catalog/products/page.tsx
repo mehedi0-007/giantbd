@@ -8,7 +8,7 @@ import { MasterProductDrawer } from '@/components/catalog/master-product-drawer'
 import { DataPagination, ConfirmDialog, TableSkeleton, EmptyState } from '@/components/common';
 import { toast } from 'sonner';
 import { formatNumber } from '@/lib/utils';
-import { useRouter } from 'next/navigation'; 
+import { useRouter } from 'next/navigation';
 import NextLink from 'next/link';
 import {
   Package,
@@ -101,20 +101,20 @@ export default function ProductsPage() {
   const categories: Category[] = Array.isArray(categoriesData?.data)
     ? categoriesData.data
     : Array.isArray(categoriesData)
-    ? categoriesData
-    : [];
+      ? categoriesData
+      : [];
 
   const materials: Material[] = Array.isArray(materialsData?.data)
     ? materialsData.data
     : Array.isArray(materialsData)
-    ? materialsData
-    : [];
+      ? materialsData
+      : [];
 
   const products: MasterProduct[] = Array.isArray(data?.data)
     ? data.data
     : Array.isArray(data)
-    ? data
-    : [];
+      ? data
+      : [];
 
   const totalPages = data?.total_page || 1;
   const totalCount = data?.total || products.length;
@@ -137,7 +137,7 @@ export default function ProductsPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-12">
+    <div className="space-y-6 mx-auto pb-12">
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -242,20 +242,20 @@ export default function ProductsPage() {
             action={
               search || categoryFilter || materialFilter
                 ? {
-                    label: 'Reset Filters',
-                    onClick: () => {
-                      setSearch('');
-                      setCategoryFilter('');
-                      setMaterialFilter('');
-                      setPage(1);
-                    },
-                    variant: 'secondary',
-                  }
+                  label: 'Reset Filters',
+                  onClick: () => {
+                    setSearch('');
+                    setCategoryFilter('');
+                    setMaterialFilter('');
+                    setPage(1);
+                  },
+                  variant: 'secondary',
+                }
                 : {
-                    label: 'Add Master Product',
-                    onClick: handleOpenCreate,
-                    icon: <Plus className="h-3.5 w-3.5" />,
-                  }
+                  label: 'Add Master Product',
+                  onClick: handleOpenCreate,
+                  icon: <Plus className="h-3.5 w-3.5" />,
+                }
             }
           />
         </div>
@@ -283,9 +283,8 @@ export default function ProductsPage() {
                   return (
                     <tr
                       key={p.id}
-                      className={`hover:bg-[#3b66b7]/4 transition-colors ${
-                        isDeleted ? 'bg-slate-50/40 opacity-70' : ''
-                      }`}
+                      className={`hover:bg-[#3b66b7]/4 transition-colors ${isDeleted ? 'bg-slate-50/40 opacity-70' : ''
+                        }`}
                     >
                       {/* Master Product Name */}
                       <td className="px-5 py-4">

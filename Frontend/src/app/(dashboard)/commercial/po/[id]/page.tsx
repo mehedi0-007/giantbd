@@ -55,8 +55,8 @@ export default function PoDetailPage() {
   const variants = Array.isArray(variantsData?.data)
     ? variantsData.data
     : Array.isArray(variantsData)
-    ? variantsData
-    : [];
+      ? variantsData
+      : [];
 
   // Add Items Mutation
   const addItemsMutation = useMutation({
@@ -141,7 +141,7 @@ export default function PoDetailPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-12">
+    <div className="space-y-6 mx-auto pb-12">
       {/* Top Breadcrumb & Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
@@ -370,13 +370,12 @@ export default function PoDetailPage() {
                         <div className="flex items-center gap-2">
                           <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100 border border-slate-200/60">
                             <div
-                              className={`h-full rounded-full transition-all ${
-                                itemPct === 100
+                              className={`h-full rounded-full transition-all ${itemPct === 100
                                   ? 'bg-emerald-500'
                                   : itemPct > 0
-                                  ? 'bg-[#3b66b7]'
-                                  : 'bg-slate-300'
-                              }`}
+                                    ? 'bg-[#3b66b7]'
+                                    : 'bg-slate-300'
+                                }`}
                               style={{ width: `${itemPct}%` }}
                             />
                           </div>

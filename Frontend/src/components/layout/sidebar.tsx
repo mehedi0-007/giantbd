@@ -165,7 +165,7 @@ export function Sidebar({ mobileOpen = false, onClose }: SidebarProps) {
       {/* Brand Header */}
       <div className="flex h-20 shrink-0 items-center overflow-hidden justify-center border-slate-100 px-5">
         <NextLink href="/" className="flex items-center gap-2 hover:opacity-90 transition-opacity">
-          <GiantLogo className="h-17 w-auto scale-125 origin-center" width={150} height={45} />
+          <GiantLogo className="h-17 w-auto origin-center" width={150} height={45} />
         </NextLink>
 
         {/* Mobile close button */}
@@ -191,11 +191,11 @@ export function Sidebar({ mobileOpen = false, onClose }: SidebarProps) {
           if (visibleItems.length === 0) return null;
 
           return (
-            <div key={idx} className="mb-5 last:mb-0">
-              <div className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+            <div key={idx} className="mb-0.5 last:mb-0">
+              {/* <div className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
                 {section.title}
-              </div>
-              <div className="space-y-1">
+              </div> */}
+              <div>
                 {visibleItems.map((item) => {
                   const isActive =
                     item.href === '/'
@@ -212,7 +212,7 @@ export function Sidebar({ mobileOpen = false, onClose }: SidebarProps) {
                         if (onClose) onClose();
                       }}
                       className={cn(
-                        'group flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-150',
+                        'group flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition-all duration-150',
                         isActive
                           ? 'bg-[#3b66b7] font-semibold text-white shadow-md shadow-[#3b66b7]/25'
                           : 'text-slate-600 hover:bg-[#3b66b7]/8 hover:text-[#3b66b7]',
@@ -237,12 +237,7 @@ export function Sidebar({ mobileOpen = false, onClose }: SidebarProps) {
       </div>
 
       {/* Footer System Status */}
-      <div className="border-t border-slate-100 p-3">
-        <div className="flex items-center gap-2 rounded-xl bg-[#f4f7fc] border border-slate-200/50 px-3 py-2 text-xs text-slate-500">
-          <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="font-medium text-slate-600">System Online (v1.0)</span>
-        </div>
-      </div>
+
     </div>
   );
 

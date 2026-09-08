@@ -115,7 +115,7 @@ export default function ProductDetailPage() {
   });
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-12">
+    <div className="space-y-6 mx-auto pb-12">
       {/* Top Header & Breadcrumb */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
@@ -337,9 +337,8 @@ export default function ProductDetailPage() {
                         <td className="px-5 py-3.5 text-right">
                           <div className="inline-flex items-center gap-1.5 justify-end">
                             <span
-                              className={`font-bold text-sm ${
-                                isLow ? 'text-amber-600' : 'text-slate-900'
-                              }`}
+                              className={`font-bold text-sm ${isLow ? 'text-amber-600' : 'text-slate-900'
+                                }`}
                             >
                               {formatNumber(v.shippableQuantity)}
                             </span>

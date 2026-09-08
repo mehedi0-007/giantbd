@@ -140,7 +140,7 @@ export default function WarehousePage() {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-12">
+    <div className="space-y-6 mx-auto pb-12">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -244,9 +244,8 @@ export default function WarehousePage() {
                   <div key={wh.id} className="rounded-xl border border-slate-100 overflow-hidden">
                     {/* Warehouse Header */}
                     <div
-                      className={`flex items-center justify-between p-2.5 cursor-pointer transition ${
-                        isSelected ? 'bg-blue-50/80 font-bold text-blue-700' : 'bg-slate-50/60 hover:bg-slate-50'
-                      }`}
+                      className={`flex items-center justify-between p-2.5 cursor-pointer transition ${isSelected ? 'bg-blue-50/80 font-bold text-blue-700' : 'bg-slate-50/60 hover:bg-slate-50'
+                        }`}
                       onClick={() => {
                         setSelectedWarehouseId(wh.id);
                         setSelectedZoneId('');
@@ -302,11 +301,10 @@ export default function WarehousePage() {
                                   setSelectedRackId('');
                                   toggleNode(z.id);
                                 }}
-                                className={`flex items-center justify-between py-1.5 px-2 cursor-pointer transition ${
-                                  isZSelected
+                                className={`flex items-center justify-between py-1.5 px-2 cursor-pointer transition ${isZSelected
                                     ? 'bg-indigo-50 font-bold text-indigo-700'
                                     : 'text-slate-700 hover:bg-slate-100/60'
-                                }`}
+                                  }`}
                               >
                                 <div className="flex items-center gap-1.5 truncate">
                                   {zSubZones.length > 0 && (
@@ -356,11 +354,10 @@ export default function WarehousePage() {
                                             setSelectedRackId('');
                                             toggleNode(sz.id);
                                           }}
-                                          className={`flex items-center justify-between py-1 px-2 cursor-pointer transition ${
-                                            isSZSelected
+                                          className={`flex items-center justify-between py-1 px-2 cursor-pointer transition ${isSZSelected
                                               ? 'bg-amber-50 font-bold text-amber-800'
                                               : 'text-slate-600 hover:bg-slate-50'
-                                          }`}
+                                            }`}
                                         >
                                           <div className="flex items-center gap-1.5 truncate">
                                             {szRacks.length > 0 && (
@@ -406,11 +403,10 @@ export default function WarehousePage() {
                                                     setSelectedSubZoneId(sz.id);
                                                     setSelectedRackId(r.id);
                                                   }}
-                                                  className={`flex items-center justify-between py-1 px-1.5 rounded cursor-pointer transition text-[11px] ${
-                                                    isRSelected
+                                                  className={`flex items-center justify-between py-1 px-1.5 rounded cursor-pointer transition text-[11px] ${isRSelected
                                                       ? 'bg-emerald-50 font-bold text-emerald-800'
                                                       : 'text-slate-500 hover:bg-white'
-                                                  }`}
+                                                    }`}
                                                 >
                                                   <div className="flex items-center gap-1 truncate">
                                                     <Barcode className="h-2.5 w-2.5 text-emerald-500 shrink-0" />
@@ -523,15 +519,15 @@ export default function WarehousePage() {
                 action={
                   search || selectedWarehouseId || selectedZoneId || selectedSubZoneId || selectedRackId
                     ? {
-                        label: 'Clear Filters',
-                        onClick: clearFilters,
-                        variant: 'secondary',
-                      }
+                      label: 'Clear Filters',
+                      onClick: clearFilters,
+                      variant: 'secondary',
+                    }
                     : {
-                        label: 'Create Location',
-                        onClick: () => handleOpenAdd('location'),
-                        icon: <Plus className="h-3.5 w-3.5" />,
-                      }
+                      label: 'Create Location',
+                      onClick: () => handleOpenAdd('location'),
+                      icon: <Plus className="h-3.5 w-3.5" />,
+                    }
                 }
               />
             ) : (

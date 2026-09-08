@@ -175,7 +175,7 @@ export function MovementKpiCards({ movements = [], isLoading }: MovementKpiCards
 
             {/* Middle: Prominent Count */}
             <div className="mt-4">
-              <h3 className="text-xl sm:text-xl font-black tracking-tight text-slate-900">
+              <h3 className="text-lg sm:text-xl font-semibold tracking-tight text-slate-900">
                 {formatNumber(period.pairs)} Pairs
               </h3>
             </div>
@@ -209,7 +209,7 @@ export function MovementKpiCards({ movements = [], isLoading }: MovementKpiCards
 
             {/* Middle: Prominent Count */}
             <div className="mt-4">
-              <h3 className="text-xl sm:text-xl font-black tracking-tight text-slate-900">
+              <h3 className="text-lg sm:text-xl font-semibold tracking-tight text-slate-900">
                 {formatNumber(period.pairs)} Pairs
               </h3>
             </div>

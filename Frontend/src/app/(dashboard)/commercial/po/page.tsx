@@ -48,8 +48,8 @@ export default function PoPage() {
   const buyers: any[] = Array.isArray(buyersData?.data)
     ? buyersData.data
     : Array.isArray(buyersData)
-    ? buyersData
-    : [];
+      ? buyersData
+      : [];
 
   // Fetch PO List
   const { data, isLoading, isFetching } = useQuery({
@@ -103,8 +103,8 @@ export default function PoPage() {
   const rawPos: PO[] = Array.isArray(data?.data)
     ? data.data
     : Array.isArray(data)
-    ? data
-    : [];
+      ? data
+      : [];
 
   // Client-side refinement for NO_LC or other specifics
   const pos = rawPos.filter((po) => {
@@ -165,7 +165,7 @@ export default function PoPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-10">
+    <div className="space-y-6 mx-auto pb-10">
       {/* Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -295,21 +295,21 @@ export default function PoPage() {
             action={
               search || statusFilter || buyerFilter || lcFilter
                 ? {
-                    label: 'Reset Filters',
-                    onClick: () => {
-                      setSearch('');
-                      setStatusFilter('');
-                      setBuyerFilter('');
-                      setLcFilter('');
-                      setPage(1);
-                    },
-                    variant: 'secondary',
-                  }
+                  label: 'Reset Filters',
+                  onClick: () => {
+                    setSearch('');
+                    setStatusFilter('');
+                    setBuyerFilter('');
+                    setLcFilter('');
+                    setPage(1);
+                  },
+                  variant: 'secondary',
+                }
                 : {
-                    label: 'Create PO',
-                    onClick: handleOpenCreate,
-                    icon: <Plus className="h-3.5 w-3.5" />,
-                  }
+                  label: 'Create PO',
+                  onClick: handleOpenCreate,
+                  icon: <Plus className="h-3.5 w-3.5" />,
+                }
             }
           />
         ) : (
@@ -331,9 +331,8 @@ export default function PoPage() {
                   return (
                     <tr
                       key={po.id}
-                      className={`hover:bg-slate-50/70 transition-colors ${
-                        isCancelled ? 'bg-slate-50/40 opacity-70' : ''
-                      }`}
+                      className={`hover:bg-slate-50/70 transition-colors ${isCancelled ? 'bg-slate-50/40 opacity-70' : ''
+                        }`}
                     >
                       {/* PO Number */}
                       <td className="px-5 py-4 font-mono font-bold text-slate-900">

@@ -12,7 +12,7 @@ export default function DashboardPage() {
   const { data, isLoading } = useDashboardData();
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-10">
+    <div className="space-y-6 mx-auto pb-10">
       {/* 1. Inward and Outward Movement Cards */}
       <MovementKpiCards movements={data?.movements} isLoading={isLoading} />
 

@@ -112,17 +112,17 @@ export default function CurrentStockPage() {
 
   const warehouses: Warehouse[] = Array.isArray(whData?.data) ? whData.data : Array.isArray(whData) ? whData : [];
   const colors: any[] = Array.isArray(colorsData?.data) ? colorsData.data : Array.isArray(colorsData) ? colorsData : [];
-  
+
   // Normalized Batches with Client-Side Filter
   const rawBatches: any[] = Array.isArray(batchesData?.data)
     ? batchesData.data
     : Array.isArray(batchesData)
-    ? batchesData
-    : [];
+      ? batchesData
+      : [];
 
   const batches = rawBatches.filter((b) => {
     const items: any[] = b.batchItems || [];
-    
+
     // Color filter
     if (colorFilter) {
       const hasColor = items.some(
@@ -172,8 +172,8 @@ export default function CurrentStockPage() {
   const rawStockItems: any[] = Array.isArray(stockData?.data)
     ? stockData.data
     : Array.isArray(stockData)
-    ? stockData
-    : [];
+      ? stockData
+      : [];
 
   const stockItems = rawStockItems.filter((item) => {
     // Color filter
@@ -189,9 +189,9 @@ export default function CurrentStockPage() {
     if (genderFilter) {
       const g = String(
         item.product?.masterProduct?.gender ||
-          item.masterProduct?.gender ||
-          item.gender ||
-          '',
+        item.masterProduct?.gender ||
+        item.gender ||
+        '',
       ).toUpperCase();
       const target = genderFilter.toUpperCase();
       if (target === 'FEMALE' || target === 'LADY') {
@@ -240,7 +240,7 @@ export default function CurrentStockPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-16">
+    <div className="space-y-6 mx-auto pb-16">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -262,11 +262,10 @@ export default function CurrentStockPage() {
           <button
             type="button"
             onClick={() => setViewMode('batches')}
-            className={`inline-flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-xs font-bold transition cursor-pointer ${
-              viewMode === 'batches'
+            className={`inline-flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-xs font-bold transition cursor-pointer ${viewMode === 'batches'
                 ? 'bg-[#3b66b7] text-white shadow-md shadow-[#3b66b7]/20'
                 : 'text-slate-600 hover:text-slate-900'
-            }`}
+              }`}
           >
             <Boxes className="h-3.5 w-3.5" />
             <span>📦 By Batches (Grouped)</span>
@@ -274,11 +273,10 @@ export default function CurrentStockPage() {
           <button
             type="button"
             onClick={() => setViewMode('items')}
-            className={`inline-flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-xs font-bold transition cursor-pointer ${
-              viewMode === 'items'
+            className={`inline-flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-xs font-bold transition cursor-pointer ${viewMode === 'items'
                 ? 'bg-[#3b66b7] text-white shadow-md shadow-[#3b66b7]/20'
                 : 'text-slate-600 hover:text-slate-900'
-            }`}
+              }`}
           >
             <Layers className="h-3.5 w-3.5" />
             <span>🏷️ All Items & Locations</span>
@@ -329,9 +327,8 @@ export default function CurrentStockPage() {
         {/* Low Stock / Status */}
         <div
           onClick={() => viewMode === 'items' && setLowStockOnly(!lowStockOnly)}
-          className={`card-giant p-5 transition ${
-            viewMode === 'items' ? 'cursor-pointer hover:border-amber-400' : ''
-          } ${lowStockOnly ? 'border-amber-400 bg-amber-50/50' : ''}`}
+          className={`card-giant p-5 transition ${viewMode === 'items' ? 'cursor-pointer hover:border-amber-400' : ''
+            } ${lowStockOnly ? 'border-amber-400 bg-amber-50/50' : ''}`}
         >
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-amber-700">
@@ -471,14 +468,14 @@ export default function CurrentStockPage() {
               action={
                 search || colorFilter || genderFilter || warehouseFilter
                   ? {
-                      label: 'Reset Filters',
-                      onClick: handleResetFilters,
-                      variant: 'secondary',
-                    }
+                    label: 'Reset Filters',
+                    onClick: handleResetFilters,
+                    variant: 'secondary',
+                  }
                   : {
-                      label: 'Go to Stock-In',
-                      href: '/inventory/stock-in',
-                    }
+                    label: 'Go to Stock-In',
+                    href: '/inventory/stock-in',
+                  }
               }
             />
           ) : (
@@ -517,9 +514,8 @@ export default function CurrentStockPage() {
                           {/* Master Batch Row */}
                           <tr
                             onClick={() => toggleBatchExpand(batch.id)}
-                            className={`hover:bg-slate-50/80 transition-colors cursor-pointer ${
-                              isExpanded ? 'bg-blue-50/30' : ''
-                            }`}
+                            className={`hover:bg-slate-50/80 transition-colors cursor-pointer ${isExpanded ? 'bg-blue-50/30' : ''
+                              }`}
                           >
                             {/* Expand Toggle */}
                             <td className="px-4 py-3.5 text-slate-400">
@@ -739,16 +735,16 @@ export default function CurrentStockPage() {
                 lowStockOnly
                   ? 'Great! No shoe sizes or variants are currently below the low stock threshold.'
                   : search || colorFilter || genderFilter || warehouseFilter
-                  ? 'No variant inventory matches your active filter criteria.'
-                  : 'Receive incoming goods batches to build up real-time stock balances.'
+                    ? 'No variant inventory matches your active filter criteria.'
+                    : 'Receive incoming goods batches to build up real-time stock balances.'
               }
               action={
                 lowStockOnly || search || colorFilter || genderFilter || warehouseFilter
                   ? {
-                      label: 'Reset Filters',
-                      onClick: handleResetFilters,
-                      variant: 'secondary',
-                    }
+                    label: 'Reset Filters',
+                    onClick: handleResetFilters,
+                    variant: 'secondary',
+                  }
                   : undefined
               }
             />

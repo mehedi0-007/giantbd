@@ -207,7 +207,7 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto pb-16">
+    <div className="space-y-6 mx-auto pb-16">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-slate-900">
@@ -335,11 +335,10 @@ export default function ProfilePage() {
 
             {profileMsg && (
               <div
-                className={`flex items-center gap-2 rounded-xl p-3 text-xs ${
-                  profileMsg.type === 'success'
-                    ? 'border border-emerald-200 bg-emerald-50 text-emerald-800'
-                    : 'border border-red-200 bg-red-50 text-red-800'
-                }`}
+                className={`flex items-center gap-2 rounded-xl p-3 text-xs ${profileMsg.type === 'success'
+                  ? 'border border-emerald-200 bg-emerald-50 text-emerald-800'
+                  : 'border border-red-200 bg-red-50 text-red-800'
+                  }`}
               >
                 {profileMsg.type === 'success' ? (
                   <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
@@ -431,11 +430,10 @@ export default function ProfilePage() {
 
             {twoFAMsg && (
               <div
-                className={`flex items-center gap-2 rounded-xl p-3 text-xs ${
-                  twoFAMsg.type === 'success'
-                    ? 'border border-emerald-200 bg-emerald-50 text-emerald-800'
-                    : 'border border-red-200 bg-red-50 text-red-800'
-                }`}
+                className={`flex items-center gap-2 rounded-xl p-3 text-xs ${twoFAMsg.type === 'success'
+                  ? 'border border-emerald-200 bg-emerald-50 text-emerald-800'
+                  : 'border border-red-200 bg-red-50 text-red-800'
+                  }`}
               >
                 {twoFAMsg.type === 'success' ? (
                   <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
@@ -466,14 +464,12 @@ export default function ProfilePage() {
                     type="button"
                     disabled={isUpdating2FA}
                     onClick={() => handleToggle2FA(!currentUser.isTwoFactorEnabled)}
-                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden disabled:opacity-50 ${
-                      currentUser.isTwoFactorEnabled ? 'bg-[#3b66b7]' : 'bg-slate-300'
-                    }`}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden disabled:opacity-50 ${currentUser.isTwoFactorEnabled ? 'bg-[#3b66b7]' : 'bg-slate-300'
+                      }`}
                   >
                     <span
-                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
-                        currentUser.isTwoFactorEnabled ? 'translate-x-5' : 'translate-x-0'
-                      }`}
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${currentUser.isTwoFactorEnabled ? 'translate-x-5' : 'translate-x-0'
+                        }`}
                     />
                   </button>
                 )}
@@ -490,11 +486,10 @@ export default function ProfilePage() {
 
             {passwordMsg && (
               <div
-                className={`flex items-center gap-2 rounded-xl p-3 text-xs ${
-                  passwordMsg.type === 'success'
-                    ? 'border border-emerald-200 bg-emerald-50 text-emerald-800'
-                    : 'border border-red-200 bg-red-50 text-red-800'
-                }`}
+                className={`flex items-center gap-2 rounded-xl p-3 text-xs ${passwordMsg.type === 'success'
+                  ? 'border border-emerald-200 bg-emerald-50 text-emerald-800'
+                  : 'border border-red-200 bg-red-50 text-red-800'
+                  }`}
               >
                 {passwordMsg.type === 'success' ? (
                   <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />

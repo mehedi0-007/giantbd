@@ -74,26 +74,26 @@ export default function AttributesPage() {
   const categories: Category[] = Array.isArray(categoriesData?.data)
     ? categoriesData.data
     : Array.isArray(categoriesData)
-    ? categoriesData
-    : [];
+      ? categoriesData
+      : [];
 
   const subCategories: SubCategory[] = Array.isArray(subCategoriesData?.data)
     ? subCategoriesData.data
     : Array.isArray(subCategoriesData)
-    ? subCategoriesData
-    : [];
+      ? subCategoriesData
+      : [];
 
   const colors: Color[] = Array.isArray(colorsData?.data)
     ? colorsData.data
     : Array.isArray(colorsData)
-    ? colorsData
-    : [];
+      ? colorsData
+      : [];
 
   const materials: Material[] = Array.isArray(materialsData?.data)
     ? materialsData.data
     : Array.isArray(materialsData)
-    ? materialsData
-    : [];
+      ? materialsData
+      : [];
 
   // Open Modal Helpers
   const handleOpenAdd = () => {
@@ -197,7 +197,7 @@ export default function AttributesPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-12">
+    <div className="space-y-6 mx-auto pb-12">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -229,11 +229,10 @@ export default function AttributesPage() {
         <button
           type="button"
           onClick={() => setActiveTab('categories')}
-          className={`flex items-center gap-2 border-b-2 px-4 py-3 text-xs font-bold transition cursor-pointer ${
-            activeTab === 'categories'
+          className={`flex items-center gap-2 border-b-2 px-4 py-3 text-xs font-bold transition cursor-pointer ${activeTab === 'categories'
               ? 'border-[#3b66b7] text-[#3b66b7]'
               : 'border-transparent text-slate-500 hover:text-slate-700'
-          }`}
+            }`}
         >
           <FolderTree className="h-4 w-4" />
           <span>Categories ({categories.length})</span>
@@ -242,11 +241,10 @@ export default function AttributesPage() {
         <button
           type="button"
           onClick={() => setActiveTab('subcategories')}
-          className={`flex items-center gap-2 border-b-2 px-4 py-3 text-xs font-bold transition cursor-pointer ${
-            activeTab === 'subcategories'
+          className={`flex items-center gap-2 border-b-2 px-4 py-3 text-xs font-bold transition cursor-pointer ${activeTab === 'subcategories'
               ? 'border-[#3b66b7] text-[#3b66b7]'
               : 'border-transparent text-slate-500 hover:text-slate-700'
-          }`}
+            }`}
         >
           <Layers className="h-4 w-4" />
           <span>Sub-Categories ({subCategories.length})</span>
@@ -255,11 +253,10 @@ export default function AttributesPage() {
         <button
           type="button"
           onClick={() => setActiveTab('colors')}
-          className={`flex items-center gap-2 border-b-2 px-4 py-3 text-xs font-bold transition cursor-pointer ${
-            activeTab === 'colors'
+          className={`flex items-center gap-2 border-b-2 px-4 py-3 text-xs font-bold transition cursor-pointer ${activeTab === 'colors'
               ? 'border-[#3b66b7] text-[#3b66b7]'
               : 'border-transparent text-slate-500 hover:text-slate-700'
-          }`}
+            }`}
         >
           <Palette className="h-4 w-4" />
           <span>Colors ({colors.length})</span>
@@ -268,11 +265,10 @@ export default function AttributesPage() {
         <button
           type="button"
           onClick={() => setActiveTab('materials')}
-          className={`flex items-center gap-2 border-b-2 px-4 py-3 text-xs font-bold transition cursor-pointer ${
-            activeTab === 'materials'
+          className={`flex items-center gap-2 border-b-2 px-4 py-3 text-xs font-bold transition cursor-pointer ${activeTab === 'materials'
               ? 'border-[#3b66b7] text-[#3b66b7]'
               : 'border-transparent text-slate-500 hover:text-slate-700'
-          }`}
+            }`}
         >
           <Shield className="h-4 w-4" />
           <span>Materials ({materials.length})</span>
@@ -300,71 +296,70 @@ export default function AttributesPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs min-w-[600px]">
                 <thead className="sticky top-0 z-10 border-b border-slate-100 bg-slate-50/95 backdrop-blur-xs text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                <tr>
-                  <th className="px-6 py-3.5">Category Name</th>
-                  <th className="px-6 py-3.5">Sub-Categories Count</th>
-                  <th className="px-6 py-3.5">Status</th>
-                  <th className="px-6 py-3.5 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
-                {categories.map((c) => {
-                  const isDel = c.status === 'DELETED';
-                  return (
-                    <tr key={c.id} className="hover:bg-slate-50/70">
-                      <td className="px-6 py-4 font-bold text-slate-900">{c.name}</td>
-                      <td className="px-6 py-4 text-slate-600">
-                        {c._count?.subCategories || c.subCategories?.length || 0} items
-                      </td>
-                      <td className="px-6 py-4">
-                        <span
-                          className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
-                            isDel
-                              ? 'bg-slate-100 text-slate-600'
-                              : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                          }`}
-                        >
-                          {c.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        {!isDel ? (
-                          <div className="flex items-center justify-end gap-1.5">
-                            <button
-                              type="button"
-                              onClick={() => handleOpenEdit(c)}
-                              aria-label={`Edit category ${c.name}`}
-                              className="p-2 text-slate-400 hover:text-blue-600 transition cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg hover:bg-blue-50"
-                            >
-                              <Edit2 className="h-4 w-4" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setItemToDelete({ id: c.id, name: c.name })}
-                              aria-label={`Delete category ${c.name}`}
-                              className="p-2 text-slate-400 hover:text-red-600 transition cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg hover:bg-red-50"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => handleRestore(c.id)}
-                            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-emerald-600 hover:bg-emerald-50 transition cursor-pointer min-h-[36px]"
+                  <tr>
+                    <th className="px-6 py-3.5">Category Name</th>
+                    <th className="px-6 py-3.5">Sub-Categories Count</th>
+                    <th className="px-6 py-3.5">Status</th>
+                    <th className="px-6 py-3.5 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
+                  {categories.map((c) => {
+                    const isDel = c.status === 'DELETED';
+                    return (
+                      <tr key={c.id} className="hover:bg-slate-50/70">
+                        <td className="px-6 py-4 font-bold text-slate-900">{c.name}</td>
+                        <td className="px-6 py-4 text-slate-600">
+                          {c._count?.subCategories || c.subCategories?.length || 0} items
+                        </td>
+                        <td className="px-6 py-4">
+                          <span
+                            className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${isDel
+                                ? 'bg-slate-100 text-slate-600'
+                                : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                              }`}
                           >
-                            <RotateCcw className="h-3.5 w-3.5" />
-                            <span>Restore</span>
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        ))}
+                            {c.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          {!isDel ? (
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => handleOpenEdit(c)}
+                                aria-label={`Edit category ${c.name}`}
+                                className="p-2 text-slate-400 hover:text-blue-600 transition cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg hover:bg-blue-50"
+                              >
+                                <Edit2 className="h-4 w-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setItemToDelete({ id: c.id, name: c.name })}
+                                aria-label={`Delete category ${c.name}`}
+                                className="p-2 text-slate-400 hover:text-red-600 transition cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg hover:bg-red-50"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleRestore(c.id)}
+                              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-emerald-600 hover:bg-emerald-50 transition cursor-pointer min-h-[36px]"
+                            >
+                              <RotateCcw className="h-3.5 w-3.5" />
+                              <span>Restore</span>
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ))}
 
         {/* 2. SUB-CATEGORIES */}
         {activeTab === 'subcategories' && (
@@ -385,73 +380,72 @@ export default function AttributesPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs min-w-[600px]">
                 <thead className="sticky top-0 z-10 border-b border-slate-100 bg-slate-50/95 backdrop-blur-xs text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                <tr>
-                  <th className="px-6 py-3.5">Sub-Category Name</th>
-                  <th className="px-6 py-3.5">Parent Category</th>
-                  <th className="px-6 py-3.5">Status</th>
-                  <th className="px-6 py-3.5 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
-                {subCategories.map((s) => {
-                  const isDel = s.status === 'DELETED';
-                  return (
-                    <tr key={s.id} className="hover:bg-slate-50/70">
-                      <td className="px-6 py-4 font-bold text-slate-900">{s.name}</td>
-                      <td className="px-6 py-4">
-                        <span className="rounded-md bg-slate-100 px-2 py-0.5 text-slate-700 font-semibold">
-                          {s.category?.name || 'Category'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span
-                          className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
-                            isDel
-                              ? 'bg-slate-100 text-slate-600'
-                              : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                          }`}
-                        >
-                          {s.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        {!isDel ? (
-                          <div className="flex items-center justify-end gap-1.5">
-                            <button
-                              type="button"
-                              onClick={() => handleOpenEdit(s)}
-                              aria-label={`Edit subcategory ${s.name}`}
-                              className="p-2 text-slate-400 hover:text-blue-600 transition cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg hover:bg-blue-50"
-                            >
-                              <Edit2 className="h-4 w-4" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setItemToDelete({ id: s.id, name: s.name })}
-                              aria-label={`Delete subcategory ${s.name}`}
-                              className="p-2 text-slate-400 hover:text-red-600 transition cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg hover:bg-red-50"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => handleRestore(s.id)}
-                            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-emerald-600 hover:bg-emerald-50 transition cursor-pointer min-h-[36px]"
+                  <tr>
+                    <th className="px-6 py-3.5">Sub-Category Name</th>
+                    <th className="px-6 py-3.5">Parent Category</th>
+                    <th className="px-6 py-3.5">Status</th>
+                    <th className="px-6 py-3.5 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
+                  {subCategories.map((s) => {
+                    const isDel = s.status === 'DELETED';
+                    return (
+                      <tr key={s.id} className="hover:bg-slate-50/70">
+                        <td className="px-6 py-4 font-bold text-slate-900">{s.name}</td>
+                        <td className="px-6 py-4">
+                          <span className="rounded-md bg-slate-100 px-2 py-0.5 text-slate-700 font-semibold">
+                            {s.category?.name || 'Category'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span
+                            className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${isDel
+                                ? 'bg-slate-100 text-slate-600'
+                                : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                              }`}
                           >
-                            <RotateCcw className="h-3.5 w-3.5" />
-                            <span>Restore</span>
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        ))}
+                            {s.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          {!isDel ? (
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => handleOpenEdit(s)}
+                                aria-label={`Edit subcategory ${s.name}`}
+                                className="p-2 text-slate-400 hover:text-blue-600 transition cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg hover:bg-blue-50"
+                              >
+                                <Edit2 className="h-4 w-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setItemToDelete({ id: s.id, name: s.name })}
+                                aria-label={`Delete subcategory ${s.name}`}
+                                className="p-2 text-slate-400 hover:text-red-600 transition cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg hover:bg-red-50"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleRestore(s.id)}
+                              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-emerald-600 hover:bg-emerald-50 transition cursor-pointer min-h-[36px]"
+                            >
+                              <RotateCcw className="h-3.5 w-3.5" />
+                              <span>Restore</span>
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ))}
 
         {/* 3. COLORS */}
         {activeTab === 'colors' && (
@@ -472,77 +466,76 @@ export default function AttributesPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs min-w-[600px]">
                 <thead className="sticky top-0 z-10 border-b border-slate-100 bg-slate-50/95 backdrop-blur-xs text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                <tr>
-                  <th className="px-6 py-3.5">Color Name</th>
-                  <th className="px-6 py-3.5">HEX Code & Swatch</th>
-                  <th className="px-6 py-3.5">Status</th>
-                  <th className="px-6 py-3.5 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
-                {colors.map((c) => {
-                  const isDel = c.status === 'DELETED';
-                  return (
-                    <tr key={c.id} className="hover:bg-slate-50/70">
-                      <td className="px-6 py-4 font-bold text-slate-900">{c.name}</td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <span
-                            className="h-5 w-5 rounded-full border border-slate-300 shadow-xs"
-                            style={{ backgroundColor: c.code || '#cccccc' }}
-                          />
-                          <span className="font-mono text-slate-600">{c.code || 'N/A'}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span
-                          className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
-                            isDel
-                              ? 'bg-slate-100 text-slate-600'
-                              : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                          }`}
-                        >
-                          {c.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        {!isDel ? (
-                          <div className="flex items-center justify-end gap-1.5">
-                            <button
-                              type="button"
-                              onClick={() => handleOpenEdit(c)}
-                              aria-label={`Edit color ${c.name}`}
-                              className="p-2 text-slate-400 hover:text-blue-600 transition cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg hover:bg-blue-50"
-                            >
-                              <Edit2 className="h-4 w-4" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setItemToDelete({ id: c.id, name: c.name })}
-                              aria-label={`Delete color ${c.name}`}
-                              className="p-2 text-slate-400 hover:text-red-600 transition cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg hover:bg-red-50"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
+                  <tr>
+                    <th className="px-6 py-3.5">Color Name</th>
+                    <th className="px-6 py-3.5">HEX Code & Swatch</th>
+                    <th className="px-6 py-3.5">Status</th>
+                    <th className="px-6 py-3.5 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
+                  {colors.map((c) => {
+                    const isDel = c.status === 'DELETED';
+                    return (
+                      <tr key={c.id} className="hover:bg-slate-50/70">
+                        <td className="px-6 py-4 font-bold text-slate-900">{c.name}</td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            <span
+                              className="h-5 w-5 rounded-full border border-slate-300 shadow-xs"
+                              style={{ backgroundColor: c.code || '#cccccc' }}
+                            />
+                            <span className="font-mono text-slate-600">{c.code || 'N/A'}</span>
                           </div>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => handleRestore(c.id)}
-                            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-emerald-600 hover:bg-emerald-50 transition cursor-pointer min-h-[36px]"
+                        </td>
+                        <td className="px-6 py-4">
+                          <span
+                            className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${isDel
+                                ? 'bg-slate-100 text-slate-600'
+                                : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                              }`}
                           >
-                            <RotateCcw className="h-3.5 w-3.5" />
-                            <span>Restore</span>
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        ))}
+                            {c.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          {!isDel ? (
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => handleOpenEdit(c)}
+                                aria-label={`Edit color ${c.name}`}
+                                className="p-2 text-slate-400 hover:text-blue-600 transition cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg hover:bg-blue-50"
+                              >
+                                <Edit2 className="h-4 w-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setItemToDelete({ id: c.id, name: c.name })}
+                                aria-label={`Delete color ${c.name}`}
+                                className="p-2 text-slate-400 hover:text-red-600 transition cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg hover:bg-red-50"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleRestore(c.id)}
+                              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-emerald-600 hover:bg-emerald-50 transition cursor-pointer min-h-[36px]"
+                            >
+                              <RotateCcw className="h-3.5 w-3.5" />
+                              <span>Restore</span>
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ))}
 
         {/* 4. MATERIALS */}
         {activeTab === 'materials' && (
@@ -563,67 +556,66 @@ export default function AttributesPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs min-w-[600px]">
                 <thead className="sticky top-0 z-10 border-b border-slate-100 bg-slate-50/95 backdrop-blur-xs text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                <tr>
-                  <th className="px-6 py-3.5">Material Name</th>
-                  <th className="px-6 py-3.5">Status</th>
-                  <th className="px-6 py-3.5 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
-                {materials.map((m) => {
-                  const isDel = m.status === 'DELETED';
-                  return (
-                    <tr key={m.id} className="hover:bg-slate-50/70">
-                      <td className="px-6 py-4 font-bold text-slate-900">{m.name}</td>
-                      <td className="px-6 py-4">
-                        <span
-                          className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
-                            isDel
-                              ? 'bg-slate-100 text-slate-600'
-                              : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                          }`}
-                        >
-                          {m.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        {!isDel ? (
-                          <div className="flex items-center justify-end gap-1.5">
-                            <button
-                              type="button"
-                              onClick={() => handleOpenEdit(m)}
-                              aria-label={`Edit material ${m.name}`}
-                              className="p-2 text-slate-400 hover:text-blue-600 transition cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg hover:bg-blue-50"
-                            >
-                              <Edit2 className="h-4 w-4" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setItemToDelete({ id: m.id, name: m.name })}
-                              aria-label={`Delete material ${m.name}`}
-                              className="p-2 text-slate-400 hover:text-red-600 transition cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg hover:bg-red-50"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => handleRestore(m.id)}
-                            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-emerald-600 hover:bg-emerald-50 transition cursor-pointer min-h-[36px]"
+                  <tr>
+                    <th className="px-6 py-3.5">Material Name</th>
+                    <th className="px-6 py-3.5">Status</th>
+                    <th className="px-6 py-3.5 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
+                  {materials.map((m) => {
+                    const isDel = m.status === 'DELETED';
+                    return (
+                      <tr key={m.id} className="hover:bg-slate-50/70">
+                        <td className="px-6 py-4 font-bold text-slate-900">{m.name}</td>
+                        <td className="px-6 py-4">
+                          <span
+                            className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${isDel
+                                ? 'bg-slate-100 text-slate-600'
+                                : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                              }`}
                           >
-                            <RotateCcw className="h-3.5 w-3.5" />
-                            <span>Restore</span>
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        ))}
+                            {m.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          {!isDel ? (
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => handleOpenEdit(m)}
+                                aria-label={`Edit material ${m.name}`}
+                                className="p-2 text-slate-400 hover:text-blue-600 transition cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg hover:bg-blue-50"
+                              >
+                                <Edit2 className="h-4 w-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setItemToDelete({ id: m.id, name: m.name })}
+                                aria-label={`Delete material ${m.name}`}
+                                className="p-2 text-slate-400 hover:text-red-600 transition cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg hover:bg-red-50"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleRestore(m.id)}
+                              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-emerald-600 hover:bg-emerald-50 transition cursor-pointer min-h-[36px]"
+                            >
+                              <RotateCcw className="h-3.5 w-3.5" />
+                              <span>Restore</span>
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ))}
       </div>
 
       {/* Create / Edit Attribute Modal */}
@@ -679,15 +671,14 @@ export default function AttributesPage() {
               aria-required="true"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder={`e.g. ${
-                activeTab === 'categories'
+              placeholder={`e.g. ${activeTab === 'categories'
                   ? 'Footwear'
                   : activeTab === 'colors'
-                  ? 'Navy Blue'
-                  : activeTab === 'materials'
-                  ? 'Synthetic Leather'
-                  : 'Running Shoes'
-              }`}
+                    ? 'Navy Blue'
+                    : activeTab === 'materials'
+                      ? 'Synthetic Leather'
+                      : 'Running Shoes'
+                }`}
               className="input-giant"
             />
           </div>
