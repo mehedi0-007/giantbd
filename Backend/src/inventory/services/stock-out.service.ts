@@ -329,43 +329,51 @@ export class StockOutService {
         }),
       });
 
-      // 10. Update POItem shippedQuantity and PO/LC status
+      // 10. Auto-Upsert POItem records and update PO status / totalQuantity
       if (dto.poId) {
-        await Promise.all(
-          Array.from(variantQtyMap.entries()).map(([variantId, qty]) =>
-            tx.pOItem.updateMany({
-              where: { poId: dto.poId, variantProductId: variantId },
-              data: { shippedQuantity: { increment: qty } },
-            }),
-          ),
-        );
-
-        const poItems = await tx.pOItem.findMany({ where: { poId: dto.poId } });
-        if (poItems.length > 0) {
-          const isAllFulfilled = poItems.every((i) => i.shippedQuantity >= i.quantity);
-          const hasAnyShipment = poItems.some((i) => i.shippedQuantity > 0);
-
-          const updatedPo = await tx.pO.update({
-            where: { id: dto.poId },
-            data: {
-              status: isAllFulfilled
-                ? 'COMPLETED'
-                : hasAnyShipment
-                  ? 'PARTIALLY_SHIPPED'
-                  : undefined,
-            },
+        for (const [variantId, qty] of variantQtyMap.entries()) {
+          const existingPoItem = await tx.pOItem.findFirst({
+            where: { poId: dto.poId, variantProductId: variantId },
           });
 
-          if (isAllFulfilled && updatedPo.lcId) {
-            const lcPOs = await tx.pO.findMany({ where: { lcId: updatedPo.lcId } });
-            const isAllLcCompleted = lcPOs.every((p) => p.status === 'COMPLETED');
-            if (isAllLcCompleted) {
-              await tx.lC.update({
-                where: { id: updatedPo.lcId },
-                data: { status: 'FULFILLED' },
-              });
-            }
+          if (existingPoItem) {
+            await tx.pOItem.update({
+              where: { id: existingPoItem.id },
+              data: {
+                quantity: { increment: qty },
+                shippedQuantity: { increment: qty },
+              },
+            });
+          } else {
+            await tx.pOItem.create({
+              data: {
+                poId: dto.poId,
+                variantProductId: variantId,
+                quantity: qty,
+                shippedQuantity: qty,
+              },
+            });
           }
+        }
+
+        const poItems = await tx.pOItem.findMany({ where: { poId: dto.poId } });
+        const totalDispatchedQuantity = poItems.reduce((sum, item) => sum + item.shippedQuantity, 0);
+
+        const updatedPo = await tx.pO.update({
+          where: { id: dto.poId },
+          data: {
+            totalQuantity: totalDispatchedQuantity,
+            status: 'COMPLETED',
+          },
+        });
+
+        if (updatedPo.lcId) {
+          const lcPOs = await tx.pO.findMany({ where: { lcId: updatedPo.lcId } });
+          const isAllLcCompleted = lcPOs.length > 0 && lcPOs.every((p) => p.status === 'COMPLETED');
+          await tx.lC.update({
+            where: { id: updatedPo.lcId },
+            data: { status: isAllLcCompleted ? 'FULFILLED' : 'IN_PROGRESS' },
+          });
         }
       }
 

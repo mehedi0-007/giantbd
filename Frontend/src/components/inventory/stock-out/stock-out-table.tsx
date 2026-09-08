@@ -34,7 +34,7 @@ interface StockOutTableProps {
   totalCount: number;
   onPageChange: (p: number) => void;
   onPageSizeChange: (s: number) => void;
-  onOpenCreate: () => void;
+  onOpenCreate?: () => void;
   onPrintChallan: (c: StockOut) => void;
   onOpenDelivered: (c: StockOut) => void;
   onOpenPaymentSettle: (c: StockOut) => void;
@@ -180,11 +180,13 @@ export function StockOutTable({
                     onClick: onResetFilters,
                     variant: 'secondary',
                   }
-                : {
-                    label: 'Dispatch New Shipment',
-                    onClick: onOpenCreate,
-                    icon: <Plus className="h-3.5 w-3.5" />,
-                  }
+                : onOpenCreate
+                  ? {
+                      label: 'Dispatch New Shipment',
+                      onClick: onOpenCreate,
+                      icon: <Plus className="h-3.5 w-3.5" />,
+                    }
+                  : undefined
             }
           />
         ) : (

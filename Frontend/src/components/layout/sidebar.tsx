@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import NextLink from 'next/link';
 import { useAuthStore } from '@/store/auth.store';
@@ -21,14 +22,23 @@ import {
   UserCheck,
   User,
   Boxes,
+  ChevronDown,
   X,
 } from 'lucide-react';
 
-interface NavItem {
+interface NavSubItem {
   label: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
   permission?: string;
+}
+
+interface NavItem {
+  label: string;
+  href?: string;
+  icon: React.ComponentType<{ className?: string }>;
+  permission?: string;
+  subItems?: NavSubItem[];
 }
 
 interface NavSection {
@@ -38,12 +48,42 @@ interface NavSection {
 
 const navSections: NavSection[] = [
   {
-    title: 'Overview',
+    title: 'Warehouse FG',
     items: [
       {
-        label: 'Dashboard',
-        href: '/',
-        icon: LayoutDashboard,
+        label: 'Warehouse FG',
+        icon: Boxes,
+        subItems: [
+          {
+            label: 'Dashboard',
+            href: '/',
+            icon: LayoutDashboard,
+          },
+          {
+            label: 'Stock In',
+            href: '/inventory/stock-in',
+            icon: ArrowDownToLine,
+            permission: 'inventory:receive',
+          },
+          {
+            label: 'Stock Out',
+            href: '/inventory/stock-out',
+            icon: ArrowUpFromLine,
+            permission: 'inventory:issue',
+          },
+          {
+            label: 'Stock Out List',
+            href: '/inventory/stock-out-list',
+            icon: FileText,
+            permission: 'inventory:issue',
+          },
+          {
+            label: 'Current Stock',
+            href: '/inventory/stock',
+            icon: Layers,
+            permission: 'inventory:read',
+          },
+        ],
       },
     ],
   },
@@ -88,36 +128,13 @@ const navSections: NavSection[] = [
     ],
   },
   {
-    title: 'Warehouse',
+    title: 'Warehouse Operations',
     items: [
       {
-        label: 'Warehouses & Locations',
+        label: 'Warehouse & Location',
         href: '/warehouse',
         icon: Warehouse,
         permission: 'warehouse:read',
-      },
-    ],
-  },
-  {
-    title: 'Inventory Operations',
-    items: [
-      {
-        label: 'Stock-In (Receipts)',
-        href: '/inventory/stock-in',
-        icon: ArrowDownToLine,
-        permission: 'inventory:receive',
-      },
-      {
-        label: 'Stock-Out (Challans)',
-        href: '/inventory/stock-out',
-        icon: ArrowUpFromLine,
-        permission: 'inventory:issue',
-      },
-      {
-        label: 'Current Stock',
-        href: '/inventory/stock',
-        icon: Layers,
-        permission: 'inventory:read',
       },
       {
         label: 'Movements Ledger',
@@ -160,6 +177,20 @@ export function Sidebar({ mobileOpen = false, onClose }: SidebarProps) {
   const pathname = usePathname();
   const { hasPermission } = useAuthStore();
 
+  const warehouseFgPaths = ['/', '/inventory/stock-in', '/inventory/stock-out', '/inventory/stock-out-list', '/inventory/stock'];
+  const isCurrentlyInWarehouseFg = warehouseFgPaths.some((p) =>
+    p === '/' ? pathname === '/' : pathname.startsWith(p),
+  );
+
+  const [isWarehouseFgOpen, setIsWarehouseFgOpen] = useState(true);
+
+  // Ensure Warehouse FG is expanded if navigating into any of its subpages
+  useEffect(() => {
+    if (isCurrentlyInWarehouseFg) {
+      setIsWarehouseFgOpen(true);
+    }
+  }, [pathname, isCurrentlyInWarehouseFg]);
+
   const sidebarContent = (
     <div className="flex h-full flex-col bg-white">
       {/* Brand Header */}
@@ -182,7 +213,7 @@ export function Sidebar({ mobileOpen = false, onClose }: SidebarProps) {
       </div>
 
       {/* Navigation Links (Scrollable) */}
-      <div className="flex-1 overflow-y-auto px-3 py-4">
+      <div className="flex-1 overflow-y-auto gap-3 px-3 py-4 space-y-1">
         {navSections.map((section, idx) => {
           const visibleItems = section.items.filter((item) =>
             item.permission ? hasPermission(item.permission) : true,
@@ -192,30 +223,111 @@ export function Sidebar({ mobileOpen = false, onClose }: SidebarProps) {
 
           return (
             <div key={idx} className="mb-0.5 last:mb-0">
-              {/* <div className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-                {section.title}
-              </div> */}
               <div>
                 {visibleItems.map((item) => {
+                  const Icon = item.icon;
+
+                  // ACCORDION ITEM (e.g. Warehouse FG)
+                  if (item.subItems && item.subItems.length > 0) {
+                    const visibleSubItems = item.subItems.filter((sub) =>
+                      sub.permission ? hasPermission(sub.permission) : true,
+                    );
+
+                    if (visibleSubItems.length === 0) return null;
+
+                    return (
+                      <div key={item.label} className="my-1">
+                        <button
+                          type="button"
+                          onClick={() => setIsWarehouseFgOpen(!isWarehouseFgOpen)}
+                          className={cn(
+                            'group flex w-full items-center justify-between rounded-xl px-3 py-3.5 text-sm font-semibold transition-all duration-150 cursor-pointer',
+                            isCurrentlyInWarehouseFg
+                              ? 'text-[#3b66b7] bg-[#3b66b7]/8'
+                              : 'text-black font-medium hover:bg-slate-100/80 hover:text-slate-900',
+                          )}
+                        >
+                          <div className="flex items-center gap-3">
+                            <Icon
+                              className={cn(
+                                'h-4 w-4 shrink-0 transition-colors',
+                                isCurrentlyInWarehouseFg
+                                  ? 'text-[#3b66b7]'
+                                  : 'text-slate-400 group-hover:text-slate-600',
+                              )}
+                            />
+                            <span>{item.label}</span>
+                          </div>
+                          <ChevronDown
+                            className={cn(
+                              'h-4 w-4 text-slate-400 transition-transform duration-200',
+                              isWarehouseFgOpen ? 'rotate-0 text-[#3b66b7]' : '-rotate-90',
+                            )}
+                          />
+                        </button>
+
+                        {/* Collapsible Sub-Items */}
+                        {isWarehouseFgOpen && (
+                          <div className="mt-1 space-y-1 pl-3 border-l-2 border-slate-100 ml-5">
+                            {visibleSubItems.map((sub) => {
+                              const isSubActive =
+                                sub.href === '/'
+                                  ? pathname === '/'
+                                  : pathname === sub.href || pathname.startsWith(sub.href + '/');
+                              const SubIcon = sub.icon;
+
+                              return (
+                                <NextLink
+                                  key={sub.href}
+                                  href={sub.href}
+                                  onClick={() => {
+                                    if (onClose) onClose();
+                                  }}
+                                  className={cn(
+                                    'group flex items-center gap-2.5 rounded-xl px-3 py-3 text-sm transition-all duration-150',
+                                    isSubActive
+                                      ? 'bg-[#3b66b7] font-semibold text-white shadow-md shadow-[#3b66b7]/25'
+                                      : 'text-black font-medium hover:bg-[#3b66b7]/8 hover:text-[#3b66b7]',
+                                  )}
+                                >
+                                  <SubIcon
+                                    className={cn(
+                                      'h-3.5 w-3.5 shrink-0 transition-colors',
+                                      isSubActive
+                                        ? 'text-white'
+                                        : 'text-slate-400 group-hover:text-[#3b66b7]',
+                                    )}
+                                  />
+                                  <span>{sub.label}</span>
+                                </NextLink>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }
+
+                  // REGULAR SINGLE NAV LINK
                   const isActive =
                     item.href === '/'
                       ? pathname === '/'
-                      : pathname === item.href || pathname.startsWith(item.href + '/');
-
-                  const Icon = item.icon;
+                      : item.href
+                        ? pathname === item.href || pathname.startsWith(item.href + '/')
+                        : false;
 
                   return (
                     <NextLink
-                      key={item.href}
-                      href={item.href}
+                      key={item.label}
+                      href={item.href || '#'}
                       onClick={() => {
                         if (onClose) onClose();
                       }}
                       className={cn(
-                        'group flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition-all duration-150',
+                        'group flex items-center gap-4 rounded-xl px-3 py-3.5 text-sm transition-all duration-150',
                         isActive
                           ? 'bg-[#3b66b7] font-semibold text-white shadow-md shadow-[#3b66b7]/25'
-                          : 'text-slate-600 hover:bg-[#3b66b7]/8 hover:text-[#3b66b7]',
+                          : 'text-black font-medium hover:bg-[#3b66b7]/8 hover:text-[#3b66b7]',
                       )}
                     >
                       <Icon
@@ -235,9 +347,6 @@ export function Sidebar({ mobileOpen = false, onClose }: SidebarProps) {
           );
         })}
       </div>
-
-      {/* Footer System Status */}
-
     </div>
   );
 
